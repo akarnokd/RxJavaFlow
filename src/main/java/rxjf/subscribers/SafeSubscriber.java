@@ -13,10 +13,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package rxjf;
+package rxjf.subscribers;
 
-import java.util.concurrent.Flow.Subscription;
-import java.util.concurrent.Flow.*;
+import rxjf.Flow.*;
 
 /**
  *
@@ -56,6 +55,10 @@ public final class SafeSubscriber<T> implements Subscriber<T> {
         if (!done) {
             if (subscription == null) {
                 onError(new IllegalStateException("Subscription not set!")); // FIXME reference rule
+                return;
+            } else
+            if (item == null) {
+                onError(new NullPointerException());
                 return;
             }
             try {

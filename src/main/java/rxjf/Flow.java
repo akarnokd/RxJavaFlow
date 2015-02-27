@@ -4,9 +4,11 @@
  * http://creativecommons.org/publicdomain/zero/1.0/
  */
 
-package java.util.concurrent;
+package rxjf;
 
 import java.util.ArrayList;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.Executor;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.stream.Stream;
@@ -35,8 +37,8 @@ import java.util.stream.Stream;
  * simple publisher that only issues (when requested) a single {@code
  * TRUE} item to a single subscriber.  Because the subscriber receives
  * only a single item, this class does not use buffering and ordering
- * control required in most implementations (for example {@link
- * SubmissionPublisher}).
+ * control required in most implementations (for example 
+ * SubmissionPublisher).
  *
  * <pre> {@code
  * class OneShotPublisher implements Publisher<Boolean> {

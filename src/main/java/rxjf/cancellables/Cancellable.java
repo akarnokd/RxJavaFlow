@@ -13,25 +13,24 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package rxjf;
-
-import java.util.concurrent.TimeUnit;
+package rxjf.cancellables;
 
 /**
  *
  */
-public interface Scheduler {
-    /**
-     * 
-     */
-    interface Worker extends Cancellable {
-        
-        Cancellable schedule(Runnable task);
-        
-        Cancellable schedule(Runnable task, long delay, TimeUnit unit);
-        
-        Cancellable schedule(Runnable task, long initialDelay, long period, TimeUnit unit);
-    }
+public interface Cancellable {
     
-    Worker createWorker();
+    boolean isCancelled();
+    
+    void cancel();
+    
+    Cancellable CANCELLED = new Cancellable() {
+        @Override
+        public boolean isCancelled() {
+            return true;
+        }
+        @Override
+        public void cancel() {
+        }
+    };
 }

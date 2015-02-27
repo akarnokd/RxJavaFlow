@@ -13,12 +13,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package rxjf;
+package rxjf.subscribers;
 
 import java.util.*;
-import java.util.concurrent.Flow.Subscriber;
-import java.util.concurrent.Flow.Subscription;
 import java.util.function.*;
+
+import rxjf.Flow.Subscriber;
+import rxjf.Flow.Subscription;
 
 /**
  *
@@ -159,7 +160,7 @@ public final class SerializedSubscriber<T> implements Subscriber<T> {
     }
     @Override
     public void onError(Throwable throwable) {
-        handle(v -> actual.onComplete(), v -> v, null, MODE_ERROR);
+        handle(v -> actual.onError(v), ErrorToken::new, null, MODE_ERROR);
     }
     @Override
     public void onComplete() {
