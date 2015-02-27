@@ -1,0 +1,68 @@
+apply plugin: 'java'
+
+sourceCompatibility = '1.8'
+
+group = "com.github.akarnokd" 
+ext.githubProjectName = 'RxJavaFlow'
+
+[compileJava, compileTestJava]*.options*.encoding = 'UTF-8'
+
+if (!hasProperty('mainClass')) {
+    ext.mainClass = ''
+}
+
+
+
+apply from: file('gradle/maven.gradle')
+
+repositories {
+    mavenCentral()
+}
+
+apply plugin: 'maven'
+apply plugin: 'osgi'
+
+dependencies {
+    testCompile group: 'junit', name: 'junit', version: '4.12'
+    testCompile 'org.mockito:mockito-core:1.10.19'
+}
+
+task sourcesJar(type: Jar, dependsOn: classes) {
+    classifier = 'sources'
+    from sourceSets.main.allSource
+}
+
+task javadocJar(type: Jar, dependsOn: javadoc) {
+    classifier = 'javadoc'
+    from javadoc.destinationDir
+}
+
+artifacts {
+	archives jar
+    archives sourcesJar
+    archives javadocJar
+}
+
+jar {
+    manifest {
+        name = 'RxJavaFlow'
+        instruction 'Bundle-Vendor', 'akarnokd'
+        instruction 'Bundle-DocURL', 'https://github.com/akarnokd/RxJavaFlow'
+        instruction 'Import-Package', '!org.junit,!junit.framework,!org.mockito.*,*'
+        instruction 'Eclipse-ExtensibleAPI', 'true'
+    }
+}
+
+buildscript {
+    repositories {
+        mavenCentral()
+    }
+
+    dependencies {
+        classpath 'nl.javadude.gradle.plugins:license-gradle-plugin:0.9.0'
+    }
+}
+
+apply plugin: 'license'
+
+apply from: file('gradle/license.gradle')
