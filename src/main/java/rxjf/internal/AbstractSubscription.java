@@ -135,9 +135,20 @@ public abstract class AbstractSubscription implements Subscription, Cancellable,
             }
         };
     }
-    static final AbstractSubscription EMPTY = create((r, s) -> { });
+    static final Subscription EMPTY = new Subscription() {
+        @Override
+        public void request(long n) {
+            if (n < 0) {
+                throw new IllegalArgumentException("Negative request: " + n);
+            }
+        }
+        @Override
+        public void cancel() {
+            
+        }
+    };
     
-    public static AbstractSubscription createEmpty() {
+    public static Subscription empty() {
         return EMPTY;
     }
 }

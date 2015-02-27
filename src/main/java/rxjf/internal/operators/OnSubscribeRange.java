@@ -16,57 +16,58 @@
 
 package rxjf.internal.operators;
 
-import java.util.Objects;
-
 import rxjf.Flow.Subscriber;
 import rxjf.internal.AbstractSubscription;
 
 /**
  * 
  */
-public final class OnSubscribeArray<T> implements OnSubscribe<T> {
-    final T[] array;
-    @SafeVarargs
-    public OnSubscribeArray(T... array) {
-        this.array = Objects.requireNonNull(array);
+public final class OnSubscribeRange implements OnSubscribe<Integer> {
+    final int start;
+    final int count;
+    public OnSubscribeRange(int start, int count) {
+        this.start = start;
+        this.count = count;
     }
     @Override
-    public void accept(Subscriber<? super T> t) {
-        if (array.length == 0) {
-            t.onSubscribe(AbstractSubscription.empty());
-            t.onComplete();
-            return;
-        }
-        t.onSubscribe(new AbstractSubscription() {
-            int index = 0;
+    public void accept(Subscriber<? super Integer> child) {
+        int c = count;
+        int s = start;
+        child.onSubscribe(new AbstractSubscription() {
+            int remaining = c;
+            int value = s;
             @Override
             protected void onRequested(long n) {
+                int v = value;
+                int r = remaining;
                 if (n == Long.MAX_VALUE) {
-                    for (T e : array) {
+                    while (r > 0) {
                         if (isCancelled()) {
                             return;
                         }
-                        t.onNext(e);
+                        child.onNext(v++);
+                        r--;
                     }
-                    t.onComplete();
+                    child.onComplete();
                     return;
                 }
                 long r0 = n;
-                T[] a = array;
                 for (;;) {
                     long c = r0;
-                    while (r0 > 0 && index < a.length) {
+                    while (r0 > 0 && r > 0) {
                         if (isCancelled()) {
                             return;
                         }
-                        t.onNext(a[index]);
+                        child.onNext(v++);
                         r0--;
-                        index++;
+                        r--;
                     }
-                    if (index == a.length) {
-                        t.onComplete();
+                    if (r == 0) {
+                        child.onComplete();
                         break;
                     } else {
+                        value = v;
+                        remaining = r;
                         r0 = produced(c);
                     }
                     if (r0 == 0) {

@@ -18,7 +18,6 @@ package rxjf.internal.operators;
 
 import java.util.Iterator;
 import java.util.Objects;
-import java.util.function.Consumer;
 
 import rxjf.Flow.Subscriber;
 import rxjf.internal.AbstractSubscription;
@@ -26,7 +25,7 @@ import rxjf.internal.AbstractSubscription;
 /**
  * 
  */
-public final class OnSubscribeIterable<T> implements Consumer<Subscriber<? super T>> {
+public final class OnSubscribeIterable<T> implements OnSubscribe<T> {
     final Iterable<? extends T> iterable;
     public OnSubscribeIterable(Iterable<? extends T> iterable) {
         this.iterable = Objects.requireNonNull(iterable);
@@ -35,7 +34,7 @@ public final class OnSubscribeIterable<T> implements Consumer<Subscriber<? super
     public void accept(Subscriber<? super T> t) {
         Iterator<? extends T> it = iterable.iterator();
         if (!it.hasNext()) {
-            t.onSubscribe(AbstractSubscription.createEmpty());
+            t.onSubscribe(AbstractSubscription.empty());
             t.onComplete();
             return;
         }

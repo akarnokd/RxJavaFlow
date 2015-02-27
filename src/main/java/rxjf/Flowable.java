@@ -16,14 +16,11 @@
 package rxjf;
 
 import java.util.Objects;
-import java.util.function.Consumer;
-import java.util.function.Function;
+import java.util.function.*;
 
 import rxjf.Flow.Publisher;
 import rxjf.Flow.Subscriber;
-import rxjf.internal.operators.OnSubscribeArray;
-import rxjf.internal.operators.OnSubscribeIterable;
-import rxjf.internal.operators.ScalarSynchronousFlow;
+import rxjf.internal.operators.*;
 import rxjf.subscribers.SafeSubscriber;
 
 /**
@@ -71,7 +68,8 @@ public class Flowable<T> implements Publisher<T> {
         }
         return create(s -> {
             try {
-                lifter.apply(s);
+                Subscriber<? super T> s2 = lifter.apply(s);
+                onSubscribe.accept(s2);
             } catch (Throwable e) {
                 try {
                     s.onError(e);
@@ -102,5 +100,35 @@ public class Flowable<T> implements Publisher<T> {
     @SafeVarargs
     public static <T> Flowable<T> from(T... values) {
         return create(new OnSubscribeArray<>(Objects.requireNonNull(values)));
+    }
+    
+    public final <R> Flowable<R> map(Function<? super T, ? extends R> function) {
+        return lift(new OperatorMap<>(function));
+    }
+    static final Flowable<Object> EMPTY = create(new OnSubscribeEmpty<>());
+    @SuppressWarnings("unchecked")
+    public static <T> Flowable<T> empty() {
+        return (Flowable<T>)EMPTY;
+    }
+    static final Flowable<Object> NEVER = create(new OnSubscribeEmpty<>());
+    @SuppressWarnings("unchecked")
+    public static <T> Flowable<T> never() {
+        return (Flowable<T>)NEVER;
+    }
+    
+    public final Flowable<T> take(long n) {
+        return lift(new OperatorTake<>(n));
+    }
+    public static Flowable<Integer> range(int start, int count) {
+        if (count < 0) {
+            throw new IllegalArgumentException("count must be non-negative");
+        } else
+        if (count == 0) {
+            return empty();
+        } else
+        if (count == 1) {
+            return just(start);
+        }
+        return create(new OnSubscribeRange(start, count));
     }
 }
