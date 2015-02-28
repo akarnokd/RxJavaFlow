@@ -69,7 +69,16 @@ public final class CancellableSubscriber<T> implements Subscriber<T>, Cancellabl
                 return;
             }
             if (UNSAFE.compareAndSwapObject(this, SUBSCRIPTION, null, subscription)) {
-                actual.onSubscribe(subscription);
+                actual.onSubscribe(new Subscription() {
+                    @Override
+                    public void request(long n) {
+                        subscription.request(n);
+                    }
+                    @Override
+                    public void cancel() {
+                        CancellableSubscriber.this.cancel();
+                    }
+                });
                 return;
             }
         }
