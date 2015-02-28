@@ -18,6 +18,7 @@ package rxjf.cancellables;
 
 import static rxjf.internal.UnsafeAccess.UNSAFE;
 import rxjf.Flow.Subscription;
+import rxjf.internal.UnsafeAccess;
 
 /**
  * 
@@ -30,13 +31,10 @@ public final class BooleanCancellable implements Cancellable {
         }
     };
     volatile Runnable state;
-    static final long STATE;
-    static {
-        try {
-            STATE = UNSAFE.objectFieldOffset(BooleanCancellable.class.getDeclaredField("state"));
-        } catch (NoSuchFieldException ex) {
-            throw new InternalError(ex);
-        }
+    static final long STATE = UnsafeAccess.addressOf(BooleanCancellable.class, "state");
+    static final Runnable EMPTY = () -> { };
+    public BooleanCancellable() {
+        UNSAFE.putOrderedObject(this, STATE, EMPTY);
     }
     public BooleanCancellable(Runnable run) {
         if (run == null) {

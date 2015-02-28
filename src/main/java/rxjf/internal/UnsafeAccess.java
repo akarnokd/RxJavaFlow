@@ -50,4 +50,11 @@ public final class UnsafeAccess {
     public static final boolean isUnsafeAvailable() {
         return UNSAFE != null;
     }
+    public static long addressOf(Class<?> clazz, String field) {
+        try {
+            return UNSAFE.objectFieldOffset(clazz.getDeclaredField(field));
+        } catch (NoSuchFieldException | NullPointerException ex) {
+            throw new InternalError(ex);
+        }
+    }
 }

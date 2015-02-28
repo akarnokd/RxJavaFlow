@@ -17,7 +17,7 @@ package rxjf.schedulers;
 
 import java.util.concurrent.TimeUnit;
 
-import rxjf.cancellables.Cancellable;
+import rxjf.cancellables.*;
 
 /**
  *
@@ -32,8 +32,38 @@ public interface Scheduler {
         
         Cancellable schedule(Runnable task, long delay, TimeUnit unit);
         
-        Cancellable schedule(Runnable task, long initialDelay, long period, TimeUnit unit);
+        default long now() {
+            return System.currentTimeMillis();
+        }
+        
+        default Cancellable schedule(Runnable task, long initialDelay, long period, TimeUnit unit) {
+            final long periodInNanos = unit.toNanos(period);
+            final long startInNanos = TimeUnit.MILLISECONDS.toNanos(now()) + unit.toNanos(initialDelay);
+
+            final MultipleAssignmentCancellable mas = new MultipleAssignmentCancellable();
+            final Runnable recursiveRunnable = new Runnable() {
+                long count = 0;
+                @Override
+                public void run() {
+                    if (!mas.isCancelled()) {
+                        task.run();
+                        long nextTick = startInNanos + (++count * periodInNanos);
+                        mas.set(schedule(this, nextTick - TimeUnit.MILLISECONDS.toNanos(now()), TimeUnit.NANOSECONDS));
+                    }
+                }
+            };
+            MultipleAssignmentCancellable s = new MultipleAssignmentCancellable();
+            // Should call `mas.set` before `schedule`, or the new Subscription may replace the old one.
+            mas.set(s);
+            s.set(schedule(recursiveRunnable, initialDelay, unit));
+            return mas;
+
+        }
     }
     
     Worker createWorker();
+    
+    default long now() {
+        return System.currentTimeMillis();
+    }
 }

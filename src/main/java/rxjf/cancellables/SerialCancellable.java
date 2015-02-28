@@ -17,6 +17,7 @@
 package rxjf.cancellables;
 
 import static rxjf.internal.UnsafeAccess.*;
+import rxjf.internal.UnsafeAccess;
 
 /**
  * 
@@ -33,15 +34,10 @@ public final class SerialCancellable implements Cancellable {
             return true;
         }
     };
-    static final long STATE;
-    static {
-        try {
-            STATE = UNSAFE.objectFieldOffset(SerialCancellable.class.getDeclaredField("state"));
-        } catch (NoSuchFieldException ex) {
-            throw new InternalError(ex);
-        }
-    }
+    
     volatile Cancellable state;
+    static final long STATE = UnsafeAccess.addressOf(SerialCancellable.class, "state");
+    
     public SerialCancellable() {
         
     }

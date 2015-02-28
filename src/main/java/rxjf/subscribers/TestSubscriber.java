@@ -16,14 +16,9 @@
 
 package rxjf.subscribers;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Iterator;
-import java.util.List;
+import java.util.*;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
-
-import org.junit.Assert;
 
 import rxjf.Flow.Subscriber;
 import rxjf.Flow.Subscription;
@@ -82,56 +77,84 @@ public class TestSubscriber<T> implements Subscriber<T> {
     }
     
     public final void assertError() {
-        Assert.assertFalse(errors.isEmpty());
+        if (errors.isEmpty()) {
+            throw new AssertionError("No errors");
+        }
     }
     public final void assertError(Class<? extends Throwable> clazz) {
         if (errors.isEmpty()) {
-            Assert.fail("No errors");
+            throw new AssertionError("No errors");
         } else
         if (errors.size() > 1) {
-            Assert.fail("More than one error: " + errors);
-        } else {
-            Assert.assertTrue("Expected: " + clazz + ", Actual: " + errors.get(0), clazz.isInstance(errors.get(0)));
+            throw new AssertionError("More than one error: " + errors);
+        } else 
+        if (!clazz.isInstance(errors.get(0))) {
+            
+            throw new AssertionError("Expected: " + clazz + ", Actual: " + errors.get(0));
         }
     }
     
     public final void assertNoError() {
-        Assert.assertTrue(errors.isEmpty());
+        if (!errors.isEmpty()) {
+            throw new AssertionError("One or more errors: " + errors);
+        }
     }
     
     public final void assertTerminalEvent() {
-        Assert.assertTrue("No terminal event(s).", !errors.isEmpty() || complete != 0);
+        if (errors.isEmpty() && complete == 0) {
+            throw new AssertionError("No terminal event(s)");
+        }
     }
     public final void assertNoTerminalEvent() {
-        Assert.assertTrue("Terminal event present!", errors.isEmpty() && complete == 0);
+        if (!errors.isEmpty() || complete != 0) {
+            throw new AssertionError("Terminal event present: " + errors + ", complete: " + complete);
+        }
     }
     public final void assertComplete() {
-        Assert.assertEquals("No completion event", 1, complete);
+        if (complete == 0) {
+            throw new AssertionError("No completion event");
+        } else
+        if (complete > 1) {
+            throw new AssertionError("Multiple completion events: " + complete);
+        }
     }
     public final void assertNoComplete() {
-        Assert.assertEquals("One or more completion events", 0, complete);
+        if (complete == 1) {
+            throw new AssertionError("Completion event presents");
+        } else
+        if (complete > 1) {
+            throw new AssertionError("Multiple completion events: " + complete);
+        }
     }
     public final void assertValues(Iterable<? extends T> values) {
         Iterator<? extends T> it = values.iterator();
         Iterator<? extends T> nt = nexts.iterator();
         int n = 0;
         while (it.hasNext() == nt.hasNext()) {
-            Assert.assertEquals(it.next(), nt.next());
+            T e = it.next();
+            T a = nt.next();
+            if (!Objects.equals(e, a)) {
+                throw new AssertionError("Value mismatch @ " + n + ", Expected: " + e + ", Actual: " + a);
+            }
             n++;
         }
         if (n == nexts.size() && it.hasNext()) {
-            Assert.fail("Too few elements: " + nexts);
+            throw new AssertionError("Too few elements: " + nexts);
         } else
         if (n < nexts.size()) {
-            Assert.fail("Too many elements: " + n + " expected");
+            throw new AssertionError("Too many elements: " + n + " expected");
         }
     }
     public final void assertNoValues() {
-        Assert.assertEquals(0, nexts.size());
+        if (!nexts.isEmpty()) {
+            throw new AssertionError("Values present: " + nexts.size());
+        }
     }
     @SafeVarargs
     public final void assertValues(T... values) {
-        Assert.assertEquals(Arrays.asList(values), nexts);
+        if (!Arrays.asList(values).equals(nexts)) {
+            throw new AssertionError("Values differ, Expected: " + values + ", Actual: " + nexts);
+        }
     }
     public final void await() {
         try {

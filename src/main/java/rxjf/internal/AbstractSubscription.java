@@ -26,14 +26,7 @@ import rxjf.cancellables.Cancellable;
 public abstract class AbstractSubscription implements Subscription, Cancellable, SubscriptionState {
     /** The current requested count, negative value indicates cancelled subscription. */
     private volatile long requested;
-    private static final long REQUESTED;
-    static {
-        try {
-            REQUESTED = UNSAFE.objectFieldOffset(AbstractSubscription.class.getDeclaredField("requested"));
-        } catch (NoSuchFieldException ex) {
-            throw new InternalError(ex);
-        }
-    }
+    private static final long REQUESTED = UnsafeAccess.addressOf(AbstractSubscription.class, "requested");
     @Override
     public final boolean isCancelled() {
         return requested < 0;
