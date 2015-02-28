@@ -32,6 +32,7 @@ public final class CachedThreadScheduler implements Scheduler {
 
     private static final class CachedWorkerPool {
         private final long keepAliveTime;
+        // Need remove() functionality
         private final ConcurrentLinkedQueue<ThreadWorker> expiringWorkerQueue;
         private final ScheduledExecutorService evictExpiredWorkerExecutor;
 

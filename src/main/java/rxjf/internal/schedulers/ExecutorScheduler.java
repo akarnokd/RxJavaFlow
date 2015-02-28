@@ -15,15 +15,15 @@
  */
 package rxjf.internal.schedulers;
 
+import static rxjf.internal.UnsafeAccess.UNSAFE;
+
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import rxjf.cancellables.*;
+import rxjf.internal.*;
 import rxjf.plugins.RxJavaFlowPlugins;
 import rxjf.schedulers.Scheduler;
-
-import rxjf.internal.UnsafeAccess;
-import static rxjf.internal.UnsafeAccess.*;
 
 /**
  * Scheduler that wraps an Executor instance and establishes the Scheduler contract upon it.
@@ -47,13 +47,12 @@ public final class ExecutorScheduler implements Scheduler {
         final Executor executor;
         // TODO: use a better performing structure for task tracking
         final CompositeCancellable tasks;
-        // TODO: use MpscLinkedQueue once available
-        final ConcurrentLinkedQueue<ExecutorRunnable> queue; 
+        final MpscLinkedQueue<ExecutorRunnable> queue; 
         final AtomicInteger wip;
         
         public ExecutorSchedulerWorker(Executor executor) {
             this.executor = executor;
-            this.queue = new ConcurrentLinkedQueue<>();
+            this.queue = new MpscLinkedQueue<>();
             this.wip = new AtomicInteger();
             this.tasks = new CompositeCancellable();
         }
