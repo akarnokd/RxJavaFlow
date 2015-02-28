@@ -17,12 +17,9 @@
 package rxjf.subscribers;
 
 import static rxjf.internal.UnsafeAccess.*;
-
-import java.util.Objects;
-
 import rxjf.Flow.Subscriber;
 import rxjf.Flow.Subscription;
-import rxjf.cancellables.Cancellable;
+import rxjf.cancellables.*;
 import rxjf.internal.Conformance;
 /**
  * 
@@ -40,11 +37,17 @@ public final class CancellableSubscriber<T> implements Subscriber<T>, Cancellabl
             
         }
     };
+    final CompositeCancellable composite = new CompositeCancellable();
     
-    
-    private CancellableSubscriber(Subscriber<? super T> actual) {
+    public CancellableSubscriber(Subscriber<? super T> actual) {
         this.actual = actual;
     }
+    /**
+     * Wraps a regual Subscriber to a CancellableSubscriber or returns it
+     * directly if already the right type.
+     * @param actual
+     * @return
+     */
     public static <T> CancellableSubscriber<T> wrap(Subscriber<T> actual) {
         Conformance.subscriberNonNull(actual);
         if (actual instanceof CancellableSubscriber) {
@@ -54,8 +57,9 @@ public final class CancellableSubscriber<T> implements Subscriber<T>, Cancellabl
     }
     @Override
     public void onSubscribe(Subscription subscription) {
+        Conformance.subscriptionNonNull(subscription);
         for (;;) {
-            Subscription curr = subscription;
+            Subscription curr = this.subscription;
             if (curr == TERMINATED) {
                 subscription.cancel();
                 return;
@@ -64,23 +68,37 @@ public final class CancellableSubscriber<T> implements Subscriber<T>, Cancellabl
                 curr.cancel();
                 return;
             }
+            if (UNSAFE.compareAndSwapObject(this, SUBSCRIPTION, null, subscription)) {
+                actual.onSubscribe(subscription);
+                return;
+            }
         }
         
     }
     @Override
     public void onNext(T item) {
-        // TODO Auto-generated method stub
-        
+        Conformance.itemNonNull(item);
+        Conformance.subscriptionNonNull(this.subscription);
+        actual.onNext(item);
     }
     @Override
     public void onError(Throwable throwable) {
-        // TODO Auto-generated method stub
-        
+        try {
+            Conformance.throwableNonNull(throwable);
+            Conformance.subscriptionNonNull(this.subscription);
+            actual.onError(throwable);
+        } finally {
+            cancel();
+        }
     }
     @Override
     public void onComplete() {
-        // TODO Auto-generated method stub
-        
+        try {
+            Conformance.subscriptionNonNull(this.subscription);
+            actual.onComplete();
+        } finally {
+            cancel();
+        }
     }
     @Override
     public boolean isCancelled() {
@@ -88,9 +106,13 @@ public final class CancellableSubscriber<T> implements Subscriber<T>, Cancellabl
     }
     @Override
     public void cancel() {
+        composite.cancel();
         Subscription s = (Subscription)UNSAFE.getAndSetObject(this, SUBSCRIPTION, TERMINATED);
         if (s != null) {
             s.cancel();
         }
+    }
+    public void add(Cancellable cancellable) {
+        composite.add(cancellable);
     }
 }

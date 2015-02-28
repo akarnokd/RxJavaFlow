@@ -21,6 +21,9 @@ import java.util.function.Consumer;
 import rxjf.Flow.Subscriber;
 import rxjf.*;
 import rxjf.internal.AbstractSubscription;
+import rxjf.internal.schedulers.EventLoopsScheduler;
+import rxjf.schedulers.Scheduler;
+import rxjf.subscribers.CancellableSubscriber;
 
 /**
  * 
@@ -49,5 +52,73 @@ public final class ScalarSynchronousFlow<T> extends Flowable<T> {
     
     public T get() {
         return value;
+    }
+    /**
+     * Customized observeOn/subscribeOn implementation which emits the scalar
+     * value directly or with less overhead on the specified scheduler.
+     * @param scheduler the target scheduler
+     * @return the new observable
+     */
+    public Flowable<T> scalarScheduleOn(Scheduler scheduler) {
+        if (scheduler instanceof EventLoopsScheduler) {
+            EventLoopsScheduler es = (EventLoopsScheduler) scheduler;
+            return create(new DirectScheduledEmission<>(es, value));
+        }
+        return create(new NormalScheduledEmission<>(scheduler, value));
+    }
+    
+    /** Optimized observeOn for scalar value observed on the EventLoopsScheduler. */
+    static final class DirectScheduledEmission<T> implements OnSubscribe<T> {
+        private final EventLoopsScheduler es;
+        private final T value;
+        DirectScheduledEmission(EventLoopsScheduler es, T value) {
+            this.es = es;
+            this.value = value;
+        }
+        @Override
+        public void accept(final Subscriber<? super T> child) {
+            CancellableSubscriber<? super T> cs = CancellableSubscriber.wrap(child);
+            cs.add(es.scheduleDirect(new ScalarSynchronousAction<>(cs, value)));
+        }
+    }
+    /** Emits a scalar value on a general scheduler. */
+    static final class NormalScheduledEmission<T> implements OnSubscribe<T> {
+        private final Scheduler scheduler;
+        private final T value;
+
+        NormalScheduledEmission(Scheduler scheduler, T value) {
+            this.scheduler = scheduler;
+            this.value = value;
+        }
+        
+        @Override
+        public void accept(final Subscriber<? super T> child) {
+            CancellableSubscriber<? super T> cs = CancellableSubscriber.wrap(child);
+            Scheduler.Worker worker = scheduler.createWorker();
+            cs.add(worker);
+            worker.schedule(new ScalarSynchronousAction<>(cs, value));
+        }
+    }
+    /** Action that emits a single value when called. */
+    static final class ScalarSynchronousAction<T> implements Runnable {
+        private final Subscriber<? super T> subscriber;
+        private final T value;
+
+        private ScalarSynchronousAction(Subscriber<? super T> subscriber,
+                T value) {
+            this.subscriber = subscriber;
+            this.value = value;
+        }
+
+        @Override
+        public void run() {
+            try {
+                subscriber.onNext(value);
+            } catch (Throwable t) {
+                subscriber.onError(t);
+                return;
+            }
+            subscriber.onComplete();
+        }
     }
 }

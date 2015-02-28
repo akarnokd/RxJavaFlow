@@ -30,10 +30,10 @@ public final class SerializedSubscriber<T> implements Subscriber<T> {
     private SerializedSubscriber(Subscriber<? super T> actual) {
         this.actual = actual;
     }
-    public static <T> Subscriber<T> wrap(Subscriber<T> subscriber) {
+    public static <T> SerializedSubscriber<T> wrap(Subscriber<T> subscriber) {
         Conformance.subscriberNonNull(subscriber);
         if (subscriber instanceof SerializedSubscriber) {
-            return subscriber;
+            return (SerializedSubscriber<T>) subscriber;
         }
         return new SerializedSubscriber<>(subscriber);
     }
@@ -190,4 +190,8 @@ public final class SerializedSubscriber<T> implements Subscriber<T> {
     }
     
     static final Object COMPLETE_TOKEN = new Object();
+    
+    public CancellableSubscriber<T> toCancellable() {
+        return CancellableSubscriber.wrap(this);
+    }
 }

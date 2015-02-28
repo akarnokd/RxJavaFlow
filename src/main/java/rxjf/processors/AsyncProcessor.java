@@ -24,7 +24,7 @@ import rxjf.Flow.Subscriber;
 import rxjf.Flow.Subscription;
 import rxjf.*;
 import rxjf.exceptions.Exceptions;
-import rxjf.internal.NotificationLite;
+import rxjf.internal.*;
 import rxjf.internal.operators.OnSubscribe;
 
 /**
@@ -34,8 +34,9 @@ public final class AsyncProcessor<T> extends Flowable<T> implements ProcessorEx<
     public static <T> AsyncProcessor<T> create() {
         ProcessorSubscriptionManager<T> psm = new ProcessorSubscriptionManager<>();
         OnSubscribe<T> onSubscribe = subscriber -> {
-            // TODO ProcessorProducer required
             NotificationLite<T> nl = NotificationLite.instance();
+            // FIXME this ignores the request amount and emits regardless
+            subscriber.onSubscribe(AbstractSubscription.createEmpty(subscriber));
             if (!psm.add(subscriber)) {
                 Object v = psm.get();
                 nl.accept(subscriber, v);
