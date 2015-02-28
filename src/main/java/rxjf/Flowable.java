@@ -131,4 +131,16 @@ public class Flowable<T> implements Publisher<T> {
         }
         return create(new OnSubscribeRange(start, count));
     }
+    public static Flowable<Long> rangeLong(long start, long count) {
+        if (count < 0) {
+            throw new IllegalArgumentException("count must be non-negative");
+        } else
+        if (count == 0) {
+            return empty();
+        } else
+        if (count == 1) {
+            return just(start);
+        }
+        return create(new OnSubscribeRangeLong(start, count));
+    }
 }
