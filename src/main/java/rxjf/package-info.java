@@ -17,4 +17,4 @@
 /**
  * 
  */
-package rxjf.internal.operators;
+package rxjf;

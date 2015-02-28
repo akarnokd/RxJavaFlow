@@ -19,7 +19,7 @@ import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import rxjf.cancellables.*;
-import rxjf.internal.UnsafeAccess;
+import static rxjf.internal.UnsafeAccess.*;
 import rxjf.schedulers.Scheduler;
 
 /**
@@ -45,7 +45,7 @@ public final class TrampolineScheduler implements Scheduler {
 
         @SuppressWarnings("unused")
         volatile int counter;
-        static final long COUNTER = UnsafeAccess.addressOf(InnerCurrentThreadScheduler.class, "counter");
+        static final long COUNTER = addressOf(InnerCurrentThreadScheduler.class, "counter");
         
         private final PriorityBlockingQueue<TimedAction> queue = new PriorityBlockingQueue<>();
         private final BooleanCancellable innerCancellable = new BooleanCancellable();
@@ -67,7 +67,7 @@ public final class TrampolineScheduler implements Scheduler {
             if (innerCancellable.isCancelled()) {
                 return Cancellable.CANCELLED;
             }
-            final TimedAction timedAction = new TimedAction(action, execTime, UnsafeAccess.UNSAFE.getAndAddInt(this, COUNTER, 1));
+            final TimedAction timedAction = new TimedAction(action, execTime, UNSAFE.getAndAddInt(this, COUNTER, 1));
             queue.add(timedAction);
 
             if (wip.getAndIncrement() == 0) {

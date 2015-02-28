@@ -13,7 +13,7 @@
  */
 package rxjf.internal;
 
-import static rxjf.internal.UnsafeAccess.UNSAFE;
+import static rxjf.internal.UnsafeAccess.*;
 
 import java.util.AbstractQueue;
 import java.util.Iterator;
@@ -24,7 +24,7 @@ abstract class BaseLinkedQueuePad0<E> extends AbstractQueue<E> {
 }
 
 abstract class BaseLinkedQueueProducerNodeRef<E> extends BaseLinkedQueuePad0<E> {
-    protected final static long P_NODE_OFFSET = UnsafeAccess.addressOf(BaseLinkedQueueProducerNodeRef.class, "producerNode");
+    protected final static long P_NODE_OFFSET = addressOf(BaseLinkedQueueProducerNodeRef.class, "producerNode");
 
     protected LinkedQueueNode<E> producerNode;
     protected final void spProducerNode(LinkedQueueNode<E> node) {
@@ -47,7 +47,7 @@ abstract class BaseLinkedQueuePad1<E> extends BaseLinkedQueueProducerNodeRef<E> 
 }
 
 abstract class BaseLinkedQueueConsumerNodeRef<E> extends BaseLinkedQueuePad1<E> {
-    protected final static long C_NODE_OFFSET = UnsafeAccess.addressOf(BaseLinkedQueueConsumerNodeRef.class, "consumerNode");
+    protected final static long C_NODE_OFFSET = addressOf(BaseLinkedQueueConsumerNodeRef.class, "consumerNode");
 
     protected LinkedQueueNode<E> consumerNode;
     protected final void spConsumerNode(LinkedQueueNode<E> node) {

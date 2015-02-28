@@ -33,11 +33,11 @@ public final class OnSubscribeArray<T> implements OnSubscribe<T> {
     @Override
     public void accept(Subscriber<? super T> t) {
         if (array.length == 0) {
-            t.onSubscribe(AbstractSubscription.empty());
+            t.onSubscribe(AbstractSubscription.createEmpty(t));
             t.onComplete();
             return;
         }
-        t.onSubscribe(new AbstractSubscription() {
+        t.onSubscribe(new AbstractSubscription<T>(t) {
             int index = 0;
             @Override
             protected void onRequested(long n) {

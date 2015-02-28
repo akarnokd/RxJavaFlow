@@ -14,6 +14,8 @@
 package rxjf.internal;
 
 import static rxjf.internal.UnsafeAccess.*;
+
+import java.util.Objects;
 /**
  * This is a direct Java port of the MPSC algorithm as presented <a
  * href="http://www.1024cores.net/home/lock-free-algorithms/queues/non-intrusive-mpsc-node-based-queue"> on 1024
@@ -54,9 +56,7 @@ public final class MpscLinkedQueue<E> extends BaseLinkedQueue<E> {
      */
     @Override
     public final boolean offer(final E nextValue) {
-        if (nextValue == null) {
-            throw new IllegalArgumentException("null elements not allowed");
-        }
+        Objects.requireNonNull(nextValue);
         final LinkedQueueNode<E> nextNode = new LinkedQueueNode<>(nextValue);
         final LinkedQueueNode<E> prevProducerNode = xchgProducerNode(nextNode);
         // Should a producer thread get interrupted here the chain WILL be broken until that thread is resumed

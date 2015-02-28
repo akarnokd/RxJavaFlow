@@ -15,7 +15,9 @@
  */
 package rxjf.subscribers;
 
-import rxjf.Flow.*;
+import rxjf.Flow.Subscriber;
+import rxjf.Flow.Subscription;
+import rxjf.internal.Conformance;
 
 /**
  *
@@ -26,9 +28,7 @@ public final class SafeSubscriber<T> implements Subscriber<T> {
         this.actual = actual;
     }
     public static <T> Subscriber<T> wrap(Subscriber<T> subscriber) {
-        if (subscriber == null) {
-            throw new NullPointerException();
-        }
+        Conformance.subscriberNonNull(subscriber);
         if (subscriber instanceof SafeSubscriber) {
             return subscriber;
         }
@@ -41,11 +41,11 @@ public final class SafeSubscriber<T> implements Subscriber<T> {
     Subscription subscription;
     @Override
     public void onSubscribe(Subscription subscription) {
-        if (subscription == null) {
-            throw new NullPointerException(); // FIXME reference rules
-        }
-        if (this.subscription != null) {
-            return; // FIXME check rules
+        Conformance.subscriptionNonNull(subscription);
+        Subscription current = this.subscription;
+        if (!Conformance.onSubscribeOnce(current, this)) {
+            current.cancel();
+            return;
         }
         this.subscription = subscription;
         actual.onSubscribe(subscription);
@@ -53,14 +53,8 @@ public final class SafeSubscriber<T> implements Subscriber<T> {
     @Override
     public void onNext(T item) {
         if (!done) {
-            if (subscription == null) {
-                onError(new IllegalStateException("Subscription not set!")); // FIXME reference rule
-                return;
-            } else
-            if (item == null) {
-                onError(new NullPointerException());
-                return;
-            }
+            Conformance.subscriptionNonNull(subscription);
+            Conformance.itemNonNull(item);
             try {
                 actual.onNext(item);
             } catch (Throwable t) {
@@ -71,32 +65,31 @@ public final class SafeSubscriber<T> implements Subscriber<T> {
     @Override
     public void onError(Throwable throwable) {
         if (!done) {
+            done = true;
+            Subscription s = subscription;
+            Conformance.subscriptionNonNull(s);
+            Conformance.throwableNonNull(throwable);
             try {
-                done = true;
                 actual.onError(throwable);
             } catch (Throwable t) {
                 handleUncaught(t);
             } finally {
-                Subscription s = subscription;
-                if (s != null) {
-                    s.cancel();
-                }
+                s.cancel();
             }
         }
     }
     @Override
     public void onComplete() {
         if (!done) {
+            done = true;
+            Subscription s = subscription;
+            Conformance.subscriptionNonNull(s);
             try {
-                done = true;
                 actual.onComplete();
             } catch (Throwable t) {
                 handleUncaught(t);
             } finally {
-                Subscription s = subscription;
-                if (s != null) {
-                    s.cancel();
-                }
+                s.cancel();
             }
         }
     }

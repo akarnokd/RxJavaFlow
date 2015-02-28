@@ -20,6 +20,7 @@ import java.util.function.*;
 
 import rxjf.Flow.Subscriber;
 import rxjf.Flow.Subscription;
+import rxjf.internal.Conformance;
 
 /**
  *
@@ -30,18 +31,17 @@ public final class SerializedSubscriber<T> implements Subscriber<T> {
         this.actual = actual;
     }
     public static <T> Subscriber<T> wrap(Subscriber<T> subscriber) {
-        if (subscriber == null) {
-            throw new NullPointerException();
-        }
+        Conformance.subscriberNonNull(subscriber);
         if (subscriber instanceof SerializedSubscriber) {
             return subscriber;
         }
         return new SerializedSubscriber<>(subscriber);
     }
     
-    static final int MODE_REGULAR = 0;
-    static final int MODE_ERROR = 1;
-    static final int MODE_COMPLETE = 2;
+    static final int TYPE_SUBSCRIPTION = 0;
+    static final int TYPE_NEXT = 1;
+    static final int TYPE_ERROR = 2;
+    static final int TYPE_COMPLETE = 3;
     /** Accessed why synchronizing on this. */
     boolean emitting;
     /** Accessed while emitting = true. */
@@ -95,7 +95,7 @@ public final class SerializedSubscriber<T> implements Subscriber<T> {
                     q = new ArrayList<>();
                     queue = q;
                 }
-                if (mode == MODE_ERROR) {
+                if (mode == TYPE_ERROR) {
                     q.clear(); // error cuts ahead
                 }
                 q.add(lateEmitter.apply(value));
@@ -103,17 +103,12 @@ public final class SerializedSubscriber<T> implements Subscriber<T> {
             }
             emitting = true;
         }
-        if (this.subscription != null) {
-            done = true;
-            actual.onError(new IllegalStateException("Subscription already set!")); // FIXME reference rule
-            return;
-        }
         
         boolean skipFinal = false;
         try {
             
             firstEmitter.accept(value);
-            if (mode != MODE_REGULAR) {
+            if (mode == TYPE_ERROR || mode == TYPE_COMPLETE) {
                 done = true;
                 return;
             }
@@ -145,26 +140,40 @@ public final class SerializedSubscriber<T> implements Subscriber<T> {
     }
     @Override
     public void onSubscribe(Subscription subscription) {
-        if (subscription == null) {
-            throw new NullPointerException();
-        }
+        Conformance.subscriptionNonNull(subscription);
         handle(s -> {
-            this.subscription = subscription;
-            this.actual.onSubscribe(subscription);
-        }, SubscribeToken::new, subscription, MODE_REGULAR);
+            Subscription curr = this.subscription;
+            if (!Conformance.onSubscribeOnce(curr, this)) {
+                curr.cancel();
+                return;
+            }
+            this.subscription = s;
+            this.actual.onSubscribe(s);
+        }, SubscribeToken::new, subscription, TYPE_SUBSCRIPTION);
     }
     
     @Override
     public void onNext(T item) {
-        handle(actual::onNext, v -> v, item, MODE_REGULAR);
+        Conformance.itemNonNull(item);
+        handle(v -> {
+            Conformance.subscriptionNonNull(subscription);
+            this.actual.onNext(v);
+        }, v -> v, item, TYPE_NEXT);
     }
     @Override
     public void onError(Throwable throwable) {
-        handle(v -> actual.onError(v), ErrorToken::new, null, MODE_ERROR);
+        Conformance.throwableNonNull(throwable);
+        handle(v -> {
+            Conformance.subscriptionNonNull(subscription);
+            actual.onError(v);
+        }, ErrorToken::new, throwable, TYPE_ERROR);
     }
     @Override
     public void onComplete() {
-        handle(v -> actual.onComplete(), v -> v, null, MODE_COMPLETE);
+        handle(v -> { 
+            Conformance.subscriptionNonNull(subscription);
+            actual.onComplete(); 
+        }, v -> v, null, TYPE_COMPLETE);
     }
     
     static final class ErrorToken {

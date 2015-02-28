@@ -16,14 +16,18 @@
 
 package rxjf.internal;
 
+import rxjf.Flow.Subscriber;
+
 /**
  * 
  */
-public interface SubscriptionState {
+public interface SubscriptionState<T> {
 
     boolean isCancelled();
     
     long requested();
     
     long produced(long n);
+    
+    Subscriber<? super T> subscriber();
 }

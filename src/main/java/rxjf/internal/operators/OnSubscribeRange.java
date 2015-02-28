@@ -33,7 +33,7 @@ public final class OnSubscribeRange implements OnSubscribe<Integer> {
     public void accept(Subscriber<? super Integer> child) {
         int c = count;
         int s = start;
-        child.onSubscribe(new AbstractSubscription() {
+        child.onSubscribe(new AbstractSubscription<Integer>(child) {
             int remaining = c;
             int value = s;
             @Override

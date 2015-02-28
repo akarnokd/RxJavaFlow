@@ -15,12 +15,11 @@
  */
 package rxjf.internal.schedulers;
 
-import static rxjf.internal.UnsafeAccess.UNSAFE;
+import static rxjf.internal.UnsafeAccess.*;
 
 import java.util.concurrent.*;
 
 import rxjf.cancellables.*;
-import rxjf.internal.UnsafeAccess;
 import rxjf.schedulers.Scheduler;
 
 public class EventLoopsScheduler implements Scheduler {
@@ -50,7 +49,7 @@ public class EventLoopsScheduler implements Scheduler {
 
         final PoolWorker[] eventLoops;
         volatile long n;
-        static final long N = UnsafeAccess.addressOf(FixedSchedulerPool.class, "n");
+        static final long N = addressOf(FixedSchedulerPool.class, "n");
 
         FixedSchedulerPool() {
             // initialize event loops

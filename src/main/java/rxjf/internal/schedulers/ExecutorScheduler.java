@@ -15,7 +15,7 @@
  */
 package rxjf.internal.schedulers;
 
-import static rxjf.internal.UnsafeAccess.UNSAFE;
+import static rxjf.internal.UnsafeAccess.*;
 
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -144,7 +144,7 @@ public final class ExecutorScheduler implements Scheduler {
         final Runnable actual;
         final CompositeCancellable parent;
         volatile int cancelled;
-        static final long CANCELLED = UnsafeAccess.addressOf(ExecutorRunnable.class, "cancelled");
+        static final long CANCELLED = addressOf(ExecutorRunnable.class, "cancelled");
 
         public ExecutorRunnable(Runnable actual, CompositeCancellable parent) {
             this.actual = actual;

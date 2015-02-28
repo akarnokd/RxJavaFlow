@@ -13,10 +13,10 @@
  */
 package rxjf.internal;
 
-import static rxjf.internal.UnsafeAccess.UNSAFE;
+import static rxjf.internal.UnsafeAccess.*;
 
 final class LinkedQueueNode<E> {
-    private final static long NEXT_OFFSET = UnsafeAccess.addressOf(LinkedQueueNode.class, "next");
+    private final static long NEXT_OFFSET = addressOf(LinkedQueueNode.class, "next");
     private E value;
     private volatile LinkedQueueNode<E> next;
 

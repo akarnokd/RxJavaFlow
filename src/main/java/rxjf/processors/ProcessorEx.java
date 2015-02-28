@@ -14,7 +14,16 @@
  * limitations under the License.
  */
 
+package rxjf.processors;
+
+import rxjf.Flow.Processor;
+
 /**
  * 
  */
-package rxjf.internal.operators;
+public interface ProcessorEx<T, R> extends Processor<T, R> {
+    boolean hasSubscribers();
+    boolean hasThrowable();
+    boolean hasComplete();
+    Throwable getThrowable();
+}

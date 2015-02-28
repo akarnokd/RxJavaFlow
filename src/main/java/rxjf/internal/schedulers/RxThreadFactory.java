@@ -18,12 +18,10 @@ package rxjf.internal.schedulers;
 import java.util.concurrent.ThreadFactory;
 import static rxjf.internal.UnsafeAccess.*;
 
-import rxjf.internal.UnsafeAccess;
-
 public final class RxThreadFactory implements ThreadFactory {
     final String prefix;
     volatile long counter;
-    static final long COUNTER = UnsafeAccess.addressOf(RxThreadFactory.class, "counter");
+    static final long COUNTER = addressOf(RxThreadFactory.class, "counter");
 
     public RxThreadFactory(String prefix) {
         this.prefix = prefix;

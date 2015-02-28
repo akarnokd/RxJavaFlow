@@ -17,7 +17,8 @@
 package rxjf.cancellables;
 
 import static rxjf.internal.UnsafeAccess.*;
-import rxjf.internal.UnsafeAccess;
+
+import java.util.Objects;
 
 /**
  * 
@@ -35,20 +36,16 @@ public final class MultipleAssignmentCancellable implements Cancellable {
         }
     };
     volatile Cancellable state;
-    static final long STATE = UnsafeAccess.addressOf(MultipleAssignmentCancellable.class, "state");
+    static final long STATE = addressOf(MultipleAssignmentCancellable.class, "state");
     public MultipleAssignmentCancellable() {
         
     }
     public MultipleAssignmentCancellable(Cancellable cancellable) {
-        if (cancellable == null) {
-            throw new NullPointerException();
-        }
+        Objects.requireNonNull(cancellable);
         UNSAFE.putOrderedObject(this, STATE, cancellable);
     }
     public void set(Cancellable cancellable) {
-        if (cancellable == null) {
-            throw new NullPointerException();
-        }
+        Objects.requireNonNull(cancellable);
         for (;;) {
             Cancellable c = state;
             if (c == STATE_CANCELLED) {

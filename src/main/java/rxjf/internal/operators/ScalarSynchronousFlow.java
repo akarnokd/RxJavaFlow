@@ -16,11 +16,10 @@
 
 package rxjf.internal.operators;
 
-import java.util.Objects;
 import java.util.function.Consumer;
 
-import rxjf.Flowable;
 import rxjf.Flow.Subscriber;
+import rxjf.*;
 import rxjf.internal.AbstractSubscription;
 
 /**
@@ -36,16 +35,15 @@ public final class ScalarSynchronousFlow<T> extends Flowable<T> {
     public static <T> ScalarSynchronousFlow<T> create(T value) {
         return new ScalarSynchronousFlow<>(
                 s -> {
-                    s.onSubscribe(new AbstractSubscription() {
+                    s.onSubscribe(new AbstractSubscription<T>(s) {
                         @Override
                         protected void onRequested(long n) {
                             s.onNext(value);
                             s.onComplete();
-                            cancel();
                         }
                     });
                 },
-                Objects.requireNonNull(value));
+                value);
     }
     
     

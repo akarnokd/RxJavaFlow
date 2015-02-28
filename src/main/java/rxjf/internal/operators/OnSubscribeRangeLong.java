@@ -33,7 +33,7 @@ public final class OnSubscribeRangeLong implements OnSubscribe<Long> {
     public void accept(Subscriber<? super Long> child) {
         long c = count;
         long s = start;
-        child.onSubscribe(new AbstractSubscription() {
+        child.onSubscribe(new AbstractSubscription<Long>(child) {
             long remaining = c;
             long value = s;
             @Override

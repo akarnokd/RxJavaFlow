@@ -22,6 +22,7 @@ import java.util.concurrent.TimeUnit;
 
 import rxjf.Flow.Subscriber;
 import rxjf.Flow.Subscription;
+import rxjf.internal.Conformance;
 
 /**
  * 
@@ -41,13 +42,25 @@ public class TestSubscriber<T> implements Subscriber<T> {
     }
     @Override
     public void onSubscribe(Subscription subscription) {
+        Conformance.subscriptionNonNull(subscription);
+        Subscription curr = s;
+        if (!Conformance.onSubscribeOnce(curr, this)) {
+            curr.cancel();
+            return;
+        }
         s = subscription;
     }
     public void request(long n) {
+        Conformance.subscriptionNonNull(s);
+        if (!Conformance.requestPositive(n, this)) {
+            return;
+        }
         s.request(n);
     }
     @Override
     public void onNext(T item) {
+        Conformance.itemNonNull(item);
+        Conformance.subscriptionNonNull(s);
         nexts.add(item);
         if (actual != null) {
             actual.onNext(item);
@@ -56,6 +69,8 @@ public class TestSubscriber<T> implements Subscriber<T> {
     @Override
     public void onError(Throwable throwable) {
         try {
+            Conformance.throwableNonNull(throwable);
+            Conformance.subscriptionNonNull(s);
             errors.add(throwable);
             if (actual != null) {
                 actual.onError(throwable);
@@ -67,6 +82,7 @@ public class TestSubscriber<T> implements Subscriber<T> {
     @Override
     public void onComplete() {
         try {
+            Conformance.subscriptionNonNull(s);
             complete++;
             if (actual != null) {
                 actual.onComplete();
@@ -76,9 +92,18 @@ public class TestSubscriber<T> implements Subscriber<T> {
         }
     }
     
+    public final void assertSubscription() {
+        if (s == null) {
+            throw new AssertionError("No subscription");
+        }
+    }
+    
     public final void assertError() {
         if (errors.isEmpty()) {
             throw new AssertionError("No errors");
+        } else
+        if (errors.size() > 1) {
+            throw new AssertionError("More than one error: " + errors);
         }
     }
     public final void assertError(Class<? extends Throwable> clazz) {
@@ -171,5 +196,11 @@ public class TestSubscriber<T> implements Subscriber<T> {
         } catch (InterruptedException ex) {
             throw new RuntimeException(ex);
         }
+    }
+    public List<Throwable> getErrors() {
+        return errors;
+    }
+    public List<T> getValues() {
+        return nexts;
     }
 }

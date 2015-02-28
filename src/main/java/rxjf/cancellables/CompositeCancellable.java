@@ -16,9 +16,7 @@
 
 package rxjf.cancellables;
 
-import java.util.Collection;
-import java.util.HashSet;
-import java.util.Set;
+import java.util.*;
 
 /**
  * 
@@ -32,9 +30,7 @@ public final class CompositeCancellable implements Cancellable {
     }
     @SafeVarargs
     public CompositeCancellable(Cancellable... cancellables) {
-        if (cancellables == null) {
-            throw new NullPointerException();
-        }
+        Objects.requireNonNull(cancellables);
         this.cancellables = new HashSet<>(cancellables.length * 4 / 3 + 1);
         for (Cancellable t : cancellables) {
             this.cancellables.add(t);
@@ -42,9 +38,7 @@ public final class CompositeCancellable implements Cancellable {
     }
     
     public CompositeCancellable(Iterable<? extends Cancellable> cancellables) {
-        if (cancellables == null) {
-            throw new NullPointerException();
-        }
+        Objects.requireNonNull(cancellables);
         this.cancellables = new HashSet<>();
         cancellables.forEach(this.cancellables::add);
     }

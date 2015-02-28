@@ -31,7 +31,7 @@ public final class OperatorTake<T> implements Operator<T, T> {
     @Override
     public Subscriber<? super T> apply(Subscriber<? super T> t) {
         if (n == 0) {
-            t.onSubscribe(AbstractSubscription.empty());
+            t.onSubscribe(AbstractSubscription.createEmpty(t));
             t.onComplete();
         }
         long r = n;
@@ -42,7 +42,7 @@ public final class OperatorTake<T> implements Operator<T, T> {
             @Override
             public void onSubscribe(Subscription subscription) {
                 s = subscription;
-                t.onSubscribe(s);
+                t.onSubscribe(subscription);
             }
             @Override
             public void onNext(T item) {

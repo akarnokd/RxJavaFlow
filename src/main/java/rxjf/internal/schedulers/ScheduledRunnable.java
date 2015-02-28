@@ -16,19 +16,18 @@
 
 package rxjf.internal.schedulers;
 
-import static rxjf.internal.UnsafeAccess.UNSAFE;
+import static rxjf.internal.UnsafeAccess.*;
 
 import java.util.concurrent.Future;
 
 import rxjf.cancellables.*;
-import rxjf.internal.UnsafeAccess;
 
 public final class ScheduledRunnable implements Runnable, Cancellable {
     final Runnable actual;
     final CompositeCancellable composite;
     volatile Object runner;
     static final Object DONE = new Object();
-    static final long RUNNER = UnsafeAccess.addressOf(ScheduledRunnable.class, "runner");
+    static final long RUNNER = addressOf(ScheduledRunnable.class, "runner");
     
     public ScheduledRunnable(Runnable actual) {
         this.actual = actual;

@@ -24,5 +24,7 @@ import rxjf.Flow.Subscriber;
  * 
  */
 public interface Operator<T, R> extends Function<Subscriber<? super R>, Subscriber<? super T>> {
-
+    // overridden for more convenient parameter naming
+    @Override
+    Subscriber<? super T> apply(Subscriber<? super R> child);
 }

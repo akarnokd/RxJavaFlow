@@ -16,17 +16,22 @@
 
 package rxjf.internal;
 
-import static rxjf.internal.UnsafeAccess.UNSAFE;
+import static rxjf.internal.UnsafeAccess.*;
+import rxjf.Flow.Subscriber;
 import rxjf.Flow.Subscription;
 import rxjf.cancellables.Cancellable;
 
 /**
  * 
  */
-public abstract class AbstractSubscription implements Subscription, Cancellable, SubscriptionState {
+public abstract class AbstractSubscription<T> implements Subscription, Cancellable, SubscriptionState<T> {
     /** The current requested count, negative value indicates cancelled subscription. */
     private volatile long requested;
-    private static final long REQUESTED = UnsafeAccess.addressOf(AbstractSubscription.class, "requested");
+    private static final long REQUESTED = addressOf(AbstractSubscription.class, "requested");
+    private final Subscriber<? super T> subscriber;
+    public AbstractSubscription(Subscriber<? super T> subscriber) {
+        this.subscriber = Conformance.subscriberNonNull(subscriber);
+    }
     @Override
     public final boolean isCancelled() {
         return requested < 0;
@@ -42,8 +47,8 @@ public abstract class AbstractSubscription implements Subscription, Cancellable,
     }
     @Override
     public final void request(long n) {
-        if (n < 0) {
-            throw new IllegalArgumentException("Negative request: " + n);
+        if (!Conformance.requestPositive(n, subscriber)) {
+            return;
         }
         if (n > 0) {
             for (;;) {
@@ -78,7 +83,9 @@ public abstract class AbstractSubscription implements Subscription, Cancellable,
     @Override
     public final long produced(long n) {
         if (n < 0) {
-            throw new IllegalArgumentException("Negative produced value: " + n);
+            subscriber.onError(new IllegalArgumentException("Negative produced value: " + n));
+            cancel();
+            return Long.MIN_VALUE;
         }
         for (;;) {
             long r = requested;
@@ -90,12 +97,18 @@ public abstract class AbstractSubscription implements Subscription, Cancellable,
             }
             long u = r - n;
             if (u < 0) {
-                throw new IllegalArgumentException("More produced (" + n + " than requested (" + r + ")!");
+                subscriber.onError(new IllegalArgumentException("More produced (" + n + " than requested (" + r + ")!"));
+                cancel();
+                return Long.MIN_VALUE;
             }
             if (UNSAFE.compareAndSwapLong(this, REQUESTED, r, u)) {
                 return u;
             }
         }
+    }
+    @Override
+    public final Subscriber<? super T> subscriber() {
+        return subscriber;
     }
     /**
      * Called by request() in case the requested counter transitions from 0 to n.
@@ -108,16 +121,16 @@ public abstract class AbstractSubscription implements Subscription, Cancellable,
     protected void onCancelled() {
         
     }
-    public static AbstractSubscription create(OnRequested onRequested) {
-        return new AbstractSubscription() {
+    public static <T> AbstractSubscription<T> create(Subscriber<? super T> subscriber, OnRequested<T> onRequested) {
+        return new AbstractSubscription<T>(subscriber) {
             @Override
             protected void onRequested(long n) {
                 onRequested.apply(n, this);
             }
         };
     }
-    public static AbstractSubscription create(OnRequested onRequested, Runnable onCancelled) {
-        return new AbstractSubscription() {
+    public static <T> AbstractSubscription<T> create(Subscriber<? super T> subscriber, OnRequested<T> onRequested, Runnable onCancelled) {
+        return new AbstractSubscription<T>(subscriber) {
             @Override
             protected void onRequested(long n) {
                 onRequested.apply(n, this);
@@ -128,20 +141,18 @@ public abstract class AbstractSubscription implements Subscription, Cancellable,
             }
         };
     }
-    static final Subscription EMPTY = new Subscription() {
-        @Override
-        public void request(long n) {
-            if (n < 0) {
-                throw new IllegalArgumentException("Negative request: " + n);
-            }
-        }
-        @Override
-        public void cancel() {
-            
-        }
-    };
     
-    public static Subscription empty() {
-        return EMPTY;
+    public static <T> Subscription createEmpty(Subscriber<? super T> subscriber) {
+        Conformance.subscriberNonNull(subscriber);
+        return new Subscription() {
+            @Override
+            public void cancel() {
+                // NO OP
+            }
+            @Override
+            public void request(long n) {
+                Conformance.requestPositive(n, subscriber);
+            }
+        };
     }
 }

@@ -21,7 +21,7 @@ import rxjf.Flow.*;
 /**
  * 
  */
-public final class BehaviorProcessor<T> implements Processor<T, T> {
+public final class BehaviorProcessor<T> implements ProcessorEx<T, T> {
     @Override
     public void subscribe(Subscriber<? super T> subscriber) {
         // TODO Auto-generated method stub
@@ -46,5 +46,25 @@ public final class BehaviorProcessor<T> implements Processor<T, T> {
     public void onComplete() {
         // TODO Auto-generated method stub
         
+    }
+    @Override
+    public boolean hasThrowable() {
+        // TODO Auto-generated method stub
+        return false;
+    }
+    @Override
+    public boolean hasComplete() {
+        // TODO Auto-generated method stub
+        return false;
+    }
+    @Override
+    public Throwable getThrowable() {
+        // TODO Auto-generated method stub
+        return null;
+    }
+    @Override
+    public boolean hasSubscribers() {
+        // TODO Auto-generated method stub
+        return false;
     }
 }

@@ -20,7 +20,7 @@ package rxjf.internal;
  * 
  */
 @FunctionalInterface
-public interface OnRequested {
+public interface OnRequested<T> {
     
-    void apply(long n, SubscriptionState state);
+    void apply(long n, SubscriptionState<T> state);
 }

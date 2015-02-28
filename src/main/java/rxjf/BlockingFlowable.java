@@ -14,7 +14,18 @@
  * limitations under the License.
  */
 
+package rxjf;
+
 /**
  * 
  */
-package rxjf.internal.operators;
+public final class BlockingFlowable<T> {
+    final Flowable<? extends T> source;
+    public BlockingFlowable(Flowable<? extends T> source) {
+        this.source = source;
+    }
+    public T single() {
+        // TODO
+        return null;
+    }
+}

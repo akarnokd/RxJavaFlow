@@ -16,11 +16,15 @@
 package rxjf;
 
 import java.util.Objects;
+import java.util.concurrent.TimeUnit;
 import java.util.function.*;
 
 import rxjf.Flow.Publisher;
 import rxjf.Flow.Subscriber;
+import rxjf.cancellables.Cancellable;
+import rxjf.internal.Conformance;
 import rxjf.internal.operators.*;
+import rxjf.schedulers.*;
 import rxjf.subscribers.SafeSubscriber;
 
 /**
@@ -29,10 +33,7 @@ import rxjf.subscribers.SafeSubscriber;
 public class Flowable<T> implements Publisher<T> {
     final Consumer<Subscriber<? super T>> onSubscribe;
     protected Flowable(Consumer<Subscriber<? super T>> onSubscribe) {
-        if (onSubscribe == null) {
-            throw new NullPointerException();
-        }
-        this.onSubscribe = onSubscribe;
+        this.onSubscribe = Objects.requireNonNull(onSubscribe);
     }
     public static <T> Flowable<T> create(Consumer<Subscriber<? super T>> onSubscribe) {
         return new Flowable<>(onSubscribe);
@@ -42,9 +43,7 @@ public class Flowable<T> implements Publisher<T> {
         unsafeSubscribe(SafeSubscriber.wrap(subscriber));
     }
     public final void unsafeSubscribe(Subscriber<? super T> subscriber) {
-        if (subscriber == null) {
-            throw new NullPointerException();
-        }
+        Conformance.subscriberNonNull(subscriber);
         try {
             onSubscribe.accept(subscriber);
         } catch (Throwable t) {
@@ -55,17 +54,12 @@ public class Flowable<T> implements Publisher<T> {
             }
         }
     }
-    public final void safeSubscribe(Subscriber<? super T> subscriber) {
-        subscribe(SafeSubscriber.wrap(subscriber));
-    }
     void handleUncaught(Throwable t) {
         Thread currentThread = Thread.currentThread();
         currentThread.getUncaughtExceptionHandler().uncaughtException(currentThread, t);
     }
     public final <R> Flowable<R> lift(Function<Subscriber<? super R>, Subscriber<? super T>> lifter) {
-        if (lifter == null) {
-            throw new NullPointerException();
-        }
+        Objects.requireNonNull(lifter);
         return create(s -> {
             try {
                 Subscriber<? super T> s2 = lifter.apply(s);
@@ -79,10 +73,32 @@ public class Flowable<T> implements Publisher<T> {
             }
         });
     }
+    
+    public final Cancellable subscribe() {
+        // TODO
+        return null;
+    }
+
+    public final Cancellable subscribe(Consumer<? super T> onNext) {
+        // TODO
+        return null;
+    }
+
+    public final Cancellable subscribe(Consumer<? super T> onNext, Consumer<Throwable> onError) {
+        // TODO
+        return null;
+    }
+
+    public final Cancellable subscribe(Consumer<? super T> onNext, Consumer<Throwable> onError, Runnable onComplete) {
+        // TODO
+        return null;
+    }
+
+    // -----------------------------------------------------------
+    // -  OPERATORS ----------------------------------------------
+    // -----------------------------------------------------------
     public static <T> Flowable<T> from(Publisher<? extends T> publisher) {
-        if (publisher == null) {
-            throw new NullPointerException();
-        }
+        Objects.requireNonNull(publisher);
         if (publisher instanceof Flowable) {
             @SuppressWarnings("unchecked")
             Flowable<T> fo = (Flowable<T>) publisher;
@@ -91,7 +107,7 @@ public class Flowable<T> implements Publisher<T> {
         return create(s -> publisher.subscribe(s)); // publisher::subscribe doesn't compile
     }
     public static <T> Flowable<T> just(T value) {
-        return ScalarSynchronousFlow.create(value);
+        return ScalarSynchronousFlow.create(Conformance.itemNonNull(value));
     }
     
     public static <T> Flowable<T> from(Iterable<? extends T> source) {
@@ -110,7 +126,7 @@ public class Flowable<T> implements Publisher<T> {
     public static <T> Flowable<T> empty() {
         return (Flowable<T>)EMPTY;
     }
-    static final Flowable<Object> NEVER = create(new OnSubscribeEmpty<>());
+    static final Flowable<Object> NEVER = create(new OnSubscribeNever<>());
     @SuppressWarnings("unchecked")
     public static <T> Flowable<T> never() {
         return (Flowable<T>)NEVER;
@@ -142,5 +158,15 @@ public class Flowable<T> implements Publisher<T> {
             return just(start);
         }
         return create(new OnSubscribeRangeLong(start, count));
+    }
+    public final Flowable<T> timeout(long timeout, TimeUnit unit) {
+        return timeout(timeout, unit, Schedulers.computation());
+    }
+    public final Flowable<T> timeout(long timeout, TimeUnit unit, Scheduler scheduler) {
+        // TODO
+        return null;
+    }
+    public final BlockingFlowable<T> toBlocking() {
+        return new BlockingFlowable<>(this);
     }
 }
