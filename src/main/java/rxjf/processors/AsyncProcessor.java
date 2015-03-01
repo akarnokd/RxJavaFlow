@@ -112,6 +112,7 @@ public final class AsyncProcessor<T> extends Flowable<T> implements ProcessorEx<
      * retrieved by {@code getValue()} may get outdated.
      * @return true if and only if the subject has some value but not an error
      */
+    @Override
     public boolean hasValue() {
         Object v = lastValue;
         Object o = psm.get();
@@ -144,6 +145,7 @@ public final class AsyncProcessor<T> extends Flowable<T> implements ProcessorEx<
      * @return the current value or {@code null} if the Subject doesn't have a value,
      * has terminated with an exception or has an actual {@code null} as a value.
      */
+    @Override
     public T getValue() {
         Object v = lastValue;
         Object o = psm.get();
@@ -166,4 +168,44 @@ public final class AsyncProcessor<T> extends Flowable<T> implements ProcessorEx<
         return null;
     }
 
+    @Override
+    public int size() {
+        return hasValue() ? 1 : 0;
+    }
+    
+    @Override
+    public boolean hasAnyValue() {
+        return hasValue();
+    }
+
+    @Override
+    public Object[] getValues() {
+        Object v = lastValue;
+        Object o = psm.get();
+        if (!nl.isError(o) && nl.isNext(v)) {
+            T value = nl.getValue(v);
+            return new Object[] { value };
+        }
+        return new Object[0];
+    }
+    
+    @Override
+    public T[] getValues(T[] a) {
+        Object v = lastValue;
+        Object o = psm.get();
+        if (!nl.isError(o) && nl.isNext(v)) {
+            T value = nl.getValue(v);
+            if (a.length == 0) {
+                a = Arrays.copyOf(a, 1);
+            }
+            a[0] = value;
+            if (a.length > 1) {
+                a[1] = null;
+            }
+        } else
+        if (a.length > 0) {
+            a[0] = null;
+        }
+        return a;
+    }
 }

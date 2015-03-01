@@ -37,7 +37,7 @@ public final class SerializedSubscriber<T> implements Subscriber<T> {
         }
         return new SerializedSubscriber<>(subscriber);
     }
-    
+
     static final int TYPE_SUBSCRIPTION = 0;
     static final int TYPE_NEXT = 1;
     static final int TYPE_ERROR = 2;
@@ -191,7 +191,7 @@ public final class SerializedSubscriber<T> implements Subscriber<T> {
     
     static final Object COMPLETE_TOKEN = new Object();
     
-    public DisposableSubscriber<T> toDisposable() {
+    public AbstractDisposableSubscriber<T> toDisposable() {
         return DisposableSubscriber.wrap(this);
     }
 }

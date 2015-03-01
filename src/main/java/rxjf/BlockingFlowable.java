@@ -19,12 +19,12 @@ package rxjf;
 import java.util.*;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.*;
 
-import rx.*;
-import rx.functions.*;
-import rx.internal.operators.*;
-import rx.internal.util.UtilityFunctions;
-import rx.observables.BlockingFlowable;
+import rxjf.Flow.Subscriber;
+import rxjf.disposables.Disposable;
+import rxjf.internal.operators.*;
+import rxjf.subscribers.AbstractSubscriber;
 
 /**
  * {@code BlockingFlowable} is a variety of {@link Flowable} that provides blocking operators. It can be
@@ -61,7 +61,7 @@ public final class BlockingFlowable<T> {
      * @return a {@code BlockingFlowable} version of {@code o}
      */
     public static <T> BlockingFlowable<T> from(final Flowable<? extends T> o) {
-        return new BlockingFlowable<T>(o);
+        return new BlockingFlowable<>(o);
     }
 
     /**
@@ -78,22 +78,22 @@ public final class BlockingFlowable<T> {
      * throw an exception.
      *
      * @param onNext
-     *            the {@link Action1} to invoke for each item emitted by the {@code BlockingFlowable}
+     *            the {@link Consumer} to invoke for each item emitted by the {@code BlockingFlowable}
      * @throws RuntimeException
      *             if an error occurs
      * @see <a href="http://reactivex.io/documentation/operators/subscribe.html">ReactiveX documentation: Subscribe</a>
      */
-    public void forEach(final Action1<? super T> onNext) {
+    public void forEach(final Consumer<? super T> onNext) {
         final CountDownLatch latch = new CountDownLatch(1);
-        final AtomicReference<Throwable> exceptionFromOnError = new AtomicReference<Throwable>();
+        final AtomicReference<Throwable> exceptionFromOnError = new AtomicReference<>();
 
         /*
          * Use 'subscribe' instead of 'unsafeSubscribe' for Rx contract behavior
          * as this is the final subscribe in the chain.
          */
-        Subscription subscription = o.subscribe(new Subscriber<T>() {
+        Disposable disposable = o.subscribeDisposable(new AbstractSubscriber<T>() {
             @Override
-            public void onCompleted() {
+            public void onComplete() {
                 latch.countDown();
             }
 
@@ -113,14 +113,14 @@ public final class BlockingFlowable<T> {
 
             @Override
             public void onNext(T args) {
-                onNext.call(args);
+                onNext.accept(args);
             }
         });
         // block until the subscription completes and then return
         try {
             latch.await();
         } catch (InterruptedException e) {
-            subscription.unsubscribe();
+            disposable.dispose();
             // set the interrupted flag again so callers can still get it
             // for more information see https://github.com/ReactiveX/RxJava/pull/147#issuecomment-13624780
             Thread.currentThread().interrupt();
@@ -173,7 +173,7 @@ public final class BlockingFlowable<T> {
      *             if this {@code BlockingFlowable} emits no such items
      * @see <a href="http://reactivex.io/documentation/operators/first.html">ReactiveX documentation: First</a>
      */
-    public T first(Func1<? super T, Boolean> predicate) {
+    public T first(Predicate<? super T> predicate) {
         return blockForSingle(o.first(predicate));
     }
 
@@ -187,8 +187,9 @@ public final class BlockingFlowable<T> {
      *         items
      * @see <a href="http://reactivex.io/documentation/operators/first.html">ReactiveX documentation: First</a>
      */
+    @SuppressWarnings("unchecked")
     public T firstOrDefault(T defaultValue) {
-        return blockForSingle(o.map(UtilityFunctions.<T>identity()).firstOrDefault(defaultValue));
+        return blockForSingle(((Flowable<T>)o).firstOrDefault(defaultValue));
     }
 
     /**
@@ -203,8 +204,9 @@ public final class BlockingFlowable<T> {
      *         default value if this {@code BlockingFlowable} emits no matching items
      * @see <a href="http://reactivex.io/documentation/operators/first.html">ReactiveX documentation: First</a>
      */
-    public T firstOrDefault(T defaultValue, Func1<? super T, Boolean> predicate) {
-        return blockForSingle(o.filter(predicate).map(UtilityFunctions.<T>identity()).firstOrDefault(defaultValue));
+    @SuppressWarnings("unchecked")
+    public T firstOrDefault(T defaultValue, Predicate<? super T> predicate) {
+        return blockForSingle(((Flowable<T>)o.filter(predicate)).firstOrDefault(defaultValue));
     }
 
     /**
@@ -235,7 +237,7 @@ public final class BlockingFlowable<T> {
      *             if this {@code BlockingFlowable} emits no items
      * @see <a href="http://reactivex.io/documentation/operators/last.html">ReactiveX documentation: Last</a>
      */
-    public T last(final Func1<? super T, Boolean> predicate) {
+    public T last(final Predicate<? super T> predicate) {
         return blockForSingle(o.last(predicate));
     }
 
@@ -251,8 +253,9 @@ public final class BlockingFlowable<T> {
      *         items
      * @see <a href="http://reactivex.io/documentation/operators/last.html">ReactiveX documentation: Last</a>
      */
+    @SuppressWarnings("unchecked")
     public T lastOrDefault(T defaultValue) {
-        return blockForSingle(o.map(UtilityFunctions.<T>identity()).lastOrDefault(defaultValue));
+        return blockForSingle(((Flowable<T>)o).lastOrDefault(defaultValue));
     }
 
     /**
@@ -269,8 +272,9 @@ public final class BlockingFlowable<T> {
      *         default value if it emits no matching items
      * @see <a href="http://reactivex.io/documentation/operators/last.html">ReactiveX documentation: Last</a>
      */
-    public T lastOrDefault(T defaultValue, Func1<? super T, Boolean> predicate) {
-        return blockForSingle(o.filter(predicate).map(UtilityFunctions.<T>identity()).lastOrDefault(defaultValue));
+    @SuppressWarnings("unchecked")
+    public T lastOrDefault(T defaultValue, Predicate<? super T> predicate) {
+        return blockForSingle(((Flowable<T>)o.filter(predicate)).lastOrDefault(defaultValue));
     }
 
     /**
@@ -345,7 +349,7 @@ public final class BlockingFlowable<T> {
      * @return the single item emitted by this {@code BlockingFlowable} that matches the predicate
      * @see <a href="http://reactivex.io/documentation/operators/first.html">ReactiveX documentation: First</a>
      */
-    public T single(Func1<? super T, Boolean> predicate) {
+    public T single(Predicate<? super T> predicate) {
         return blockForSingle(o.single(predicate));
     }
 
@@ -362,8 +366,9 @@ public final class BlockingFlowable<T> {
      *         items
      * @see <a href="http://reactivex.io/documentation/operators/first.html">ReactiveX documentation: First</a>
      */
+    @SuppressWarnings("unchecked")
     public T singleOrDefault(T defaultValue) {
-        return blockForSingle(o.map(UtilityFunctions.<T>identity()).singleOrDefault(defaultValue));
+        return blockForSingle(((Flowable<T>)o).singleOrDefault(defaultValue));
     }
 
     /**
@@ -381,8 +386,9 @@ public final class BlockingFlowable<T> {
      *         default value if no such items are emitted
      * @see <a href="http://reactivex.io/documentation/operators/first.html">ReactiveX documentation: First</a>
      */
-    public T singleOrDefault(T defaultValue, Func1<? super T, Boolean> predicate) {
-        return blockForSingle(o.filter(predicate).map(UtilityFunctions.<T>identity()).singleOrDefault(defaultValue));
+    @SuppressWarnings("unchecked")
+    public T singleOrDefault(T defaultValue, Predicate<? super T> predicate) {
+        return blockForSingle(((Flowable<T>)o).filter(predicate).singleOrDefault(defaultValue));
     }
 
     /**
@@ -428,32 +434,32 @@ public final class BlockingFlowable<T> {
      * @return the actual item
      */
     private T blockForSingle(final Flowable<? extends T> observable) {
-        final AtomicReference<T> returnItem = new AtomicReference<T>();
-        final AtomicReference<Throwable> returnException = new AtomicReference<Throwable>();
+        final AtomicReference<T> returnItem = new AtomicReference<>();
+        final AtomicReference<Throwable> returnException = new AtomicReference<>();
         final CountDownLatch latch = new CountDownLatch(1);
 
-        Subscription subscription = observable.subscribe(new Subscriber<T>() {
+        Disposable disposable = observable.subscribeDisposable(new AbstractSubscriber<T>() {
             @Override
-            public void onCompleted() {
+            public void onComplete() {
                 latch.countDown();
             }
 
             @Override
             public void onError(final Throwable e) {
-                returnException.set(e);
+                returnException.lazySet(e); // countDown will release
                 latch.countDown();
             }
 
             @Override
             public void onNext(final T item) {
-                returnItem.set(item);
+                returnItem.lazySet(item); // onComplete countDown will release
             }
         });
 
         try {
             latch.await();
         } catch (InterruptedException e) {
-            subscription.unsubscribe();
+            disposable.dispose();
             Thread.currentThread().interrupt();
             throw new RuntimeException("Interrupted while waiting for subscription to complete.", e);
         }

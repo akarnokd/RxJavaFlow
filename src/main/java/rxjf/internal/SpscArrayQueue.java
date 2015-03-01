@@ -16,76 +16,9 @@
  */
 package rxjf.internal;
 
-import static rxjf.internal.UnsafeAccess.UNSAFE;
+import static rxjf.internal.UnsafeAccess.*;
+import sun.misc.Contended;
 
-abstract class SpscArrayQueueColdField<E> extends ConcurrentCircularArrayQueue<E> {
-    private static final Integer MAX_LOOK_AHEAD_STEP = Integer.getInteger("jctools.spsc.max.lookahead.step", 4096);
-    protected final int lookAheadStep;
-    public SpscArrayQueueColdField(int capacity) {
-        super(capacity);
-        lookAheadStep = Math.min(capacity/4, MAX_LOOK_AHEAD_STEP);
-    }
-}
-abstract class SpscArrayQueueL1Pad<E> extends SpscArrayQueueColdField<E> {
-    long p10, p11, p12, p13, p14, p15, p16;
-    long p30, p31, p32, p33, p34, p35, p36, p37;
-
-    public SpscArrayQueueL1Pad(int capacity) {
-        super(capacity);
-    }
-}
-
-abstract class SpscArrayQueueProducerFields<E> extends SpscArrayQueueL1Pad<E> {
-    protected final static long P_INDEX_OFFSET;
-    static {
-        try {
-            P_INDEX_OFFSET =
-                UNSAFE.objectFieldOffset(SpscArrayQueueProducerFields.class.getDeclaredField("producerIndex"));
-        } catch (NoSuchFieldException e) {
-            throw new RuntimeException(e);
-        }
-    }
-    protected long producerIndex;
-    protected long producerLookAhead;
-
-    public SpscArrayQueueProducerFields(int capacity) {
-        super(capacity);
-    }
-}
-
-abstract class SpscArrayQueueL2Pad<E> extends SpscArrayQueueProducerFields<E> {
-    long p20, p21, p22, p23, p24, p25, p26;
-    long p30, p31, p32, p33, p34, p35, p36, p37;
-
-    public SpscArrayQueueL2Pad(int capacity) {
-        super(capacity);
-    }
-}
-
-abstract class SpscArrayQueueConsumerField<E> extends SpscArrayQueueL2Pad<E> {
-    protected long consumerIndex;
-    protected final static long C_INDEX_OFFSET;
-    static {
-        try {
-            C_INDEX_OFFSET =
-                UNSAFE.objectFieldOffset(SpscArrayQueueConsumerField.class.getDeclaredField("consumerIndex"));
-        } catch (NoSuchFieldException e) {
-            throw new RuntimeException(e);
-        }
-    }
-    public SpscArrayQueueConsumerField(int capacity) {
-        super(capacity);
-    }
-}
-
-abstract class SpscArrayQueueL3Pad<E> extends SpscArrayQueueConsumerField<E> {
-    long p40, p41, p42, p43, p44, p45, p46;
-    long p30, p31, p32, p33, p34, p35, p36, p37;
-
-    public SpscArrayQueueL3Pad(int capacity) {
-        super(capacity);
-    }
-}
 
 /**
  * A Single-Producer-Single-Consumer queue backed by a pre-allocated buffer.
@@ -103,10 +36,23 @@ abstract class SpscArrayQueueL3Pad<E> extends SpscArrayQueueConsumerField<E> {
  * 
  * @param <E>
  */
-public final class SpscArrayQueue<E> extends SpscArrayQueueL3Pad<E> {
-
-    public SpscArrayQueue(final int capacity) {
+public final class SpscArrayQueue<E> extends ConcurrentCircularArrayQueue<E> {
+    private static final Integer MAX_LOOK_AHEAD_STEP = Integer.getInteger("jctools.spsc.max.lookahead.step", 4096);
+    protected final int lookAheadStep;
+    
+    protected final static long P_INDEX_OFFSET = addressOf(SpscArrayQueue.class, "producerIndex");
+    protected final static long C_INDEX_OFFSET = addressOf(SpscArrayQueue.class, "consumerIndex");
+    
+    @Contended("producer")
+    protected long producerIndex;
+    @Contended("producer")
+    protected long producerLookAhead;
+    @Contended("consumer")
+    protected long consumerIndex;
+    
+    public SpscArrayQueue(int capacity) {
         super(capacity);
+        lookAheadStep = Math.min(capacity/4, MAX_LOOK_AHEAD_STEP);
     }
 
     /**

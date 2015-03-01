@@ -240,7 +240,7 @@ public class Flowable<T> implements Publisher<T> {
      * @see <a href="http://reactivex.io/documentation/operators/subscribe.html">ReactiveX operators documentation: Subscribe</a>
      */
     public final Disposable subscribe() {
-        DisposableSubscriber<Object> cs = EMPTY_SUBSCRIBER.toDisposable();
+        AbstractDisposableSubscriber<Object> cs = EMPTY_SUBSCRIBER.toDisposable();
         subscribe(cs);
         return cs;
     }
@@ -264,7 +264,7 @@ public class Flowable<T> implements Publisher<T> {
      */
     public final Disposable subscribe(Consumer<? super T> onNext) {
         Objects.requireNonNull(onNext);
-        DisposableSubscriber<T> cs = new AbstractSubscriber<T>() {
+        AbstractDisposableSubscriber<T> cs = new AbstractSubscriber<T>() {
             @Override
             public void onNext(T item) {
                 onNext.accept(item);
@@ -304,7 +304,7 @@ public class Flowable<T> implements Publisher<T> {
     public final Disposable subscribe(Consumer<? super T> onNext, Consumer<Throwable> onError) {
         Objects.requireNonNull(onNext);
         Objects.requireNonNull(onError);
-        DisposableSubscriber<T> cs = new AbstractSubscriber<T>() {
+        AbstractDisposableSubscriber<T> cs = new AbstractSubscriber<T>() {
             @Override
             public void onNext(T item) {
                 onNext.accept(item);
@@ -349,7 +349,7 @@ public class Flowable<T> implements Publisher<T> {
         Objects.requireNonNull(onNext);
         Objects.requireNonNull(onError);
         Objects.requireNonNull(onComplete);
-        DisposableSubscriber<T> cs = new AbstractSubscriber<T>() {
+        AbstractDisposableSubscriber<T> cs = new AbstractSubscriber<T>() {
             @Override
             public void onNext(T item) {
                 onNext.accept(item);
@@ -369,7 +369,7 @@ public class Flowable<T> implements Publisher<T> {
     
     // TODO javadoc
     public final Disposable subscribeDisposable(Subscriber<? super T> subscriber) {
-        DisposableSubscriber<? super T> cs = DisposableSubscriber.wrap(subscriber);
+        AbstractDisposableSubscriber<? super T> cs = DisposableSubscriber.wrap(subscriber);
         subscribe(cs);
         return cs;
     }
@@ -3413,15 +3413,13 @@ public class Flowable<T> implements Publisher<T> {
      * @see <a href="http://reactivex.io/documentation/operators/sequenceequal.html">ReactiveX operators documentation: SequenceEqual</a>
      */
     public final static <T> Flowable<Boolean> sequenceEqual(Flowable<? extends T> first, Flowable<? extends T> second) {
-        return sequenceEqual(first, second, new Func2<T, T, Boolean>() {
-            @Override
-            public final Boolean call(T first, T second) {
-                if (first == null) {
-                    return second == null;
+        return sequenceEqual(first, second, (a, b) -> {
+                if (a == null) {
+                    return b == null;
                 }
-                return first.equals(second);
+                return a.equals(b);
             }
-        });
+        );
     }
 
     /**
@@ -3447,7 +3445,7 @@ public class Flowable<T> implements Publisher<T> {
      *         are the same according to the specified function
      * @see <a href="http://reactivex.io/documentation/operators/sequenceequal.html">ReactiveX operators documentation: SequenceEqual</a>
      */
-    public final static <T> Flowable<Boolean> sequenceEqual(Flowable<? extends T> first, Flowable<? extends T> second, Func2<? super T, ? super T, Boolean> equality) {
+    public final static <T> Flowable<Boolean> sequenceEqual(Flowable<? extends T> first, Flowable<? extends T> second, BiPredicate<? super T, ? super T> equality) {
         return OperatorSequenceEqual.sequenceEqual(first, second, equality);
     }
 
@@ -3953,7 +3951,7 @@ public class Flowable<T> implements Publisher<T> {
      *         predicate; otherwise, {@code false}
      * @see <a href="http://reactivex.io/documentation/operators/all.html">ReactiveX operators documentation: All</a>
      */
-    public final Flowable<Boolean> all(Function<? super T, Boolean> predicate) {
+    public final Flowable<Boolean> all(Prdicate<? super T> predicate) {
         return lift(new OperatorAll<T>(predicate));
     }
     
@@ -4536,12 +4534,7 @@ public class Flowable<T> implements Publisher<T> {
      * @see <a href="http://reactivex.io/documentation/operators/contains.html">ReactiveX operators documentation: Contains</a>
      */
     public final Flowable<Boolean> contains(final Object element) {
-        return exists(new Function<T, Boolean>() {
-            @Override
-            public final Boolean call(T t1) {
-                return element == null ? t1 == null : element.equals(t1);
-            }
-        });
+        return exists(t1 -> element == null ? t1 == null : element.equals(t1));
     }
 
     /**
@@ -4563,12 +4556,7 @@ public class Flowable<T> implements Publisher<T> {
      * @see #count()
      */
     public final Flowable<Long> countLong() {
-        return reduce(0L, new Func2<Long, T, Long>() {
-            @Override
-            public final Long call(Long t1, T t2) {
-                return t1 + 1;
-            }
-        });
+        return reduce(0L, (t1, t2) -> t1 + 1);
     }
 
     /**
@@ -5155,28 +5143,8 @@ public class Flowable<T> implements Publisher<T> {
      *         Flowable satisfies the {@code predicate}
      * @see <a href="http://reactivex.io/documentation/operators/contains.html">ReactiveX operators documentation: Contains</a>
      */
-    public final Flowable<Boolean> exists(Function<? super T, Boolean> predicate) {
+    public final Flowable<Boolean> exists(Predicate<? super T> predicate) {
         return lift(new OperatorAny<T>(predicate, false));
-    }
-
-    /**
-     * Filters items emitted by an Flowable by only emitting those that satisfy a specified predicate.
-     * <p>
-     * <img width="640" height="310" src="https://raw.github.com/wiki/ReactiveX/RxJava/images/rx-operators/filter.png" alt="">
-     * <dl>
-     *  <dt><b>Scheduler:</b></dt>
-     *  <dd>{@code filter} does not operate by default on a particular {@link Scheduler}.</dd>
-     * </dl>
-     * 
-     * @param predicate
-     *            a function that evaluates each item emitted by the source Flowable, returning {@code true}
-     *            if it passes the filter
-     * @return an Flowable that emits only those items emitted by the source Flowable that the filter
-     *         evaluates as {@code true}
-     * @see <a href="http://reactivex.io/documentation/operators/filter.html">ReactiveX operators documentation: Filter</a>
-     */
-    public final Flowable<T> filter(Function<? super T, Boolean> predicate) {
-        return lift(new OperatorFilter<T>(predicate));
     }
 
     /**
@@ -5234,7 +5202,7 @@ public class Flowable<T> implements Publisher<T> {
      *         the {@code predicate}, or raises an {@code NoSuchElementException} if no such items are emitted
      * @see <a href="http://reactivex.io/documentation/operators/first.html">ReactiveX operators documentation: First</a>
      */
-    public final Flowable<T> first(Function<? super T, Boolean> predicate) {
+    public final Flowable<T> first(Predicate<? super T> predicate) {
         return takeFirst(predicate).single();
     }
 
@@ -5277,7 +5245,7 @@ public class Flowable<T> implements Publisher<T> {
      *         the {@code predicate}, or a default item if the source Flowable emits no such items
      * @see <a href="http://reactivex.io/documentation/operators/first.html">ReactiveX operators documentation: First</a>
      */
-    public final Flowable<T> firstOrDefault(T defaultValue, Function<? super T, Boolean> predicate) {
+    public final Flowable<T> firstOrDefault(T defaultValue, Predicate<? super T> predicate) {
         return takeFirst(predicate).singleOrDefault(defaultValue);
     }
 
@@ -5702,7 +5670,7 @@ public class Flowable<T> implements Publisher<T> {
      *             if no items that match the predicate are emitted by the source Flowable
      * @see <a href="http://reactivex.io/documentation/operators/last.html">ReactiveX operators documentation: Last</a>
      */
-    public final Flowable<T> last(Function<? super T, Boolean> predicate) {
+    public final Flowable<T> last(Predicate<? super T> predicate) {
         return filter(predicate).takeLast(1).single();
     }
 
@@ -5745,7 +5713,7 @@ public class Flowable<T> implements Publisher<T> {
      *         given condition, or a default item if no such item is emitted by the source Flowable
      * @see <a href="http://reactivex.io/documentation/operators/last.html">ReactiveX operators documentation: Last</a>
      */
-    public final Flowable<T> lastOrDefault(T defaultValue, Function<? super T, Boolean> predicate) {
+    public final Flowable<T> lastOrDefault(T defaultValue, Predicate<? super T> predicate) {
         return filter(predicate).takeLast(1).singleOrDefault(defaultValue);
     }
 
@@ -5832,12 +5800,7 @@ public class Flowable<T> implements Publisher<T> {
      * @see <a href="http://reactivex.io/documentation/operators/filter.html">ReactiveX operators documentation: Filter</a>
      */
     public final <R> Flowable<R> ofType(final Class<R> klass) {
-        return filter(new Function<T, Boolean>() {
-            @Override
-            public final Boolean call(T t) {
-                return klass.isInstance(t);
-            }
-        }).cast(klass);
+        return filter(klass::isInstance).cast(klass);
     }
 
     /**
@@ -7005,7 +6968,7 @@ public class Flowable<T> implements Publisher<T> {
      * @see #retry()
      * @see <a href="http://reactivex.io/documentation/operators/retry.html">ReactiveX operators documentation: Retry</a>
      */
-    public final Flowable<T> retry(Func2<Integer, Throwable, Boolean> predicate) {
+    public final Flowable<T> retry(BiPredicate<Integer, Throwable> predicate) {
         return nest().lift(new OperatorRetryWithPredicate<T>(predicate));
     }
 
@@ -7295,58 +7258,6 @@ public class Flowable<T> implements Publisher<T> {
     }
 
     /**
-     * Returns an Flowable that emits the single item emitted by the source Flowable that matches a
-     * specified predicate, if that Flowable emits one such item. If the source Flowable emits more than one
-     * such item or no such items, notify of an {@code IllegalArgumentException} or
-     * {@code NoSuchElementException} respectively.
-     * <p>
-     * <img width="640" height="315" src="https://raw.github.com/wiki/ReactiveX/RxJava/images/rx-operators/single.p.png" alt="">
-     * <dl>
-     *  <dt><b>Scheduler:</b></dt>
-     *  <dd>{@code single} does not operate by default on a particular {@link Scheduler}.</dd>
-     * </dl>
-     * 
-     * @param predicate
-     *            a predicate function to evaluate items emitted by the source Flowable
-     * @return an Flowable that emits the single item emitted by the source Flowable that matches the
-     *         predicate
-     * @throws IllegalArgumentException
-     *             if the source Flowable emits more than one item that matches the predicate
-     * @throws NoSuchElementException
-     *             if the source Flowable emits no item that matches the predicate
-     * @see <a href="http://reactivex.io/documentation/operators/first.html">ReactiveX operators documentation: First</a>
-     */
-    public final Flowable<T> single(Function<? super T, Boolean> predicate) {
-        return filter(predicate).single();
-    }
-
-    /**
-     * Returns an Flowable that emits the single item emitted by the source Flowable that matches a
-     * predicate, if that Flowable emits only one such item, or a default item if the source Flowable emits
-     * no such items. If the source Flowable emits more than one such item, throw an
-     * {@code IllegalArgumentException}.
-     * <p>
-     * <img width="640" height="315" src="https://raw.github.com/wiki/ReactiveX/RxJava/images/rx-operators/singleOrDefault.p.png" alt="">
-     * <dl>
-     *  <dt><b>Scheduler:</b></dt>
-     *  <dd>{@code singleOrDefault} does not operate by default on a particular {@link Scheduler}.</dd>
-     * </dl>
-     * 
-     * @param defaultValue
-     *            a default item to emit if the source Flowable emits no matching items
-     * @param predicate
-     *            a predicate function to evaluate items emitted by the source Flowable
-     * @return an Flowable that emits the single item emitted by the source Flowable that matches the
-     *         predicate, or the default item if no emitted item matches the predicate
-     * @throws IllegalArgumentException
-     *             if the source Flowable emits more than one item that matches the predicate
-     * @see <a href="http://reactivex.io/documentation/operators/first.html">ReactiveX operators documentation: First</a>
-     */
-    public final Flowable<T> singleOrDefault(T defaultValue, Function<? super T, Boolean> predicate) {
-        return filter(predicate).singleOrDefault(defaultValue);
-    }
-
-    /**
      * Returns an Flowable that skips the first {@code num} items emitted by the source Flowable and emits
      * the remainder.
      * <p>
@@ -7525,7 +7436,7 @@ public class Flowable<T> implements Publisher<T> {
      *         predicate becomes false
      * @see <a href="http://reactivex.io/documentation/operators/skipwhile.html">ReactiveX operators documentation: SkipWhile</a>
      */
-    public final Flowable<T> skipWhile(Function<? super T, Boolean> predicate) {
+    public final Flowable<T> skipWhile(Predicate<? super T> predicate) {
         return lift(new OperatorSkipWhile<T>(OperatorSkipWhile.toPredicate2(predicate)));
     }
 
@@ -7927,7 +7838,7 @@ public class Flowable<T> implements Publisher<T> {
      *         completes without emitting a single condition-satisfying item
      * @see <a href="http://reactivex.io/documentation/operators/first.html">ReactiveX operators documentation: First</a>
      */
-    public final Flowable<T> takeFirst(Function<? super T, Boolean> predicate) {
+    public final Flowable<T> takeFirst(Predicate<? super T> predicate) {
         return filter(predicate).take(1);
     }
 
@@ -8193,7 +8104,7 @@ public class Flowable<T> implements Publisher<T> {
      * @see <a href="http://reactivex.io/documentation/operators/takewhile.html">ReactiveX operators documentation: TakeWhile</a>
      * @see Flowable#takeUntil(Function)
      */
-    public final Flowable<T> takeWhile(final Function<? super T, Boolean> predicate) {
+    public final Flowable<T> takeWhile(final Predicate<? super T> predicate) {
         return lift(new OperatorTakeWhile<T>(predicate));
     }
 
@@ -8216,7 +8127,7 @@ public class Flowable<T> implements Publisher<T> {
      * @since (if this graduates from Experimental/Beta to supported, replace this parenthetical with the release number)
      */
     @Experimental
-    public final Flowable<T> takeUntil(final Function<? super T, Boolean> stopPredicate) {
+    public final Flowable<T> takeUntil(final Predicate<? super T> stopPredicate) {
         return lift(new OperatorTakeUntilPredicate<T>(stopPredicate));
     }
     

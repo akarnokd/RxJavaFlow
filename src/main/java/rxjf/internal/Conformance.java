@@ -68,9 +68,9 @@ public final class Conformance {
     }
     /**
      * Verifies Rule &#xa7;2.12: onSubscribe MUST be called at most once.
-     * @param currentSubscription
-     * @param subscriber
-     * @return
+     * @param currentSubscription the current subscription
+     * @param subscriber the subscriber to report the violation
+     * @return true if the subscription is valid (null), false otherwise
      */
     public static boolean onSubscribeOnce(Subscription currentSubscription, Subscriber<?> subscriber) {
         if (currentSubscription != null) {

@@ -18,13 +18,9 @@ package rxjf.internal;
 
 import static rxjf.internal.UnsafeAccess.UNSAFE;
 
-import java.util.AbstractQueue;
-import java.util.Iterator;
+import java.util.*;
 
-abstract class ConcurrentCircularArrayQueueL0Pad<E> extends AbstractQueue<E> implements MessagePassingQueue<E> {
-    long p00, p01, p02, p03, p04, p05, p06, p07;
-    long p30, p31, p32, p33, p34, p35, p36, p37;
-}
+import sun.misc.Contended;
 
 /**
  * A concurrent access enabling class used by circular array based queues this class exposes an offset computation
@@ -42,7 +38,8 @@ abstract class ConcurrentCircularArrayQueueL0Pad<E> extends AbstractQueue<E> imp
  * 
  * @param <E>
  */
-public abstract class ConcurrentCircularArrayQueue<E> extends ConcurrentCircularArrayQueueL0Pad<E> {
+@Contended
+public abstract class ConcurrentCircularArrayQueue<E> extends AbstractQueue<E> implements MessagePassingQueue<E> {
     protected static final int SPARSE_SHIFT = Integer.getInteger("sparse.shift", 0);
     protected static final int BUFFER_PAD = 32;
     private static final long REF_ARRAY_BASE;
