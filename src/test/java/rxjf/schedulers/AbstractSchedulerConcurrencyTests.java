@@ -68,7 +68,7 @@ public abstract class AbstractSchedulerConcurrencyTests extends AbstractSchedule
                     @Override
                     public void onNext(Long args) {
                         if (countReceived.incrementAndGet() == 2) {
-                            subscription.dispose();
+                            subscription.cancel();
                             latch.countDown();
                         }
                         System.out.println("==> Received " + args);

@@ -150,12 +150,12 @@ public class OnSubscribeRangeLongTest {
 
     @Test
     public void testRangeWithOverflow3() {
-        Flowable.rangeLong(0, Long.MAX_VALUE);
+        Flowable.rangeLong(1, Long.MAX_VALUE);
     }
 
     @Test(expected = IllegalArgumentException.class)
     public void testRangeWithOverflow4() {
-        Flowable.rangeLong(1, Long.MAX_VALUE);
+        Flowable.rangeLong(2, Long.MAX_VALUE);
     }
 
     @Test

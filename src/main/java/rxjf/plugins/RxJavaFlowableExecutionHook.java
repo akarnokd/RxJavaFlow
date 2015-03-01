@@ -15,8 +15,6 @@
  */
 package rxjf.plugins;
 
-import java.util.function.*;
-
 import rxjf.Flow.Subscriber;
 import rxjf.Flow.Subscription;
 import rxjf.*;
@@ -53,7 +51,7 @@ public abstract class RxJavaFlowableExecutionHook {
      * @return {@link OnSubscribe}<{@code T}> function that can be modified, decorated, replaced or just
      *         returned as a pass-thru
      */
-    public <T> Consumer<Subscriber<? super T>> onCreate(Consumer<Subscriber<? super T>> f) {
+    public <T> OnSubscribe<T> onCreate(OnSubscribe<T> f) {
         return f;
     }
 
@@ -68,7 +66,7 @@ public abstract class RxJavaFlowableExecutionHook {
      * @return {@link OnSubscribe}<{@code T}> function that can be modified, decorated, replaced or just
      *         returned as a pass-thru
      */
-    public <T> Consumer<Subscriber<? super T>> onSubscribeStart(Flowable<? extends T> observableInstance, final Consumer<Subscriber<? super T>> onSubscribe) {
+    public <T> OnSubscribe<T> onSubscribeStart(Flowable<? extends T> observableInstance, final OnSubscribe<T> onSubscribe) {
         // pass-thru by default
         return onSubscribe;
     }
@@ -117,7 +115,7 @@ public abstract class RxJavaFlowableExecutionHook {
      * @return {@link Operator}{@code <R, T>} function that can be modified, decorated, replaced or just
      *         returned as a pass-thru
      */
-    public <T, R> Function<Subscriber<? super R>, Subscriber<? super T>> onLift(final Function<Subscriber<? super R>, Subscriber<? super T>> lift) {
+    public <T, R> Operator<T, R> onLift(final Operator<T, R> lift) {
         return lift;
     }
 }

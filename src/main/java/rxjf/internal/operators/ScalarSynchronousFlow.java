@@ -16,8 +16,6 @@
 
 package rxjf.internal.operators;
 
-import java.util.function.Consumer;
-
 import rxjf.Flow.Subscriber;
 import rxjf.*;
 import rxjf.internal.AbstractSubscription;
@@ -30,7 +28,7 @@ import rxjf.subscribers.DisposableSubscriber;
  */
 public final class ScalarSynchronousFlow<T> extends Flowable<T> {
     final T value;
-    private ScalarSynchronousFlow(Consumer<Subscriber<? super T>> onSubscribe, T value) {
+    private ScalarSynchronousFlow(OnSubscribe<T> onSubscribe, T value) {
         super(onSubscribe);
         this.value = value;
     }

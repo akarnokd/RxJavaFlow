@@ -103,13 +103,13 @@ public class RxJavaFlowPlugins {
      * Retrieves the instance of {@link RxJavaFlowableExecutionHook} to use based on order of precedence as
      * defined in {@link RxJavaFlowPlugins} class header.
      * <p>
-     * Override the default by calling {@link #registerObservableExecutionHook(RxJavaFlowableExecutionHook)}
-     * or by setting the property {@code rxjava.plugin.RxJavaObservableExecutionHook.implementation} with the
+     * Override the default by calling {@link #registerFlowableExecutionHook(RxJavaFlowableExecutionHook)}
+     * or by setting the property {@code rxjava.plugin.RxJavaFlowableExecutionHook.implementation} with the
      * full classname to load.
      * 
      * @return {@link RxJavaFlowableExecutionHook} implementation to use
      */
-    public RxJavaFlowableExecutionHook getObservableExecutionHook() {
+    public RxJavaFlowableExecutionHook getFlowableExecutionHook() {
         if (observableExecutionHook.get() == null) {
             // check for an implementation from System.getProperty first
             Object impl = getPluginImplementationViaProperty(RxJavaFlowableExecutionHook.class);
@@ -135,7 +135,7 @@ public class RxJavaFlowPlugins {
      *             if called more than once or after the default was initialized (if usage occurs before trying
      *             to register)
      */
-    public void registerObservableExecutionHook(RxJavaFlowableExecutionHook impl) {
+    public void registerFlowableExecutionHook(RxJavaFlowableExecutionHook impl) {
         if (!observableExecutionHook.compareAndSet(null, impl)) {
             throw new IllegalStateException("Another strategy was already registered: " + observableExecutionHook.get());
         }
