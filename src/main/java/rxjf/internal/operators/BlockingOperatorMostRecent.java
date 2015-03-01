@@ -19,6 +19,7 @@ import java.util.*;
 
 import rxjf.Flowable;
 import rxjf.exceptions.Exceptions;
+import rxjf.internal.NotificationLite;
 import rxjf.subscribers.AbstractSubscriber;
 
 /**
@@ -69,7 +70,7 @@ public final class BlockingOperatorMostRecent {
 
         @Override
         public void onComplete() {
-            value = nl.completed();
+            value = nl.complete();
         }
 
         @Override

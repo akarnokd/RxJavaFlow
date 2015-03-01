@@ -61,15 +61,12 @@ public class TestSubscriber<T> implements Subscriber<T> {
             subscription.request(initialRequest);
         }
     }
-    public final void request(long n) {
+    public final void requestMore(long n) {
         Conformance.subscriptionNonNull(s);
         if (!Conformance.requestPositive(n, this)) {
             return;
         }
         s.request(n);
-    }
-    public final void requestMore(long n) {
-        request(n);
     }
     @Override
     public void onNext(T item) {
@@ -163,6 +160,7 @@ public class TestSubscriber<T> implements Subscriber<T> {
             throw new AssertionError("Multiple completion events: " + complete);
         }
     }
+    
     public final void assertNoComplete() {
         if (complete == 1) {
             throw new AssertionError("Completion event presents");
@@ -171,6 +169,7 @@ public class TestSubscriber<T> implements Subscriber<T> {
             throw new AssertionError("Multiple completion events: " + complete);
         }
     }
+    
     public final void assertValues(Iterable<? extends T> values) {
         Iterator<? extends T> it = values.iterator();
         Iterator<? extends T> nt = nexts.iterator();
@@ -197,13 +196,37 @@ public class TestSubscriber<T> implements Subscriber<T> {
     }
     public final void assertNoValues() {
         if (!nexts.isEmpty()) {
-            throw new AssertionError("Values present: " + nexts.size());
+            throw new AssertionError("Values present: " + nexts);
         }
     }
+    
+    public final void assertValueCount(int count) {
+        if (nexts.size() != count) {
+            throw new AssertionError("Different number of values. Expected: " + count + ", Actual: " + nexts.size() + ", " + nexts);
+        }
+    }
+    
+    public final void assertFirst(T value) {
+        if (nexts.isEmpty()) {
+            throw new AssertionError("No values");
+        }
+        if (!Objects.equals(value, nexts.get(0))) {
+            throw new AssertionError("First differs. Expected: " + value + ", Actual: " +nexts.get(0));
+        }
+    }
+    public final void assertLast(T value) {
+        if (nexts.isEmpty()) {
+            throw new AssertionError("No values");
+        }
+        if (!Objects.equals(value, nexts.get(nexts.size() - 1))) {
+            throw new AssertionError("Last differs. Expected: " + value + ", Actual: " +nexts.get(0));
+        }
+    }
+    
     @SafeVarargs
     public final void assertValues(T... values) {
         if (!Arrays.asList(values).equals(nexts)) {
-            throw new AssertionError("Values differ, Expected: " + values + ", Actual: " + nexts);
+            throw new AssertionError("Values differ, Expected: " + Arrays.toString(values) + ", Actual: " + nexts);
         }
     }
     public final void awaitTerminalEvent() {

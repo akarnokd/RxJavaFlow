@@ -19,7 +19,7 @@ import java.util.*;
 
 import rxjf.Flow.Subscriber;
 import rxjf.Flowable.Operator;
-import rxjf.internal.NotificationLite;
+import rxjf.internal.*;
 import rxjf.subscribers.AbstractSubscriber;
 
 /**
@@ -40,9 +40,8 @@ public final class OperatorTakeLast<T> implements Operator<T, T> {
 
     @Override
     public Subscriber<? super T> apply(final Subscriber<? super T> subscriber) {
-        Deque<Object> deque = new ArrayDeque<>();
-        NotificationLite<T> nl = NotificationLite.instance();
-        QueueSubscription<T> qs = new QueueSubscription<>(subscriber, deque);
+        Deque<T> deque = new ArrayDeque<>();
+        QueueBackpressureSubscription<T> qs = new QueueBackpressureSubscription<>(subscriber, deque);
 
         return new AbstractSubscriber<T>() {
 
@@ -55,7 +54,7 @@ public final class OperatorTakeLast<T> implements Operator<T, T> {
 
             @Override
             public void onComplete() {
-                deque.offer(nl.complete());
+                qs.onComplete();
                 // we onSubscribe only now that all values have been received
                 // and let the QueueSubscription handle the requests
                 subscriber.onSubscribe(qs);
@@ -77,7 +76,7 @@ public final class OperatorTakeLast<T> implements Operator<T, T> {
                 if (deque.size() == count) {
                     deque.removeFirst();
                 }
-                deque.offerLast(nl.next(value));
+                deque.offerLast(value);
             }
         };
     }

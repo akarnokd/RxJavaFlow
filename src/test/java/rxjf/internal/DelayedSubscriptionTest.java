@@ -16,7 +16,8 @@
 
 package rxjf.internal;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.mockito.Matchers.*;
 import static org.mockito.Mockito.*;
 
 import org.junit.Test;
@@ -140,6 +141,8 @@ public class DelayedSubscriptionTest {
         verify(subscription, never()).request(anyInt());
     }
     
+    // -------------------------------
+    // Conformance testing
     @Test(expected = NullPointerException.class)
     public void conformanceNonNull() {
         @SuppressWarnings("unchecked")
@@ -155,29 +158,16 @@ public class DelayedSubscriptionTest {
     }
     @Test
     public void conformancePositiveTry0() {
-        @SuppressWarnings("unchecked")
-        Subscriber<Object> subscriber = mock(Subscriber.class);
-
-        DelayedSubscription ds = new DelayedSubscription(subscriber);
-
-        ds.request(0);
-        
-        verify(subscriber, never()).onNext(any());
-        verify(subscriber).onError(any(IllegalArgumentException.class));
-        verify(subscriber, never()).onComplete();
+        SubscriptionConformanceTest.conformancePositiveTry0(DelayedSubscription::new);
     }
     @Test
     public void conformancePositiveTryMinus1() {
-        @SuppressWarnings("unchecked")
-        Subscriber<Object> subscriber = mock(Subscriber.class);
-
-        DelayedSubscription ds = new DelayedSubscription(subscriber);
-
-        ds.request(-1);
-        
-        verify(subscriber, never()).onNext(any());
-        verify(subscriber).onError(any(IllegalArgumentException.class));
-        verify(subscriber, never()).onComplete();
+        SubscriptionConformanceTest.conformancePositiveTryMinus1(DelayedSubscription::new);
+    }
+    
+    @Test
+    public void conformanceRequestAfterCancelNoError() {
+        SubscriptionConformanceTest.conformanceRequestAfterCancelNoError(DelayedSubscription::new);
     }
     @Test
     public void conformanceOneSubscription() {

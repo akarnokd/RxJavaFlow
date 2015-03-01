@@ -50,6 +50,13 @@ public final class UnsafeAccess {
     public static final boolean isUnsafeAvailable() {
         return UNSAFE != null;
     }
+    /**
+     * Returns the address of the given field in the given class
+     * or throws an InternalException.
+     * @param clazz the target class
+     * @param field the target field
+     * @return the address of the field within the class
+     */
     public static long addressOf(Class<?> clazz, String field) {
         try {
             return UNSAFE.objectFieldOffset(clazz.getDeclaredField(field));
