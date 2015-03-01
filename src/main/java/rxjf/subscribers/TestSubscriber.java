@@ -34,11 +34,19 @@ public class TestSubscriber<T> implements Subscriber<T> {
     Subscription s;
     final Subscriber<? super T> actual;
     final CountDownLatch latch = new CountDownLatch(1);
+    final long initialRequest;
     public TestSubscriber() {
-        actual = null;
+        this(null, Long.MAX_VALUE);
     }
     public TestSubscriber(Subscriber<? super T> actual) {
+        this(actual, Long.MAX_VALUE);
+    }
+    public TestSubscriber(long initialRequest) {
+        this(null, initialRequest);
+    }
+    public TestSubscriber(Subscriber<? super T> actual, long initialRequest) {
         this.actual = actual;
+        this.initialRequest = initialRequest;
     }
     @Override
     public void onSubscribe(Subscription subscription) {
@@ -49,13 +57,19 @@ public class TestSubscriber<T> implements Subscriber<T> {
             return;
         }
         s = subscription;
+        if (initialRequest > 0) {
+            subscription.request(initialRequest);
+        }
     }
-    public void request(long n) {
+    public final void request(long n) {
         Conformance.subscriptionNonNull(s);
         if (!Conformance.requestPositive(n, this)) {
             return;
         }
         s.request(n);
+    }
+    public final void requestMore(long n) {
+        request(n);
     }
     @Override
     public void onNext(T item) {
@@ -119,7 +133,7 @@ public class TestSubscriber<T> implements Subscriber<T> {
         }
     }
     
-    public final void assertNoError() {
+    public final void assertNoErrors() {
         if (!errors.isEmpty()) {
             throw new AssertionError("One or more errors: " + errors);
         }
@@ -129,10 +143,16 @@ public class TestSubscriber<T> implements Subscriber<T> {
         if (errors.isEmpty() && complete == 0) {
             throw new AssertionError("No terminal event(s)");
         }
+        if (errors.size() > 1) {
+            throw new AssertionError("Multiple errors: " + errors);
+        }
+        if (complete > 1) {
+            throw new AssertionError("Multiple completion events: " + complete);
+        }
     }
     public final void assertNoTerminalEvent() {
         if (!errors.isEmpty() || complete != 0) {
-            throw new AssertionError("Terminal event present: " + errors + ", complete: " + complete);
+            throw new AssertionError("Terminal event(s) present: " + errors + ", complete: " + complete);
         }
     }
     public final void assertComplete() {
@@ -155,7 +175,12 @@ public class TestSubscriber<T> implements Subscriber<T> {
         Iterator<? extends T> it = values.iterator();
         Iterator<? extends T> nt = nexts.iterator();
         int n = 0;
-        while (it.hasNext() == nt.hasNext()) {
+        for (;;) {
+            boolean itn = it.hasNext();
+            boolean ntn = nt.hasNext();
+            if (!itn || !ntn) {
+                break;
+            }
             T e = it.next();
             T a = nt.next();
             if (!Objects.equals(e, a)) {
@@ -181,14 +206,14 @@ public class TestSubscriber<T> implements Subscriber<T> {
             throw new AssertionError("Values differ, Expected: " + values + ", Actual: " + nexts);
         }
     }
-    public final void await() {
+    public final void awaitTerminalEvent() {
         try {
             latch.await();
         } catch (InterruptedException ex) {
             throw new RuntimeException(ex);
         }
     }
-    public final void await(long time, TimeUnit unit) {
+    public final void awaitTerminalEvent(long time, TimeUnit unit) {
         try {
             if (!latch.await(time, unit)) {
                 throw new RuntimeException("Timeout");
@@ -197,10 +222,16 @@ public class TestSubscriber<T> implements Subscriber<T> {
             throw new RuntimeException(ex);
         }
     }
-    public List<Throwable> getErrors() {
+    public final List<Throwable> getErrors() {
         return errors;
     }
-    public List<T> getValues() {
+    public final List<T> getValues() {
         return nexts;
+    }
+    public final List<T> getOnNextEvents() {
+        return nexts;
+    }
+    public final List<Throwable> getOnErrorEvents() {
+        return errors;
     }
 }

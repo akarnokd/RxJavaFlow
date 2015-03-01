@@ -20,8 +20,9 @@ import java.util.function.*;
 import rxjf.Flow.Subscriber;
 import rxjf.Flow.Subscription;
 import rxjf.*;
-import rxjf.cancellables.Cancellable;
-import rxjf.internal.operators.*;
+import rxjf.Flowable.OnSubscribe;
+import rxjf.Flowable.Operator;
+import rxjf.disposables.Disposable;
 
 /**
  * Abstract ExecutionHook with invocations at different lifecycle points of {@link Flowable} execution with a
@@ -84,7 +85,7 @@ public abstract class RxJavaFlowableExecutionHook {
      * @return {@link Subscription} subscription that can be modified, decorated, replaced or just returned as a
      *         pass-thru
      */
-    public Cancellable onSubscribeReturn(Cancellable subscription) {
+    public Disposable onSubscribeReturn(Disposable subscription) {
         // pass-thru by default
         return subscription;
     }

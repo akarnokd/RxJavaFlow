@@ -20,11 +20,12 @@ import java.util.function.Function;
 
 import rxjf.Flow.Subscriber;
 import rxjf.Flow.Subscription;
+import rxjf.Flowable.Operator;
 
 /**
  * 
  */
-public final class OperatorMap<T, R> implements Operator<T, R> {
+public final class OperatorMap<T, R> implements Operator<R, T> {
     final Function<? super T, ? extends R> function;
     public OperatorMap(Function<? super T, ? extends R> function) {
         this.function = function;

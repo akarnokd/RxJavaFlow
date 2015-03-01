@@ -19,12 +19,12 @@ package rxjf.internal;
 import static rxjf.internal.UnsafeAccess.*;
 import rxjf.Flow.Subscriber;
 import rxjf.Flow.Subscription;
-import rxjf.cancellables.Cancellable;
+import rxjf.disposables.Disposable;
 
 /**
  * 
  */
-public abstract class AbstractSubscription<T> implements Subscription, Cancellable, SubscriptionState<T> {
+public abstract class AbstractSubscription<T> implements Subscription, Disposable, SubscriptionState<T> {
     /** The current requested count, negative value indicates cancelled subscription. */
     private volatile long requested;
     private static final long REQUESTED = addressOf(AbstractSubscription.class, "requested");
@@ -33,17 +33,21 @@ public abstract class AbstractSubscription<T> implements Subscription, Cancellab
         this.subscriber = Conformance.subscriberNonNull(subscriber);
     }
     @Override
-    public final boolean isCancelled() {
+    public final boolean isDisposed() {
         return requested < 0;
     }
     @Override
-    public final void cancel() {
+    public final void dispose() {
         if (requested >= 0) {
             long r = UNSAFE.getAndSetLong(this, REQUESTED, Long.MIN_VALUE);
             if (r >= 0) {
                 onCancelled();
             }
         }
+    }
+    @Override
+    public final void cancel() {
+        dispose();
     }
     @Override
     public final void request(long n) {
@@ -84,7 +88,7 @@ public abstract class AbstractSubscription<T> implements Subscription, Cancellab
     public final long produced(long n) {
         if (n < 0) {
             subscriber.onError(new IllegalArgumentException("Negative produced value: " + n));
-            cancel();
+            dispose();
             return Long.MIN_VALUE;
         }
         for (;;) {
@@ -98,7 +102,7 @@ public abstract class AbstractSubscription<T> implements Subscription, Cancellab
             long u = r - n;
             if (u < 0) {
                 subscriber.onError(new IllegalArgumentException("More produced (" + n + " than requested (" + r + ")!"));
-                cancel();
+                dispose();
                 return Long.MIN_VALUE;
             }
             if (UNSAFE.compareAndSwapLong(this, REQUESTED, r, u)) {
@@ -116,7 +120,7 @@ public abstract class AbstractSubscription<T> implements Subscription, Cancellab
      */
     protected abstract void onRequested(long n);
     /**
-     * Called by cancel() once it transitions into the cancelled state
+     * Called by cancel() once it transitions into the cancelled state.
      */
     protected void onCancelled() {
         

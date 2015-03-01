@@ -20,22 +20,23 @@ import static rxjf.internal.UnsafeAccess.*;
 
 import java.util.concurrent.Future;
 
-import rxjf.cancellables.*;
+import rxjf.disposables.*;
+import rxjf.internal.BooleanDisposable;
 
-public final class ScheduledRunnable implements Runnable, Cancellable {
+public final class ScheduledRunnable implements Runnable, Disposable {
     final Runnable actual;
-    final CompositeCancellable composite;
+    final CompositeDisposable composite;
     volatile Object runner;
     static final Object DONE = new Object();
     static final long RUNNER = addressOf(ScheduledRunnable.class, "runner");
     
     public ScheduledRunnable(Runnable actual) {
         this.actual = actual;
-        this.composite = new CompositeCancellable();
+        this.composite = new CompositeDisposable();
     }
-    public ScheduledRunnable(Runnable actual, CompositeCancellable parent) {
+    public ScheduledRunnable(Runnable actual, CompositeDisposable parent) {
         this.actual = actual;
-        this.composite = new CompositeCancellable(new BooleanCancellable(() -> {
+        this.composite = new CompositeDisposable(new BooleanDisposable(() -> {
             parent.remove(ScheduledRunnable.this);
         }));
     }
@@ -49,14 +50,14 @@ public final class ScheduledRunnable implements Runnable, Cancellable {
             t.getUncaughtExceptionHandler().uncaughtException(t, e);
         } finally {
             UNSAFE.putOrderedObject(this, RUNNER, DONE);
-            cancel();
+            dispose();
         }
     }
-    public void add(Cancellable cancellable) {
-        composite.add(cancellable);
+    public void add(Disposable disposable) {
+        composite.add(disposable);
     }
     public void add(Future<?> future) {
-        add(new BooleanCancellable(() -> {
+        add(new BooleanDisposable(() -> {
             Object o = runner;
             if (o != DONE) {
                 if (o == Thread.currentThread()) {
@@ -67,17 +68,17 @@ public final class ScheduledRunnable implements Runnable, Cancellable {
             }
         }));
     }
-    public void addParent(CompositeCancellable parent) {
-        add(new BooleanCancellable(() -> {
+    public void addParent(CompositeDisposable parent) {
+        add(new BooleanDisposable(() -> {
             parent.remove(ScheduledRunnable.this);
         }));
     }
     @Override
-    public boolean isCancelled() {
-        return composite.isCancelled();
+    public boolean isDisposed() {
+        return composite.isDisposed();
     }
     @Override
-    public void cancel() {
-        composite.cancel();
+    public void dispose() {
+        composite.dispose();
     }
 }

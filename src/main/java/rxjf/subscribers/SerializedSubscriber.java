@@ -191,7 +191,7 @@ public final class SerializedSubscriber<T> implements Subscriber<T> {
     
     static final Object COMPLETE_TOKEN = new Object();
     
-    public CancellableSubscriber<T> toCancellable() {
-        return CancellableSubscriber.wrap(this);
+    public DisposableSubscriber<T> toDisposable() {
+        return DisposableSubscriber.wrap(this);
     }
 }

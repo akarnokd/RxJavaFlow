@@ -14,49 +14,38 @@
  * limitations under the License.
  */
 
-package rxjf.cancellables;
+package rxjf.internal;
 
 import static rxjf.internal.UnsafeAccess.*;
 
 import java.util.Objects;
 
-import rxjf.Flow.Subscription;
+import rxjf.disposables.Disposable;
 
 /**
  * 
  */
-public final class BooleanCancellable implements Cancellable {
-    static final Runnable STATE_CANCELLED = new Runnable() {
-        @Override
-        public void run() {
-            
-        }
-    };
+public final class BooleanDisposable implements Disposable {
+    static final Runnable STATE_CANCELLED = () -> { };
     volatile Runnable state;
-    static final long STATE = addressOf(BooleanCancellable.class, "state");
+    static final long STATE = addressOf(BooleanDisposable.class, "state");
     static final Runnable EMPTY = () -> { };
-    public BooleanCancellable() {
+    public BooleanDisposable() {
         UNSAFE.putOrderedObject(this, STATE, EMPTY);
     }
-    public BooleanCancellable(Runnable run) {
+    public BooleanDisposable(Runnable run) {
         Objects.requireNonNull(run);
         UNSAFE.putOrderedObject(this, STATE, run);
     }
     @Override
-    public boolean isCancelled() {
+    public boolean isDisposed() {
         return state == STATE_CANCELLED;
     }
     @Override
-    public void cancel() {
+    public void dispose() {
         if (state != STATE_CANCELLED) {
             Runnable r = (Runnable)UNSAFE.getAndSetObject(this, STATE, STATE_CANCELLED);
             r.run();
         }
-    }
-    public static Cancellable wrap(Subscription s) {
-        if (s instanceof Cancellable) {
-            return (Cancellable)s;
-        }
-        return new BooleanCancellable(s::cancel);
     }
 }

@@ -18,7 +18,7 @@ package rxjf.internal.schedulers;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicIntegerFieldUpdater;
 
-import rxjf.cancellables.*;
+import rxjf.disposables.*;
 import rxjf.schedulers.Scheduler;
 
 public final class CachedThreadScheduler implements Scheduler {
@@ -42,12 +42,7 @@ public final class CachedThreadScheduler implements Scheduler {
 
             evictExpiredWorkerExecutor = Executors.newScheduledThreadPool(1, EVICTOR_THREAD_FACTORY);
             evictExpiredWorkerExecutor.scheduleWithFixedDelay(
-                    new Runnable() {
-                        @Override
-                        public void run() {
-                            evictExpiredWorkers();
-                        }
-                    }, this.keepAliveTime, this.keepAliveTime, TimeUnit.NANOSECONDS
+                    () -> evictExpiredWorkers(), this.keepAliveTime, this.keepAliveTime, TimeUnit.NANOSECONDS
             );
         }
 
@@ -81,7 +76,7 @@ public final class CachedThreadScheduler implements Scheduler {
                 for (ThreadWorker threadWorker : expiringWorkerQueue) {
                     if (threadWorker.getExpirationTime() <= currentTimestamp) {
                         if (expiringWorkerQueue.remove(threadWorker)) {
-                            threadWorker.cancel();
+                            threadWorker.dispose();
                         }
                     } else {
                         // Queue is ordered with the worker that will expire first in the beginning, so when we
@@ -103,7 +98,7 @@ public final class CachedThreadScheduler implements Scheduler {
     }
 
     private static final class EventLoopWorker implements Scheduler.Worker {
-        private final CompositeCancellable tasks = new CompositeCancellable();
+        private final CompositeDisposable tasks = new CompositeDisposable();
         private final ThreadWorker threadWorker;
         @SuppressWarnings("unused")
         volatile int once;
@@ -115,29 +110,29 @@ public final class CachedThreadScheduler implements Scheduler {
         }
 
         @Override
-        public void cancel() {
+        public void dispose() {
             if (ONCE_UPDATER.compareAndSet(this, 0, 1)) {
                 // unsubscribe should be idempotent, so only do this once
                 CachedWorkerPool.INSTANCE.release(threadWorker);
             }
-            tasks.cancel();
+            tasks.dispose();
         }
 
         @Override
-        public boolean isCancelled() {
-            return tasks.isCancelled();
+        public boolean isDisposed() {
+            return tasks.isDisposed();
         }
 
         @Override
-        public Cancellable schedule(Runnable action) {
+        public Disposable schedule(Runnable action) {
             return schedule(action, 0, null);
         }
 
         @Override
-        public Cancellable schedule(Runnable action, long delayTime, TimeUnit unit) {
-            if (tasks.isCancelled()) {
+        public Disposable schedule(Runnable action, long delayTime, TimeUnit unit) {
+            if (tasks.isDisposed()) {
                 // don't schedule, we are unsubscribed
-                return Cancellable.CANCELLED;
+                return Disposable.DISPOSED;
             }
 
             ScheduledRunnable s = threadWorker.scheduleActual(action, delayTime, unit, tasks);

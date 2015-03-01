@@ -23,7 +23,7 @@ import rxjf.Flow.Subscriber;
  */
 public interface SubscriptionState<T> {
 
-    boolean isCancelled();
+    boolean isDisposed();
     
     long requested();
     

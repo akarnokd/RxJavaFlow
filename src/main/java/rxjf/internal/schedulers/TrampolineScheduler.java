@@ -18,7 +18,8 @@ package rxjf.internal.schedulers;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import rxjf.cancellables.*;
+import rxjf.disposables.*;
+import rxjf.internal.BooleanDisposable;
 import static rxjf.internal.UnsafeAccess.*;
 import rxjf.schedulers.Scheduler;
 
@@ -48,24 +49,24 @@ public final class TrampolineScheduler implements Scheduler {
         static final long COUNTER = addressOf(InnerCurrentThreadScheduler.class, "counter");
         
         private final PriorityBlockingQueue<TimedAction> queue = new PriorityBlockingQueue<>();
-        private final BooleanCancellable innerCancellable = new BooleanCancellable();
+        private final BooleanDisposable innerDisposable = new BooleanDisposable();
         private final AtomicInteger wip = new AtomicInteger();
 
         @Override
-        public Cancellable schedule(Runnable action) {
+        public Disposable schedule(Runnable action) {
             return enqueue(action, now());
         }
 
         @Override
-        public Cancellable schedule(Runnable action, long delayTime, TimeUnit unit) {
+        public Disposable schedule(Runnable action, long delayTime, TimeUnit unit) {
             long execTime = now() + unit.toMillis(delayTime);
 
             return enqueue(new SleepingRunnable(action, this, execTime), execTime);
         }
 
-        private Cancellable enqueue(Runnable action, long execTime) {
-            if (innerCancellable.isCancelled()) {
-                return Cancellable.CANCELLED;
+        private Disposable enqueue(Runnable action, long execTime) {
+            if (innerDisposable.isDisposed()) {
+                return Disposable.DISPOSED;
             }
             final TimedAction timedAction = new TimedAction(action, execTime, UNSAFE.getAndAddInt(this, COUNTER, 1));
             queue.add(timedAction);
@@ -77,20 +78,20 @@ public final class TrampolineScheduler implements Scheduler {
                         polled.action.run();
                     }
                 } while (wip.decrementAndGet() > 0);
-                return Cancellable.CANCELLED;
+                return Disposable.DISPOSED;
             }
             // queue wasn't empty, a parent is already processing so we just add to the end of the queue
-            return new BooleanCancellable(() -> queue.remove(timedAction));
+            return new BooleanDisposable(() -> queue.remove(timedAction));
         }
 
         @Override
-        public void cancel() {
-            innerCancellable.cancel();
+        public void dispose() {
+            innerDisposable.dispose();
         }
 
         @Override
-        public boolean isCancelled() {
-            return innerCancellable.isCancelled();
+        public boolean isDisposed() {
+            return innerDisposable.isDisposed();
         }
 
     }

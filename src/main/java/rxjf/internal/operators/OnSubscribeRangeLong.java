@@ -17,6 +17,7 @@
 package rxjf.internal.operators;
 
 import rxjf.Flow.Subscriber;
+import rxjf.Flowable.OnSubscribe;
 import rxjf.internal.AbstractSubscription;
 
 /**
@@ -42,7 +43,7 @@ public final class OnSubscribeRangeLong implements OnSubscribe<Long> {
                 long r = remaining;
                 if (n == Long.MAX_VALUE) {
                     while (r > 0) {
-                        if (isCancelled()) {
+                        if (isDisposed()) {
                             return;
                         }
                         child.onNext(v++);
@@ -55,7 +56,7 @@ public final class OnSubscribeRangeLong implements OnSubscribe<Long> {
                 for (;;) {
                     long c = r0;
                     while (r0 > 0 && r > 0) {
-                        if (isCancelled()) {
+                        if (isDisposed()) {
                             return;
                         }
                         child.onNext(v++);

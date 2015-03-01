@@ -20,7 +20,7 @@ import java.util.Iterator;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicReference;
 
-import rxjf.cancellables.*;
+import rxjf.disposables.*;
 import rxjf.exceptions.Exceptions;
 import rxjf.plugins.*;
 import rxjf.schedulers.Scheduler;
@@ -62,12 +62,7 @@ public class NewThreadWorker implements Scheduler.Worker {
             }
             exec = Executors.newScheduledThreadPool(1, new RxThreadFactory(PURGE_THREAD_PREFIX));
             if (PURGE.compareAndSet(null, exec)) {
-                exec.scheduleAtFixedRate(new Runnable() {
-                    @Override
-                    public void run() {
-                        purgeExecutors();
-                    }
-                }, PURGE_FREQUENCY, PURGE_FREQUENCY, TimeUnit.MILLISECONDS);
+                exec.scheduleAtFixedRate(() -> purgeExecutors(), PURGE_FREQUENCY, PURGE_FREQUENCY, TimeUnit.MILLISECONDS);
                 
                 break;
             }
@@ -140,14 +135,14 @@ public class NewThreadWorker implements Scheduler.Worker {
     }
 
     @Override
-    public Cancellable schedule(final Runnable action) {
+    public Disposable schedule(final Runnable action) {
         return schedule(action, 0, null);
     }
 
     @Override
-    public Cancellable schedule(final Runnable action, long delayTime, TimeUnit unit) {
+    public Disposable schedule(final Runnable action, long delayTime, TimeUnit unit) {
         if (isUnsubscribed) {
-            return Cancellable.CANCELLED;
+            return Disposable.DISPOSED;
         }
         return scheduleActual(action, delayTime, unit);
     }
@@ -172,7 +167,7 @@ public class NewThreadWorker implements Scheduler.Worker {
 
         return run;
     }
-    public ScheduledRunnable scheduleActual(final Runnable action, long delayTime, TimeUnit unit, CompositeCancellable parent) {
+    public ScheduledRunnable scheduleActual(final Runnable action, long delayTime, TimeUnit unit, CompositeDisposable parent) {
         Runnable decoratedAction = schedulersHook.onSchedule(action);
         ScheduledRunnable run = new ScheduledRunnable(decoratedAction, parent);
         parent.add(run);
@@ -189,14 +184,14 @@ public class NewThreadWorker implements Scheduler.Worker {
     }
     
     @Override
-    public void cancel() {
+    public void dispose() {
         isUnsubscribed = true;
         executor.shutdownNow();
         deregisterExecutor(executor);
     }
 
     @Override
-    public boolean isCancelled() {
+    public boolean isDisposed() {
         return isUnsubscribed;
     }
 }

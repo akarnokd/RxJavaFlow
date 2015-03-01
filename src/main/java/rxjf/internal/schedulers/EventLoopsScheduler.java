@@ -19,7 +19,7 @@ import static rxjf.internal.UnsafeAccess.*;
 
 import java.util.concurrent.*;
 
-import rxjf.cancellables.*;
+import rxjf.disposables.*;
 import rxjf.schedulers.Scheduler;
 
 public class EventLoopsScheduler implements Scheduler {
@@ -88,13 +88,13 @@ public class EventLoopsScheduler implements Scheduler {
      * @param action the action to schedule
      * @return the subscription
      */
-    public Cancellable scheduleDirect(Runnable action) {
+    public Disposable scheduleDirect(Runnable action) {
        PoolWorker pw = pool.getEventLoop();
        return pw.scheduleActual(action, -1, TimeUnit.NANOSECONDS);
     }
 
     private static class EventLoopWorker implements Scheduler.Worker {
-        private final CompositeCancellable composite = new CompositeCancellable();
+        private final CompositeDisposable composite = new CompositeDisposable();
         private final PoolWorker poolWorker;
 
         EventLoopWorker(PoolWorker poolWorker) {
@@ -102,19 +102,19 @@ public class EventLoopsScheduler implements Scheduler {
         }
 
         @Override
-        public void cancel() {
-            composite.cancel();
+        public void dispose() {
+            composite.dispose();
         }
 
         @Override
-        public boolean isCancelled() {
-            return composite.isCancelled();
+        public boolean isDisposed() {
+            return composite.isDisposed();
         }
 
         @Override
-        public Cancellable schedule(Runnable action) {
-            if (isCancelled()) {
-                return Cancellable.CANCELLED;
+        public Disposable schedule(Runnable action) {
+            if (isDisposed()) {
+                return Disposable.DISPOSED;
             }
             ScheduledRunnable s = poolWorker.scheduleActual(action, 0, null);
             
@@ -124,9 +124,9 @@ public class EventLoopsScheduler implements Scheduler {
             return s;
         }
         @Override
-        public Cancellable schedule(Runnable action, long delayTime, TimeUnit unit) {
-            if (isCancelled()) {
-                return Cancellable.CANCELLED;
+        public Disposable schedule(Runnable action, long delayTime, TimeUnit unit) {
+            if (isDisposed()) {
+                return Disposable.DISPOSED;
             }
             ScheduledRunnable s = poolWorker.scheduleActual(action, delayTime, unit, composite);
             

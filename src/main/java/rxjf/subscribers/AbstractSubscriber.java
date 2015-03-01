@@ -36,13 +36,14 @@ public abstract class AbstractSubscriber<T> implements Subscriber<T> {
     }
     /**
      * Override this to react to an onSubscribe event from upstream.
-     * The {@code subscription} is available
+     * The default implementation starts an unbounded stream by requesting {@code Long.MAX_VALUE}.
+     * The {@code subscription} is available.
      */
     protected void onSubscribe() {
-        
+        subscription.request(Long.MAX_VALUE);
     }
-    public CancellableSubscriber<T> toCancellable() {
-        return CancellableSubscriber.wrap(this);
+    public DisposableSubscriber<T> toDisposable() {
+        return DisposableSubscriber.wrap(this);
     }
     public SerializedSubscriber<T> toSerialized() {
         return SerializedSubscriber.wrap(this);

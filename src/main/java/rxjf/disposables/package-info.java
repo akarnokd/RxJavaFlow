@@ -13,24 +13,8 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package rxjf.cancellables;
 
 /**
- *
+ * 
  */
-public interface Cancellable {
-    
-    boolean isCancelled();
-    
-    void cancel();
-    
-    Cancellable CANCELLED = new Cancellable() {
-        @Override
-        public boolean isCancelled() {
-            return true;
-        }
-        @Override
-        public void cancel() {
-        }
-    };
-}
+package rxjf.disposables;

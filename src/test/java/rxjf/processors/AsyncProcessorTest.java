@@ -152,13 +152,13 @@ public class AsyncProcessorTest {
 
         @SuppressWarnings("unchecked")
         Subscriber<String> observer = mock(Subscriber.class);
-        CancellableSubscriber<String> cancellable = CancellableSubscriber.wrap(observer);
-        subject.subscribe(cancellable);
+        DisposableSubscriber<String> disposable = DisposableSubscriber.wrap(observer);
+        subject.subscribe(disposable);
 
         subject.onNext("one");
         subject.onNext("two");
 
-        cancellable.cancel();
+        disposable.dispose();
 
         verify(observer, Mockito.never()).onNext(anyString());
         verify(observer, Mockito.never()).onError(any(Throwable.class));

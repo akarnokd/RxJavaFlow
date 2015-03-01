@@ -22,9 +22,9 @@ import java.util.function.*;
 import rxjf.Flow.Publisher;
 import rxjf.Flow.Subscriber;
 import rxjf.Flow.Subscription;
-import rxjf.cancellables.Cancellable;
-import rxjf.exceptions.OnErrorNotImplementedException;
-import rxjf.internal.Conformance;
+import rxjf.disposables.Disposable;
+import rxjf.exceptions.*;
+import rxjf.internal.*;
 import rxjf.internal.operators.*;
 import rxjf.schedulers.*;
 import rxjf.subscribers.*;
@@ -37,6 +37,31 @@ public class Flowable<T> implements Publisher<T> {
     protected Flowable(Consumer<Subscriber<? super T>> onSubscribe) {
         this.onSubscribe = Objects.requireNonNull(onSubscribe);
     }
+    /**
+     * Invoked when Obserable.subscribe is called.
+     */
+    public static interface OnSubscribe<T> extends Consumer<Subscriber<? super T>> {
+        // cover for generics insanity
+        @Override
+        void accept(Subscriber<? super T> child);
+    }
+
+    /**
+     * Operator function for lifting into an Flowable.
+     */
+    public interface Operator<R, T> extends Function<Subscriber<? super R>, Subscriber<? super T>> {
+        // cover for generics insanity
+        @Override
+        Subscriber<? super T> apply(Subscriber<? super R> child);
+    }
+    /**
+     * Transformer function used by {@link #compose}.
+     * @warn more complete description needed
+     */
+    public static interface Transformer<T, R> extends Function<Flowable<T>, Flowable<R>> {
+        // cover for generics insanity
+    }
+    
     public static <T> Flowable<T> create(Consumer<Subscriber<? super T>> onSubscribe) {
         return new Flowable<>(onSubscribe);
     }
@@ -60,7 +85,30 @@ public class Flowable<T> implements Publisher<T> {
         Thread currentThread = Thread.currentThread();
         currentThread.getUncaughtExceptionHandler().uncaughtException(currentThread, t);
     }
-    public final <R> Flowable<R> lift(Function<Subscriber<? super R>, Subscriber<? super T>> lifter) {
+    /**
+     * Lifts a function to the current Flowable and returns a new Flowable that when subscribed to will pass
+     * the values of the current Flowable through the Operator function.
+     * <p>
+     * In other words, this allows chaining Observers together on an Flowable for acting on the values within
+     * the Flowable.
+     * <p> {@code
+     * observable.map(...).filter(...).take(5).lift(new OperatorA()).lift(new OperatorB(...)).subscribe()
+     * }
+     * <p>
+     * If the operator you are creating is designed to act on the individual items emitted by a source
+     * Flowable, use {@code lift}. If your operator is designed to transform the source Flowable as a whole
+     * (for instance, by applying a particular set of existing RxJava operators to it) use {@link #compose}.
+     * <dl>
+     *  <dt><b>Scheduler:</b></dt>
+     *  <dd>{@code lift} does not operate by default on a particular {@link Scheduler}.</dd>
+     * </dl>
+     * 
+     * @param lift the Operator that implements the Flowable-operating function to be applied to the source
+     *             Flowable
+     * @return an Flowable that is the result of applying the lifted Operator to the source Flowable
+     * @see <a href="https://github.com/ReactiveX/RxJava/wiki/Implementing-Your-Own-Operators">RxJava wiki: Implementing Your Own Operators</a>
+     */
+    public final <R> Flowable<R> lift(Operator<? extends R, ? super T> lifter) {
         Objects.requireNonNull(lifter);
         return create(s -> {
             try {
@@ -70,12 +118,35 @@ public class Flowable<T> implements Publisher<T> {
                 try {
                     s.onError(e);
                 } catch (Throwable e2) {
-                    handleUncaught(e2);
+                    handleUncaught(new CompositeException(Arrays.asList(e, e2)));
                 }
             }
         });
     }
-    
+
+    /**
+     * Transform an Flowable by applying a particular Transformer function to it.
+     * <p>
+     * This method operates on the Flowable itself whereas {@link #lift} operates on the Flowable's
+     * Subscribers or Observers.
+     * <p>
+     * If the operator you are creating is designed to act on the individual items emitted by a source
+     * Flowable, use {@link #lift}. If your operator is designed to transform the source Flowable as a whole
+     * (for instance, by applying a particular set of existing RxJava operators to it) use {@code compose}.
+     * <dl>
+     *  <dt><b>Scheduler:</b></dt>
+     *  <dd>{@code compose} does not operate by default on a particular {@link Scheduler}.</dd>
+     * </dl>
+     * 
+     * @param transformer implements the function that transforms the source Flowable
+     * @return the source Flowable, transformed by the transformer function
+     * @see <a href="https://github.com/ReactiveX/RxJava/wiki/Implementing-Your-Own-Operators">RxJava wiki: Implementing Your Own Operators</a>
+     */
+    @SuppressWarnings("unchecked")
+    public <R> Flowable<R> compose(Transformer<? super T, ? extends R> transformer) {
+        return ((Transformer<T, R>) transformer).apply(this);
+    }
+
     static final AbstractSubscriber<Object> EMPTY_SUBSCRIBER = new AbstractSubscriber<Object>() {
         @Override
         public void onNext(Object item) {
@@ -89,31 +160,45 @@ public class Flowable<T> implements Publisher<T> {
         }
     }.toChecked();
     
-    public final Cancellable subscribe() {
-        CancellableSubscriber<Object> cs = EMPTY_SUBSCRIBER.toCancellable();
+    /**
+     * Subscribes to an Flowable but ignore its emissions and notifications.
+     * <dl>
+     *  <dt><b>Scheduler:</b></dt>
+     *  <dd>{@code subscribe} does not operate by default on a particular {@link Scheduler}.</dd>
+     * </dl>
+     * 
+     * @return a {@link Subscription} reference with which the {@link Observer} can stop receiving items before
+     *         the Flowable has finished sending them
+     * @throws OnErrorNotImplementedException
+     *             if the Flowable tries to call {@code onError}
+     * @see <a href="http://reactivex.io/documentation/operators/subscribe.html">ReactiveX operators documentation: Subscribe</a>
+     */
+    public final Disposable subscribe() {
+        DisposableSubscriber<Object> cs = EMPTY_SUBSCRIBER.toDisposable();
         subscribe(cs);
         return cs;
     }
 
     /**
-     * Subscribes to an Observable and provides a callback to handle the items it emits.
+     * Subscribes to an Flowable and provides a callback to handle the items it emits.
      * <dl>
      *  <dt><b>Scheduler:</b></dt>
      *  <dd>{@code subscribe} does not operate by default on a particular {@link Scheduler}.</dd>
      * </dl>
      * 
      * @param onNext
-     *             the {@code Action1<T>} you have designed to accept emissions from the Observable
+     *             the {@code Action1<T>} you have designed to accept emissions from the Flowable
      * @return a {@link Subscription} reference with which the {@link Observer} can stop receiving items before
-     *         the Observable has finished sending them
+     *         the Flowable has finished sending them
      * @throws IllegalArgumentException
      *             if {@code onNext} is null
      * @throws OnErrorNotImplementedException
-     *             if the Observable tries to call {@code onError}
+     *             if the Flowable tries to call {@code onError}
      * @see <a href="http://reactivex.io/documentation/operators/subscribe.html">ReactiveX operators documentation: Subscribe</a>
      */
-    public final Cancellable subscribe(Consumer<? super T> onNext) {
-        CancellableSubscriber<T> cs = new AbstractSubscriber<T>() {
+    public final Disposable subscribe(Consumer<? super T> onNext) {
+        Objects.requireNonNull(onNext);
+        DisposableSubscriber<T> cs = new AbstractSubscriber<T>() {
             @Override
             public void onNext(T item) {
                 onNext.accept(item);
@@ -125,13 +210,13 @@ public class Flowable<T> implements Publisher<T> {
             @Override
             public void onComplete() {
             }
-        }.toCancellable();
+        }.toDisposable();
         subscribe(cs);
         return cs;
     }
 
     /**
-     * Subscribes to an Observable and provides callbacks to handle the items it emits and any error
+     * Subscribes to an Flowable and provides callbacks to handle the items it emits and any error
      * notification it issues.
      * <dl>
      *  <dt><b>Scheduler:</b></dt>
@@ -139,19 +224,21 @@ public class Flowable<T> implements Publisher<T> {
      * </dl>
      * 
      * @param onNext
-     *             the {@code Action1<T>} you have designed to accept emissions from the Observable
+     *             the {@code Action1<T>} you have designed to accept emissions from the Flowable
      * @param onError
      *             the {@code Action1<Throwable>} you have designed to accept any error notification from the
-     *             Observable
+     *             Flowable
      * @return a {@link Subscription} reference with which the {@link Observer} can stop receiving items before
-     *         the Observable has finished sending them
+     *         the Flowable has finished sending them
      * @see <a href="http://reactivex.io/documentation/operators/subscribe.html">ReactiveX operators documentation: Subscribe</a>
      * @throws IllegalArgumentException
      *             if {@code onNext} is null, or
      *             if {@code onError} is null
      */
-    public final Cancellable subscribe(Consumer<? super T> onNext, Consumer<Throwable> onError) {
-        CancellableSubscriber<T> cs = new AbstractSubscriber<T>() {
+    public final Disposable subscribe(Consumer<? super T> onNext, Consumer<Throwable> onError) {
+        Objects.requireNonNull(onNext);
+        Objects.requireNonNull(onError);
+        DisposableSubscriber<T> cs = new AbstractSubscriber<T>() {
             @Override
             public void onNext(T item) {
                 onNext.accept(item);
@@ -163,13 +250,13 @@ public class Flowable<T> implements Publisher<T> {
             @Override
             public void onComplete() {
             }
-        }.toCancellable();
+        }.toDisposable();
         subscribe(cs);
         return cs;
     }
 
     /**
-     * Subscribes to an Observable and provides callbacks to handle the items it emits and any error or
+     * Subscribes to an Flowable and provides callbacks to handle the items it emits and any error or
      * completion notification it issues.
      * <dl>
      *  <dt><b>Scheduler:</b></dt>
@@ -177,23 +264,26 @@ public class Flowable<T> implements Publisher<T> {
      * </dl>
      * 
      * @param onNext
-     *             the {@code Action1<T>} you have designed to accept emissions from the Observable
+     *             the {@code Action1<T>} you have designed to accept emissions from the Flowable
      * @param onError
      *             the {@code Action1<Throwable>} you have designed to accept any error notification from the
-     *             Observable
+     *             Flowable
      * @param onComplete
      *             the {@code Action0} you have designed to accept a completion notification from the
-     *             Observable
+     *             Flowable
      * @return a {@link Subscription} reference with which the {@link Observer} can stop receiving items before
-     *         the Observable has finished sending them
+     *         the Flowable has finished sending them
      * @throws IllegalArgumentException
      *             if {@code onNext} is null, or
      *             if {@code onError} is null, or
      *             if {@code onComplete} is null
      * @see <a href="http://reactivex.io/documentation/operators/subscribe.html">ReactiveX operators documentation: Subscribe</a>
      */
-    public final Cancellable subscribe(Consumer<? super T> onNext, Consumer<Throwable> onError, Runnable onComplete) {
-        CancellableSubscriber<T> cs = new AbstractSubscriber<T>() {
+    public final Disposable subscribe(Consumer<? super T> onNext, Consumer<Throwable> onError, Runnable onComplete) {
+        Objects.requireNonNull(onNext);
+        Objects.requireNonNull(onError);
+        Objects.requireNonNull(onComplete);
+        DisposableSubscriber<T> cs = new AbstractSubscriber<T>() {
             @Override
             public void onNext(T item) {
                 onNext.accept(item);
@@ -206,13 +296,13 @@ public class Flowable<T> implements Publisher<T> {
             public void onComplete() {
                 onComplete.run();
             }
-        }.toCancellable();
+        }.toDisposable();
         subscribe(cs);
         return cs;
     }
     
-    public final Cancellable subscribeCancellable(Subscriber<? super T> subscriber) {
-        CancellableSubscriber<? super T> cs = CancellableSubscriber.wrap(subscriber);
+    public final Disposable subscribeDisposable(Subscriber<? super T> subscriber) {
+        DisposableSubscriber<? super T> cs = DisposableSubscriber.wrap(subscriber);
         subscribe(cs);
         return cs;
     }
@@ -295,7 +385,14 @@ public class Flowable<T> implements Publisher<T> {
      */
     @SafeVarargs
     public static <T> Flowable<T> from(T... values) {
-        return create(new OnSubscribeArray<>(Objects.requireNonNull(values)));
+        Objects.requireNonNull(values);
+        if (values.length == 0) {
+            return empty();
+        } else
+        if (values.length == 1) {
+            return just(values[0]);
+        }
+        return create(new OnSubscribeArray<>(values));
     }
     
     /**
@@ -406,6 +503,9 @@ public class Flowable<T> implements Publisher<T> {
         if (count < 0) {
             throw new IllegalArgumentException("count must be non-negative");
         } else
+        if (start >= 0 && start + count < 0) {
+            throw new IllegalArgumentException("start + count can not exceed Integer.MAX_VALUE");
+        } else
         if (count == 0) {
             return empty();
         } else
@@ -436,6 +536,9 @@ public class Flowable<T> implements Publisher<T> {
     public static Flowable<Long> rangeLong(long start, long count) {
         if (count < 0) {
             throw new IllegalArgumentException("count must be non-negative");
+        } else
+        if (start >= 0 && start + count < 0) {
+            throw new IllegalArgumentException("start + count can not exceed Long.MAX_VALUE");
         } else
         if (count == 0) {
             return empty();
@@ -494,7 +597,7 @@ public class Flowable<T> implements Publisher<T> {
         Objects.requireNonNull(unit);
         Objects.requireNonNull(scheduler);
         // TODO
-        return null;
+        throw new UnsupportedOperationException();
     }
     /**
      * Converts an Flowable into a {@link BlockingFlowable} (an Flowable with blocking operators).
@@ -749,7 +852,7 @@ public class Flowable<T> implements Publisher<T> {
         return just(this);
     }
     /**
-     * Subscribes to the {@link Observable} and receives notifications for each element.
+     * Subscribes to the {@link Flowable} and receives notifications for each element.
      * <p>
      * Alias to {@link #subscribe(Action1)}
      * <dl>
@@ -769,8 +872,8 @@ public class Flowable<T> implements Publisher<T> {
         subscribe(onNext);
     }
     /**
-     * Returns a {@link ConnectableObservable}, which is a variety of Observable that waits until its
-     * {@link ConnectableObservable#connect connect} method is called before it begins emitting items to those
+     * Returns a {@link ConnectableFlowable}, which is a variety of Flowable that waits until its
+     * {@link ConnectableFlowable#connect connect} method is called before it begins emitting items to those
      * {@link Observer}s that have subscribed to it.
      * <p>
      * <img width="640" height="510" src="https://raw.github.com/wiki/ReactiveX/RxJava/images/rx-operators/publishConnect.png" alt="">
@@ -779,7 +882,7 @@ public class Flowable<T> implements Publisher<T> {
      *  <dd>{@code publish} does not operate by default on a particular {@link Scheduler}.</dd>
      * </dl>
      * 
-     * @return a {@link ConnectableObservable} that upon connection causes the source Observable to emit items
+     * @return a {@link ConnectableFlowable} that upon connection causes the source Flowable to emit items
      *         to its {@link Observer}s
      * @see <a href="http://reactivex.io/documentation/operators/publish.html">ReactiveX operators documentation: Publish</a>
      */
@@ -787,5 +890,701 @@ public class Flowable<T> implements Publisher<T> {
         // TODO
         throw new UnsupportedOperationException();
     }
+    /**
+     * Returns an Flowable that emits items based on applying a function that you supply to each item emitted
+     * by the source Flowable, where that function returns an Flowable, and then merging those resulting
+     * Flowables and emitting the results of this merger.
+     * <p>
+     * <img width="640" height="310" src="https://raw.github.com/wiki/ReactiveX/RxJava/images/rx-operators/flatMap.png" alt="">
+     * <dl>
+     *  <dt><b>Scheduler:</b></dt>
+     *  <dd>{@code flatMap} does not operate by default on a particular {@link Scheduler}.</dd>
+     * </dl>
+     * 
+     * @param func
+     *            a function that, when applied to an item emitted by the source Flowable, returns an
+     *            Flowable
+     * @return an Flowable that emits the result of applying the transformation function to each item emitted
+     *         by the source Flowable and merging the results of the Flowables obtained from this
+     *         transformation
+     * @see <a href="http://reactivex.io/documentation/operators/flatmap.html">ReactiveX operators documentation: FlatMap</a>
+     */
+    public final <R> Flowable<R> flatMap(Function<? super T, ? extends Flowable<? extends R>> func) {
+        return merge(map(func));
+    }
+    /**
+     * Returns an Flowable that emits items based on applying a function that you supply to each item emitted
+     * by the source Flowable, where that function returns an Flowable, and then merging those resulting
+     * Flowables and emitting the results of this merger, while limiting the maximum number of concurrent
+     * subscriptions to these Flowables.
+     * <p>
+     * <!-- <img width="640" height="310" src="https://raw.github.com/wiki/ReactiveX/RxJava/images/rx-operators/flatMap.png" alt=""> -->
+     * <dl>
+     *  <dt><b>Scheduler:</b></dt>
+     *  <dd>{@code flatMap} does not operate by default on a particular {@link Scheduler}.</dd>
+     * </dl>
+     * 
+     * @param func
+     *            a function that, when applied to an item emitted by the source Flowable, returns an
+     *            Flowable
+     * @param maxConcurrent
+     *         the maximum number of Flowables that may be subscribed to concurrently
+     * @return an Flowable that emits the result of applying the transformation function to each item emitted
+     *         by the source Flowable and merging the results of the Flowables obtained from this
+     *         transformation
+     * @see <a href="http://reactivex.io/documentation/operators/flatmap.html">ReactiveX operators documentation: FlatMap</a>
+     * @since (if this graduates from Experimental/Beta to supported, replace this parenthetical with the release number)
+     */
+    public final <R> Flowable<R> flatMap(Function<? super T, ? extends Flowable<? extends R>> func, int maxConcurrent) {
+        return merge(map(func), maxConcurrent);
+    }
+    /**
+     * Flattens an Flowable that emits Flowables into a single Flowable that emits the items emitted by
+     * those Flowables, without any transformation, while limiting the maximum number of concurrent
+     * subscriptions to these Flowables.
+     * <p>
+     * <img width="640" height="370" src="https://raw.github.com/wiki/ReactiveX/RxJava/images/rx-operators/merge.oo.png" alt="">
+     * <p>
+     * You can combine the items emitted by multiple Flowables so that they appear as a single Flowable, by
+     * using the {@code merge} method.
+     * <dl>
+     *  <dt><b>Scheduler:</b></dt>
+     *  <dd>{@code merge} does not operate by default on a particular {@link Scheduler}.</dd>
+     * </dl>
+     * 
+     * @param source
+     *            an Flowable that emits Flowables
+     * @param maxConcurrent
+     *            the maximum number of Flowables that may be subscribed to concurrently
+     * @return an Flowable that emits items that are the result of flattening the Flowables emitted by the
+     *         {@code source} Flowable
+     * @throws IllegalArgumentException
+     *             if {@code maxConcurrent} is less than or equal to 0
+     * @see <a href="http://reactivex.io/documentation/operators/merge.html">ReactiveX operators documentation: Merge</a>
+     */
+    public final static <T> Flowable<T> merge(Flowable<? extends Flowable<? extends T>> source, int maxConcurrent) {
+        return source.lift(OperatorMerge.<T>instance(false, maxConcurrent));
+    }
+    /**
+     * Flattens an Flowable that emits Flowables into a single Flowable that emits the items emitted by
+     * those Flowables, without any transformation.
+     * <p>
+     * <img width="640" height="370" src="https://raw.github.com/wiki/ReactiveX/RxJava/images/rx-operators/merge.oo.png" alt="">
+     * <p>
+     * You can combine the items emitted by multiple Flowables so that they appear as a single Flowable, by
+     * using the {@code merge} method.
+     * <dl>
+     *  <dt><b>Scheduler:</b></dt>
+     *  <dd>{@code merge} does not operate by default on a particular {@link Scheduler}.</dd>
+     * </dl>
+     *
+     * @param source
+     *            an Flowable that emits Flowables
+     * @return an Flowable that emits items that are the result of flattening the Flowables emitted by the
+     *         {@code source} Flowable
+     * @see <a href="http://reactivex.io/documentation/operators/merge.html">ReactiveX operators documentation: Merge</a>
+     */
+    public final static <T> Flowable<T> merge(Flowable<? extends Flowable<? extends T>> source) {
+        return source.lift(OperatorMerge.<T>instance(false));
+    }
     
+    /**
+     * Flattens an Iterable of Flowables into one Flowable, without any transformation.
+     * <p>
+     * <img width="640" height="380" src="https://raw.github.com/wiki/ReactiveX/RxJava/images/rx-operators/merge.png" alt="">
+     * <p>
+     * You can combine the items emitted by multiple Flowables so that they appear as a single Flowable, by
+     * using the {@code merge} method.
+     * <dl>
+     *  <dt><b>Scheduler:</b></dt>
+     *  <dd>{@code merge} does not operate by default on a particular {@link Scheduler}.</dd>
+     * </dl>
+     * 
+     * @param sequences
+     *            the Iterable of Flowables
+     * @return an Flowable that emits items that are the result of flattening the items emitted by the
+     *         Flowables in the Iterable
+     * @see <a href="http://reactivex.io/documentation/operators/merge.html">ReactiveX operators documentation: Merge</a>
+     */
+    public final static <T> Flowable<T> merge(Iterable<? extends Flowable<? extends T>> sequences) {
+        return merge(from(sequences));
+    }
+
+    /**
+     * Flattens an Iterable of Flowables into one Flowable, without any transformation, while limiting the
+     * number of concurrent subscriptions to these Flowables.
+     * <p>
+     * <img width="640" height="380" src="https://raw.github.com/wiki/ReactiveX/RxJava/images/rx-operators/merge.png" alt="">
+     * <p>
+     * You can combine the items emitted by multiple Flowables so that they appear as a single Flowable, by
+     * using the {@code merge} method.
+     * <dl>
+     *  <dt><b>Scheduler:</b></dt>
+     *  <dd>{@code merge} does not operate by default on a particular {@link Scheduler}.</dd>
+     * </dl>
+     * 
+     * @param sequences
+     *            the Iterable of Flowables
+     * @param maxConcurrent
+     *            the maximum number of Flowables that may be subscribed to concurrently
+     * @return an Flowable that emits items that are the result of flattening the items emitted by the
+     *         Flowables in the Iterable
+     * @throws IllegalArgumentException
+     *             if {@code maxConcurrent} is less than or equal to 0
+     * @see <a href="http://reactivex.io/documentation/operators/merge.html">ReactiveX operators documentation: Merge</a>
+     */
+    public final static <T> Flowable<T> merge(Iterable<? extends Flowable<? extends T>> sequences, int maxConcurrent) {
+        return merge(from(sequences), maxConcurrent);
+    }
+    /**
+     * Flattens an Flowable that emits Flowables into one Flowable, in a way that allows an Observer to
+     * receive all successfully emitted items from all of the source Flowables without being interrupted by
+     * an error notification from one of them.
+     * <p>
+     * This behaves like {@link #merge(Flowable)} except that if any of the merged Flowables notify of an
+     * error via {@link Observer#onError onError}, {@code mergeDelayError} will refrain from propagating that
+     * error notification until all of the merged Flowables have finished emitting items.
+     * <p>
+     * <img width="640" height="380" src="https://raw.github.com/wiki/ReactiveX/RxJava/images/rx-operators/mergeDelayError.png" alt="">
+     * <p>
+     * Even if multiple merged Flowables send {@code onError} notifications, {@code mergeDelayError} will only
+     * invoke the {@code onError} method of its Observers once.
+     * <dl>
+     *  <dt><b>Scheduler:</b></dt>
+     *  <dd>{@code mergeDelayError} does not operate by default on a particular {@link Scheduler}.</dd>
+     * </dl>
+     * 
+     * @param source
+     *            an Flowable that emits Flowables
+     * @return an Flowable that emits all of the items emitted by the Flowables emitted by the
+     *         {@code source} Flowable
+     * @see <a href="http://reactivex.io/documentation/operators/merge.html">ReactiveX operators documentation: Merge</a>
+     */
+    public final static <T> Flowable<T> mergeDelayError(Flowable<? extends Flowable<? extends T>> source) {
+        return source.lift(OperatorMerge.<T>instance(true));
+    }
+    /**
+     * Flattens an Array of Flowables into one Flowable, without any transformation.
+     * <p>
+     * <img width="640" height="370" src="https://raw.github.com/wiki/ReactiveX/RxJava/images/rx-operators/merge.io.png" alt="">
+     * <p>
+     * You can combine items emitted by multiple Flowables so that they appear as a single Flowable, by
+     * using the {@code merge} method.
+     * <dl>
+     *  <dt><b>Scheduler:</b></dt>
+     *  <dd>{@code merge} does not operate by default on a particular {@link Scheduler}.</dd>
+     * </dl>
+     * 
+     * @param sequences
+     *            the Array of Flowables
+     * @return an Flowable that emits all of the items emitted by the Flowables in the Array
+     * @see <a href="http://reactivex.io/documentation/operators/merge.html">ReactiveX operators documentation: Merge</a>
+     */
+    public final static <T> Flowable<T> merge(Flowable<? extends T>[] sequences) {
+        return merge(from(sequences));
+    }
+    /**
+     * Flattens an Array of Flowables into one Flowable, without any transformation, while limiting the
+     * number of concurrent subscriptions to these Flowables.
+     * <p>
+     * <img width="640" height="370" src="https://raw.github.com/wiki/ReactiveX/RxJava/images/rx-operators/merge.io.png" alt="">
+     * <p>
+     * You can combine items emitted by multiple Flowables so that they appear as a single Flowable, by
+     * using the {@code merge} method.
+     * <dl>
+     *  <dt><b>Scheduler:</b></dt>
+     *  <dd>{@code merge} does not operate by default on a particular {@link Scheduler}.</dd>
+     * </dl>
+     * 
+     * @param maxConcurrent
+     *            the maximum number of Flowables that may be subscribed to concurrently
+     * @param sequences
+     *            the Array of Flowables
+     * @return an Flowable that emits all of the items emitted by the Flowables in the Array
+     * @see <a href="http://reactivex.io/documentation/operators/merge.html">ReactiveX operators documentation: Merge</a>
+     */
+    @SafeVarargs
+    public final static <T> Flowable<T> merge(int maxConcurrent, Flowable<? extends T>... sequences) {
+        return merge(from(sequences), maxConcurrent);
+    }
+    /**
+     * Flattens an Flowable that emits Flowables into one Flowable, in a way that allows an Observer to
+     * receive all successfully emitted items from all of the source Flowables without being interrupted by
+     * an error notification from one of them, while limiting the
+     * number of concurrent subscriptions to these Flowables.
+     * <p>
+     * This behaves like {@link #merge(Flowable)} except that if any of the merged Flowables notify of an
+     * error via {@link Observer#onError onError}, {@code mergeDelayError} will refrain from propagating that
+     * error notification until all of the merged Flowables have finished emitting items.
+     * <p>
+     * <img width="640" height="380" src="https://raw.github.com/wiki/ReactiveX/RxJava/images/rx-operators/mergeDelayError.png" alt="">
+     * <p>
+     * Even if multiple merged Flowables send {@code onError} notifications, {@code mergeDelayError} will only
+     * invoke the {@code onError} method of its Observers once.
+     * <dl>
+     *  <dt><b>Scheduler:</b></dt>
+     *  <dd>{@code mergeDelayError} does not operate by default on a particular {@link Scheduler}.</dd>
+     * </dl>
+     * 
+     * @param source
+     *            an Flowable that emits Flowables
+     * @param maxConcurrent
+     *            the maximum number of Flowables that may be subscribed to concurrently
+     * @return an Flowable that emits all of the items emitted by the Flowables emitted by the
+     *         {@code source} Flowable
+     * @see <a href="http://reactivex.io/documentation/operators/merge.html">ReactiveX operators documentation: Merge</a>
+     */
+    public final static <T> Flowable<T> mergeDelayError(Flowable<? extends Flowable<? extends T>> source, int maxConcurrent) {
+        return source.lift(OperatorMerge.<T>instance(true, maxConcurrent));
+    }
+    /**
+     * Returns an Flowable that emits a single item, a list composed of all the items emitted by the source
+     * Flowable.
+     * <p>
+     * <img width="640" height="305" src="https://raw.github.com/wiki/ReactiveX/RxJava/images/rx-operators/toList.png" alt="">
+     * <p>
+     * Normally, an Flowable that returns multiple items will do so by invoking its {@link Observer}'s
+     * {@link Observer#onNext onNext} method for each such item. You can change this behavior, instructing the
+     * Flowable to compose a list of all of these items and then to invoke the Observer's {@code onNext}
+     * function once, passing it the entire list, by calling the Flowable's {@code toList} method prior to
+     * calling its {@link #subscribe} method.
+     * <p>
+     * Be careful not to use this operator on Flowables that emit infinite or very large numbers of items, as
+     * you do not have the option to unsubscribe.
+     * <dl>
+     *  <dt><b>Backpressure Support:</b></dt>
+     *  <dd>This operator does not support backpressure as by intent it is requesting and buffering everything.</dd>
+     *  <dt><b>Scheduler:</b></dt>
+     *  <dd>{@code toList} does not operate by default on a particular {@link Scheduler}.</dd>
+     * </dl>
+     * 
+     * @return an Flowable that emits a single item: a List containing all of the items emitted by the source
+     *         Flowable
+     * @see <a href="http://reactivex.io/documentation/operators/to.html">ReactiveX operators documentation: To</a>
+     */
+    public final Flowable<List<T>> toList() {
+        return lift(OperatorToList.<T>instance());
+    }
+    /**
+     * Modifies the source Flowable so that it invokes an action when it calls {@code onCompleted}.
+     * <p>
+     * <img width="640" height="305" src="https://raw.github.com/wiki/ReactiveX/RxJava/images/rx-operators/doOnCompleted.png" alt="">
+     * <dl>
+     *  <dt><b>Scheduler:</b></dt>
+     *  <dd>{@code doOnCompleted} does not operate by default on a particular {@link Scheduler}.</dd>
+     * </dl>
+     * 
+     * @param onCompleted
+     *            the action to invoke when the source Flowable calls {@code onCompleted}
+     * @return the source Flowable with the side-effecting behavior applied
+     * @see <a href="http://reactivex.io/documentation/operators/do.html">ReactiveX operators documentation: Do</a>
+     */
+    public final Flowable<T> doOnCompleted(final Runnable onCompleted) {
+        return lift(new OperatorDoOnEach<T>(v -> { }, e -> { }, onCompleted));
+    }
+
+    /**
+     * Modifies the source Flowable so that it invokes an action for each item it emits.
+     * <p>
+     * <img width="640" height="310" src="https://raw.github.com/wiki/ReactiveX/RxJava/images/rx-operators/doOnEach.png" alt="">
+     * <dl>
+     *  <dt><b>Scheduler:</b></dt>
+     *  <dd>{@code doOnEach} does not operate by default on a particular {@link Scheduler}.</dd>
+     * </dl>
+     * 
+     * @param onNotification
+     *            the action to invoke for each item emitted by the source Flowable
+     * @return the source Flowable with the side-effecting behavior applied
+     * @see <a href="http://reactivex.io/documentation/operators/do.html">ReactiveX operators documentation: Do</a>
+     */
+    public final Flowable<T> doOnEach(final Consumer<Notification<? super T>> onNotification) {
+        return lift(new OperatorDoOnEach<T>(
+                v -> {
+                    onNotification.accept(Notification.createOnNext(v));
+                },
+                e -> {
+                    onNotification.accept(Notification.createOnError(e));
+                },
+                () -> {
+                    onNotification.accept(Notification.createOnCompleted());
+                }
+        ));
+    }
+
+    /**
+     * Modifies the source Flowable so that it notifies an Observer for each item it emits.
+     * <p>
+     * <img width="640" height="310" src="https://raw.github.com/wiki/ReactiveX/RxJava/images/rx-operators/doOnEach.png" alt="">
+     * <dl>
+     *  <dt><b>Scheduler:</b></dt>
+     *  <dd>{@code doOnEach} does not operate by default on a particular {@link Scheduler}.</dd>
+     * </dl>
+     *
+     * @param onNext
+     *            the action to invoke when the source Flowable calls {@code onNext}
+     * @param onError
+     *            the action to invoke if the source Flowable calls {@code onError}
+     * @param onCompleted
+     *            the action to invoke when the source Flowable calls {@code onCompleted}
+     * @return the source Flowable with the side-effecting behavior applied
+     * @see <a href="http://reactivex.io/documentation/operators/do.html">ReactiveX operators documentation: Do</a>
+     */
+    public final Flowable<T> doOnEach(Consumer<? super T> onNext,
+            Consumer<Throwable> onError, Runnable onComplete) {
+        return lift(new OperatorDoOnEach<T>(onNext, onError, onComplete));
+    }
+
+    /**
+     * Modifies the source Flowable so that it invokes an action if it calls {@code onError}.
+     * <p>
+     * <img width="640" height="305" src="https://raw.github.com/wiki/ReactiveX/RxJava/images/rx-operators/doOnError.png" alt="">
+     * <dl>
+     *  <dt><b>Scheduler:</b></dt>
+     *  <dd>{@code doOnError} does not operate by default on a particular {@link Scheduler}.</dd>
+     * </dl>
+     * 
+     * @param onError
+     *            the action to invoke if the source Flowable calls {@code onError}
+     * @return the source Flowable with the side-effecting behavior applied
+     * @see <a href="http://reactivex.io/documentation/operators/do.html">ReactiveX operators documentation: Do</a>
+     */
+    public final Flowable<T> doOnError(final Consumer<Throwable> onError) {
+        return lift(new OperatorDoOnEach<T>(v -> {}, onError, () -> { }));
+    }
+
+    /**
+     * Modifies the source Flowable so that it invokes an action when it calls {@code onNext}.
+     * <p>
+     * <img width="640" height="310" src="https://raw.github.com/wiki/ReactiveX/RxJava/images/rx-operators/doOnNext.png" alt="">
+     * <dl>
+     *  <dt><b>Scheduler:</b></dt>
+     *  <dd>{@code doOnNext} does not operate by default on a particular {@link Scheduler}.</dd>
+     * </dl>
+     * 
+     * @param onNext
+     *            the action to invoke when the source Flowable calls {@code onNext}
+     * @return the source Flowable with the side-effecting behavior applied
+     * @see <a href="http://reactivex.io/documentation/operators/do.html">ReactiveX operators documentation: Do</a>
+     */
+    public final Flowable<T> doOnNext(final Consumer<? super T> onNext) {
+        return lift(new OperatorDoOnEach<T>(onNext, e -> { }, () -> { }));
+    }
+    /**
+     * Returns an Flowable that emits the last item emitted by the source Flowable or notifies observers of
+     * a {@code NoSuchElementException} if the source Flowable is empty.
+     * <p>
+     * <img width="640" height="305" src="https://raw.github.com/wiki/ReactiveX/RxJava/images/rx-operators/last.png" alt="">
+     * <dl>
+     *  <dt><b>Scheduler:</b></dt>
+     *  <dd>{@code last} does not operate by default on a particular {@link Scheduler}.</dd>
+     * </dl>
+     * 
+     * @return an Flowable that emits the last item from the source Flowable or notifies observers of an
+     *         error
+     * @see <a href="http://reactivex.io/documentation/operators/last.html">ReactiveX operators documentation: Last</a>
+     */
+    public final Flowable<T> last() {
+        return takeLast(1).single();
+    }
+    /**
+     * Returns an Flowable that emits only the last {@code count} items emitted by the source Flowable.
+     * <p>
+     * <img width="640" height="310" src="https://raw.github.com/wiki/ReactiveX/RxJava/images/rx-operators/takeLast.n.png" alt="">
+     * <dl>
+     *  <dt><b>Scheduler:</b></dt>
+     *  <dd>This version of {@code takeLast} does not operate by default on a particular {@link Scheduler}.</dd>
+     * </dl>
+     * 
+     * @param count
+     *            the number of items to emit from the end of the sequence of items emitted by the source
+     *            Flowable
+     * @return an Flowable that emits only the last {@code count} items emitted by the source Flowable
+     * @throws IndexOutOfBoundsException
+     *             if {@code count} is less than zero
+     * @see <a href="http://reactivex.io/documentation/operators/takelast.html">ReactiveX operators documentation: TakeLast</a>
+     */
+    public final Flowable<T> takeLast(final int count) {
+        return lift(new OperatorTakeLast<T>(count));
+    }
+    /**
+     * Returns an Flowable that emits the single item emitted by the source Flowable, if that Flowable
+     * emits only a single item. If the source Flowable emits more than one item or no items, notify of an
+     * {@code IllegalArgumentException} or {@code NoSuchElementException} respectively.
+     * <p>
+     * <img width="640" height="315" src="https://raw.github.com/wiki/ReactiveX/RxJava/images/rx-operators/single.png" alt="">
+     * <dl>
+     *  <dt><b>Scheduler:</b></dt>
+     *  <dd>{@code single} does not operate by default on a particular {@link Scheduler}.</dd>
+     * </dl>
+     * 
+     * @return an Flowable that emits the single item emitted by the source Flowable
+     * @throws IllegalArgumentException
+     *             if the source emits more than one item
+     * @throws NoSuchElementException
+     *             if the source emits no items
+     * @see <a href="http://reactivex.io/documentation/operators/first.html">ReactiveX operators documentation: First</a>
+     */
+    public final Flowable<T> single() {
+        return lift(new OperatorSingle<T>());
+    }
+    /**
+     * Returns an Flowable that invokes an {@link Observer}'s {@link Observer#onError onError} method when the
+     * Observer subscribes to it.
+     * <p>
+     * <img width="640" height="190" src="https://raw.github.com/wiki/ReactiveX/RxJava/images/rx-operators/error.png" alt="">
+     * <dl>
+     *  <dt><b>Scheduler:</b></dt>
+     *  <dd>{@code error} does not operate by default on a particular {@link Scheduler}.</dd>
+     * </dl>
+     * 
+     * @param exception
+     *            the particular Throwable to pass to {@link Observer#onError onError}
+     * @param <T>
+     *            the type of the items (ostensibly) emitted by the Flowable
+     * @return an Flowable that invokes the {@link Observer}'s {@link Observer#onError onError} method when
+     *         the Observer subscribes to it
+     * @see <a href="http://reactivex.io/documentation/operators/empty-never-throw.html">ReactiveX operators documentation: Throw</a>
+     */
+    public final static <T> Flowable<T> error(Throwable exception) {
+        return create(s -> {
+            s.onSubscribe(AbstractSubscription.createEmpty(s));
+            s.onError(exception);
+        });
+    }
+    /**
+     * Returns an Flowable that emits the single item emitted by the source Flowable that matches a
+     * specified predicate, if that Flowable emits one such item. If the source Flowable emits more than one
+     * such item or no such items, notify of an {@code IllegalArgumentException} or
+     * {@code NoSuchElementException} respectively.
+     * <p>
+     * <img width="640" height="315" src="https://raw.github.com/wiki/ReactiveX/RxJava/images/rx-operators/single.p.png" alt="">
+     * <dl>
+     *  <dt><b>Scheduler:</b></dt>
+     *  <dd>{@code single} does not operate by default on a particular {@link Scheduler}.</dd>
+     * </dl>
+     * 
+     * @param predicate
+     *            a predicate function to evaluate items emitted by the source Flowable
+     * @return an Flowable that emits the single item emitted by the source Flowable that matches the
+     *         predicate
+     * @throws IllegalArgumentException
+     *             if the source Flowable emits more than one item that matches the predicate
+     * @throws NoSuchElementException
+     *             if the source Flowable emits no item that matches the predicate
+     * @see <a href="http://reactivex.io/documentation/operators/first.html">ReactiveX operators documentation: First</a>
+     */
+    public final Flowable<T> single(Predicate<? super T> predicate) {
+        return filter(predicate).single();
+    }
+
+    /**
+     * Returns an Flowable that emits the single item emitted by the source Flowable, if that Flowable
+     * emits only a single item, or a default item if the source Flowable emits no items. If the source
+     * Flowable emits more than one item, throw an {@code IllegalArgumentException}.
+     * <p>
+     * <img width="640" height="315" src="https://raw.github.com/wiki/ReactiveX/RxJava/images/rx-operators/singleOrDefault.png" alt="">
+     * <dl>
+     *  <dt><b>Scheduler:</b></dt>
+     *  <dd>{@code singleOrDefault} does not operate by default on a particular {@link Scheduler}.</dd>
+     * </dl>
+     * 
+     * @param defaultValue
+     *            a default value to emit if the source Flowable emits no item
+     * @return an Flowable that emits the single item emitted by the source Flowable, or a default item if
+     *         the source Flowable is empty
+     * @throws IllegalArgumentException
+     *             if the source Flowable emits more than one item
+     * @see <a href="http://reactivex.io/documentation/operators/first.html">ReactiveX operators documentation: First</a>
+     */
+    public final Flowable<T> singleOrDefault(T defaultValue) {
+        return lift(new OperatorSingle<>(defaultValue));
+    }
+
+    /**
+     * Returns an Flowable that emits the single item emitted by the source Flowable that matches a
+     * predicate, if that Flowable emits only one such item, or a default item if the source Flowable emits
+     * no such items. If the source Flowable emits more than one such item, throw an
+     * {@code IllegalArgumentException}.
+     * <p>
+     * <img width="640" height="315" src="https://raw.github.com/wiki/ReactiveX/RxJava/images/rx-operators/singleOrDefault.p.png" alt="">
+     * <dl>
+     *  <dt><b>Scheduler:</b></dt>
+     *  <dd>{@code singleOrDefault} does not operate by default on a particular {@link Scheduler}.</dd>
+     * </dl>
+     * 
+     * @param defaultValue
+     *            a default item to emit if the source Flowable emits no matching items
+     * @param predicate
+     *            a predicate function to evaluate items emitted by the source Flowable
+     * @return an Flowable that emits the single item emitted by the source Flowable that matches the
+     *         predicate, or the default item if no emitted item matches the predicate
+     * @throws IllegalArgumentException
+     *             if the source Flowable emits more than one item that matches the predicate
+     * @see <a href="http://reactivex.io/documentation/operators/first.html">ReactiveX operators documentation: First</a>
+     */
+    public final Flowable<T> singleOrDefault(T defaultValue, Predicate<? super T> predicate) {
+        return filter(predicate).singleOrDefault(defaultValue);
+    }
+    /**
+     * Filters items emitted by an Flowable by only emitting those that satisfy a specified predicate.
+     * <p>
+     * <img width="640" height="310" src="https://raw.github.com/wiki/ReactiveX/RxJava/images/rx-operators/filter.png" alt="">
+     * <dl>
+     *  <dt><b>Scheduler:</b></dt>
+     *  <dd>{@code filter} does not operate by default on a particular {@link Scheduler}.</dd>
+     * </dl>
+     * 
+     * @param predicate
+     *            a function that evaluates each item emitted by the source Flowable, returning {@code true}
+     *            if it passes the filter
+     * @return an Flowable that emits only those items emitted by the source Flowable that the filter
+     *         evaluates as {@code true}
+     * @see <a href="http://reactivex.io/documentation/operators/filter.html">ReactiveX operators documentation: Filter</a>
+     */
+    public final Flowable<T> filter(Predicate<? super T> predicate) {
+        return lift(new OperatorFilter<T>(predicate));
+    }
+    /**
+     * Returns an Flowable that applies a specified accumulator function to the first item emitted by a source
+     * Flowable, then feeds the result of that function along with the second item emitted by the source
+     * Flowable into the same function, and so on until all items have been emitted by the source Flowable,
+     * and emits the final result from the final call to your function as its sole item.
+     * <p>
+     * <img width="640" height="320" src="https://raw.github.com/wiki/ReactiveX/RxJava/images/rx-operators/reduce.png" alt="">
+     * <p>
+     * This technique, which is called "reduce" here, is sometimes called "aggregate," "fold," "accumulate,"
+     * "compress," or "inject" in other programming contexts. Groovy, for instance, has an {@code inject} method
+     * that does a similar operation on lists.
+     * <dl>
+     *  <dt><b>Backpressure Support:</b></dt>
+     *  <dd>This operator does not support backpressure because by intent it will receive all values and reduce
+     *      them to a single {@code onNext}.</dd>
+     *  <dt><b>Scheduler:</b></dt>
+     *  <dd>{@code reduce} does not operate by default on a particular {@link Scheduler}.</dd>
+     * </dl>
+     * 
+     * @param accumulator
+     *            an accumulator function to be invoked on each item emitted by the source Flowable, whose
+     *            result will be used in the next accumulator call
+     * @return an Flowable that emits a single item that is the result of accumulating the items emitted by
+     *         the source Flowable
+     * @throws IllegalArgumentException
+     *             if the source Flowable emits no items
+     * @see <a href="http://reactivex.io/documentation/operators/reduce.html">ReactiveX operators documentation: Reduce</a>
+     * @see <a href="http://en.wikipedia.org/wiki/Fold_(higher-order_function)">Wikipedia: Fold (higher-order function)</a>
+     */
+    public final Flowable<T> reduce(BinaryOperator<T> accumulator) {
+        /*
+         * Discussion and confirmation of implementation at
+         * https://github.com/ReactiveX/RxJava/issues/423#issuecomment-27642532
+         * 
+         * It should use last() not takeLast(1) since it needs to emit an error if the sequence is empty.
+         */
+        return scan(accumulator).last();
+    }
+    /**
+     * Returns an Flowable that applies a specified accumulator function to the first item emitted by a source
+     * Flowable, then feeds the result of that function along with the second item emitted by the source
+     * Flowable into the same function, and so on until all items have been emitted by the source Flowable,
+     * emitting the result of each of these iterations.
+     * <p>
+     * <img width="640" height="320" src="https://raw.github.com/wiki/ReactiveX/RxJava/images/rx-operators/scan.png" alt="">
+     * <p>
+     * This sort of function is sometimes called an accumulator.
+     * <dl>
+     *  <dt><b>Scheduler:</b></dt>
+     *  <dd>{@code scan} does not operate by default on a particular {@link Scheduler}.</dd>
+     * </dl>
+     * 
+     * @param accumulator
+     *            an accumulator function to be invoked on each item emitted by the source Flowable, whose
+     *            result will be emitted to {@link Observer}s via {@link Observer#onNext onNext} and used in the
+     *            next accumulator call
+     * @return an Flowable that emits the results of each call to the accumulator function
+     * @see <a href="http://reactivex.io/documentation/operators/scan.html">ReactiveX operators documentation: Scan</a>
+     */
+    public final Flowable<T> scan(BinaryOperator<T> accumulator) {
+        return lift(new OperatorScan<>(accumulator));
+    }
+    /**
+     * Returns an Flowable that applies a specified accumulator function to the first item emitted by a source
+     * Flowable and a specified seed value, then feeds the result of that function along with the second item
+     * emitted by an Flowable into the same function, and so on until all items have been emitted by the
+     * source Flowable, emitting the final result from the final call to your function as its sole item.
+     * <p>
+     * <img width="640" height="325" src="https://raw.github.com/wiki/ReactiveX/RxJava/images/rx-operators/reduceSeed.png" alt="">
+     * <p>
+     * This technique, which is called "reduce" here, is sometimec called "aggregate," "fold," "accumulate,"
+     * "compress," or "inject" in other programming contexts. Groovy, for instance, has an {@code inject} method
+     * that does a similar operation on lists.
+     * <dl>
+     *  <dt><b>Backpressure Support:</b></dt>
+     *  <dd>This operator does not support backpressure because by intent it will receive all values and reduce
+     *      them to a single {@code onNext}.</dd>
+     *  <dt><b>Scheduler:</b></dt>
+     *  <dd>{@code reduce} does not operate by default on a particular {@link Scheduler}.</dd>
+     * </dl>
+     * 
+     * @param initialValue
+     *            the initial (seed) accumulator value
+     * @param accumulator
+     *            an accumulator function to be invoked on each item emitted by the source Flowable, the
+     *            result of which will be used in the next accumulator call
+     * @return an Flowable that emits a single item that is the result of accumulating the output from the
+     *         items emitted by the source Flowable
+     * @see <a href="http://reactivex.io/documentation/operators/reduce.html">ReactiveX operators documentation: Reduce</a>
+     * @see <a href="http://en.wikipedia.org/wiki/Fold_(higher-order_function)">Wikipedia: Fold (higher-order function)</a>
+     */
+    public final <R> Flowable<R> reduce(R initialValue, BiFunction<R, ? super T, R> accumulator) {
+        return scan(initialValue, accumulator).takeLast(1);
+    }
+    /**
+     * Returns an Flowable that applies a specified accumulator function to the first item emitted by a source
+     * Flowable and a seed value, then feeds the result of that function along with the second item emitted by
+     * the source Flowable into the same function, and so on until all items have been emitted by the source
+     * Flowable, emitting the result of each of these iterations.
+     * <p>
+     * <img width="640" height="320" src="https://raw.github.com/wiki/ReactiveX/RxJava/images/rx-operators/scanSeed.png" alt="">
+     * <p>
+     * This sort of function is sometimes called an accumulator.
+     * <p>
+     * Note that the Flowable that results from this method will emit {@code initialValue} as its first
+     * emitted item.
+     * <dl>
+     *  <dt><b>Scheduler:</b></dt>
+     *  <dd>{@code scan} does not operate by default on a particular {@link Scheduler}.</dd>
+     * </dl>
+     * 
+     * @param initialValue
+     *            the initial (seed) accumulator item
+     * @param accumulator
+     *            an accumulator function to be invoked on each item emitted by the source Flowable, whose
+     *            result will be emitted to {@link Observer}s via {@link Observer#onNext onNext} and used in the
+     *            next accumulator call
+     * @return an Flowable that emits {@code initialValue} followed by the results of each call to the
+     *         accumulator function
+     * @see <a href="http://reactivex.io/documentation/operators/scan.html">ReactiveX operators documentation: Scan</a>
+     */
+    public final <R> Flowable<R> scan(R initialValue, BiFunction<R, ? super T, R> accumulator) {
+        return lift(new OperatorScan<R, T>(initialValue, accumulator));
+    }
+    /**
+     * Returns an Flowable that emits the count of the total number of items emitted by the source Flowable.
+     * <p>
+     * <img width="640" height="310" src="https://raw.github.com/wiki/ReactiveX/RxJava/images/rx-operators/count.png" alt="">
+     * <dl>
+     *  <dt><b>Backpressure Support:</b></dt>
+     *  <dd>This operator does not support backpressure because by intent it will receive all values and reduce
+     *      them to a single {@code onNext}.</dd>
+     *  <dt><b>Scheduler:</b></dt>
+     *  <dd>{@code count} does not operate by default on a particular {@link Scheduler}.</dd>
+     * </dl>
+     * 
+     * @return an Flowable that emits a single item: the number of elements emitted by the source Flowable
+     * @see <a href="http://reactivex.io/documentation/operators/count.html">ReactiveX operators documentation: Count</a>
+     * @see #countLong()
+     */
+    public final Flowable<Integer> count() {
+        return reduce(0, (t1, t2) -> t1 + 1);
+    }
 }

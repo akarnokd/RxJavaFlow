@@ -18,6 +18,7 @@ package rxjf.internal.operators;
 
 import rxjf.Flow.Subscriber;
 import rxjf.Flow.Subscription;
+import rxjf.Flowable.Operator;
 import rxjf.internal.AbstractSubscription;
 
 /**

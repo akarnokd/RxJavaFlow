@@ -19,6 +19,7 @@ package rxjf.internal.operators;
 import java.util.Objects;
 
 import rxjf.Flow.Subscriber;
+import rxjf.Flowable.OnSubscribe;
 import rxjf.internal.AbstractSubscription;
 
 /**
@@ -43,7 +44,7 @@ public final class OnSubscribeArray<T> implements OnSubscribe<T> {
             protected void onRequested(long n) {
                 if (n == Long.MAX_VALUE) {
                     for (T e : array) {
-                        if (isCancelled()) {
+                        if (isDisposed()) {
                             return;
                         }
                         t.onNext(e);
@@ -56,7 +57,7 @@ public final class OnSubscribeArray<T> implements OnSubscribe<T> {
                 for (;;) {
                     long c = r0;
                     while (r0 > 0 && index < a.length) {
-                        if (isCancelled()) {
+                        if (isDisposed()) {
                             return;
                         }
                         t.onNext(a[index]);

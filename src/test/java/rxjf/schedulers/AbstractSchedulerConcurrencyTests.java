@@ -24,8 +24,8 @@ import org.junit.Test;
 
 import rxjf.Flow.Subscriber;
 import rxjf.*;
-import rxjf.cancellables.BooleanCancellable;
-import rxjf.internal.operators.OnSubscribe;
+import rxjf.Flowable.OnSubscribe;
+import rxjf.internal.BooleanDisposable;
 import rxjf.schedulers.Scheduler.Worker;
 import rxjf.subscribers.*;
 
@@ -68,7 +68,7 @@ public abstract class AbstractSchedulerConcurrencyTests extends AbstractSchedule
                     @Override
                     public void onNext(Long args) {
                         if (countReceived.incrementAndGet() == 2) {
-                            subscription.cancel();
+                            subscription.dispose();
                             latch.countDown();
                         }
                         System.out.println("==> Received " + args);
@@ -116,12 +116,12 @@ public abstract class AbstractSchedulerConcurrencyTests extends AbstractSchedule
             }));
     
             latch.await();
-            inner.cancel();
+            inner.dispose();
             unsubscribeLatch.countDown();
             Thread.sleep(200); // let time pass to see if the scheduler is still doing work
             assertEquals(10, counter.get());
         } finally {
-            inner.cancel();
+            inner.dispose();
         }
     }
 
@@ -139,7 +139,7 @@ public abstract class AbstractSchedulerConcurrencyTests extends AbstractSchedule
                 public void run() {
                     System.out.println("Run: " + i++);
                     if (i == 10) {
-                        inner.cancel();
+                        inner.dispose();
                     }
    
                     counter.incrementAndGet();
@@ -151,7 +151,7 @@ public abstract class AbstractSchedulerConcurrencyTests extends AbstractSchedule
             Thread.sleep(200); // let time pass to see if the scheduler is still doing work
             assertEquals(10, counter.get());
         } finally {
-            inner.cancel();
+            inner.dispose();
         }
     }
 
@@ -188,12 +188,12 @@ public abstract class AbstractSchedulerConcurrencyTests extends AbstractSchedule
             }, 10, TimeUnit.MILLISECONDS));
     
             latch.await();
-            inner.cancel();
+            inner.dispose();
             unsubscribeLatch.countDown();
             Thread.sleep(200); // let time pass to see if the scheduler is still doing work
             assertEquals(10, counter.get());
         } finally {
-            inner.cancel();
+            inner.dispose();
         }
     }
 
@@ -222,7 +222,7 @@ public abstract class AbstractSchedulerConcurrencyTests extends AbstractSchedule
     
             latch.await();
         } finally {
-            inner.cancel();
+            inner.dispose();
         }
     }
 
@@ -251,7 +251,7 @@ public abstract class AbstractSchedulerConcurrencyTests extends AbstractSchedule
     
             latch.await();
         } finally {
-            inner.cancel();
+            inner.dispose();
         }
     }
 
@@ -265,7 +265,7 @@ public abstract class AbstractSchedulerConcurrencyTests extends AbstractSchedule
             Flowable<Integer> obs = Flowable.create(new OnSubscribe<Integer>() {
                 @Override
                 public void accept(final Subscriber<? super Integer> child) {
-                    CancellableSubscriber<? super Integer> cs = CancellableSubscriber.wrap(child);
+                    DisposableSubscriber<? super Integer> cs = DisposableSubscriber.wrap(child);
                     inner.schedule(new Runnable() {
                         @Override
                         public void run() {
@@ -277,8 +277,8 @@ public abstract class AbstractSchedulerConcurrencyTests extends AbstractSchedule
                         }
                     });
     
-                    cs.add(new BooleanCancellable(() -> {
-                        inner.cancel();
+                    cs.add(new BooleanDisposable(() -> {
+                        inner.dispose();
                         cs.onComplete();
                         completionLatch.countDown();
                     }));
@@ -308,7 +308,7 @@ public abstract class AbstractSchedulerConcurrencyTests extends AbstractSchedule
                 }
             };
             
-            CancellableSubscriber<Integer> cs = s.toCancellable();
+            DisposableSubscriber<Integer> cs = s.toDisposable();
             
             obs.subscribe(cs);
     
@@ -317,7 +317,7 @@ public abstract class AbstractSchedulerConcurrencyTests extends AbstractSchedule
             }
     
             // now unsubscribe and ensure it stops the recursive loop
-            cs.cancel();
+            cs.dispose();
             System.out.println("unsubscribe");
     
             if (!completionLatch.await(5000, TimeUnit.MILLISECONDS)) {
@@ -328,7 +328,7 @@ public abstract class AbstractSchedulerConcurrencyTests extends AbstractSchedule
             assertTrue(count.get() >= 10);
             assertTrue(completed.get());
         } finally {
-            inner.cancel();
+            inner.dispose();
         }
     }
 

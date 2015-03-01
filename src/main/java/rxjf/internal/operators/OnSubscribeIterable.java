@@ -19,6 +19,7 @@ package rxjf.internal.operators;
 import java.util.Iterator;
 
 import rxjf.Flow.Subscriber;
+import rxjf.Flowable.OnSubscribe;
 import rxjf.internal.AbstractSubscription;
 
 /**
@@ -40,7 +41,7 @@ public final class OnSubscribeIterable<T> implements OnSubscribe<T> {
         t.onSubscribe(AbstractSubscription.create(t, (r, s) -> {
             if (r == Long.MAX_VALUE) {
                 while (it.hasNext()) {
-                    if (s.isCancelled()) {
+                    if (s.isDisposed()) {
                         return;
                     }
                     t.onNext(it.next());
@@ -52,7 +53,7 @@ public final class OnSubscribeIterable<T> implements OnSubscribe<T> {
             for (;;) {
                 long c = r0;
                 while (r0 > 0 && it.hasNext()) {
-                    if (s.isCancelled()) {
+                    if (s.isDisposed()) {
                         return;
                     }
                     t.onNext(it.next());

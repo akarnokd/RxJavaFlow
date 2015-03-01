@@ -31,7 +31,7 @@ import rxjf.schedulers.Scheduler;
 
     @Override
     public void run() {
-        if (innerScheduler.isCancelled()) {
+        if (innerScheduler.isDisposed()) {
             return;
         }
         if (execTime > innerScheduler.now()) {
@@ -47,7 +47,7 @@ import rxjf.schedulers.Scheduler;
         }
 
         // after waking up check the subscription
-        if (innerScheduler.isCancelled()) {
+        if (innerScheduler.isDisposed()) {
             return;
         }
         underlying.run();

@@ -19,15 +19,15 @@ package rxjf.subscribers;
 import static rxjf.internal.UnsafeAccess.*;
 import rxjf.Flow.Subscriber;
 import rxjf.Flow.Subscription;
-import rxjf.cancellables.*;
+import rxjf.disposables.*;
 import rxjf.internal.Conformance;
 /**
  * 
  */
-public final class CancellableSubscriber<T> implements Subscriber<T>, Cancellable {
+public final class DisposableSubscriber<T> implements Subscriber<T>, Disposable {
     final Subscriber<? super T> actual;
     volatile Subscription subscription;
-    static final long SUBSCRIPTION = addressOf(CancellableSubscriber.class, "subscription");
+    static final long SUBSCRIPTION = addressOf(DisposableSubscriber.class, "subscription");
     static final Subscription TERMINATED = new Subscription() {
         @Override
         public void request(long n) {
@@ -37,23 +37,23 @@ public final class CancellableSubscriber<T> implements Subscriber<T>, Cancellabl
             
         }
     };
-    final CompositeCancellable composite = new CompositeCancellable();
+    final CompositeDisposable composite = new CompositeDisposable();
     
-    public CancellableSubscriber(Subscriber<? super T> actual) {
+    public DisposableSubscriber(Subscriber<? super T> actual) {
         this.actual = actual;
     }
     /**
-     * Wraps a regual Subscriber to a CancellableSubscriber or returns it
+     * Wraps a regual Subscriber to a DisposableSubscriber or returns it
      * directly if already the right type.
      * @param actual
      * @return
      */
-    public static <T> CancellableSubscriber<T> wrap(Subscriber<T> actual) {
+    public static <T> DisposableSubscriber<T> wrap(Subscriber<T> actual) {
         Conformance.subscriberNonNull(actual);
-        if (actual instanceof CancellableSubscriber) {
-            return (CancellableSubscriber<T>)actual;
+        if (actual instanceof DisposableSubscriber) {
+            return (DisposableSubscriber<T>)actual;
         }
-        return new CancellableSubscriber<>(actual);
+        return new DisposableSubscriber<>(actual);
     }
     @Override
     public void onSubscribe(Subscription subscription) {
@@ -76,7 +76,7 @@ public final class CancellableSubscriber<T> implements Subscriber<T>, Cancellabl
                     }
                     @Override
                     public void cancel() {
-                        CancellableSubscriber.this.cancel();
+                        DisposableSubscriber.this.dispose();
                     }
                 });
                 return;
@@ -97,7 +97,7 @@ public final class CancellableSubscriber<T> implements Subscriber<T>, Cancellabl
             Conformance.subscriptionNonNull(this.subscription);
             actual.onError(throwable);
         } finally {
-            cancel();
+            dispose();
         }
     }
     @Override
@@ -106,22 +106,22 @@ public final class CancellableSubscriber<T> implements Subscriber<T>, Cancellabl
             Conformance.subscriptionNonNull(this.subscription);
             actual.onComplete();
         } finally {
-            cancel();
+            dispose();
         }
     }
     @Override
-    public boolean isCancelled() {
+    public boolean isDisposed() {
         return subscription == TERMINATED;
     }
     @Override
-    public void cancel() {
-        composite.cancel();
+    public void dispose() {
+        composite.dispose();
         Subscription s = (Subscription)UNSAFE.getAndSetObject(this, SUBSCRIPTION, TERMINATED);
         if (s != null) {
             s.cancel();
         }
     }
-    public void add(Cancellable cancellable) {
-        composite.add(cancellable);
+    public void add(Disposable disposable) {
+        composite.add(disposable);
     }
 }

@@ -23,7 +23,7 @@ import rxjf.*;
 import rxjf.internal.AbstractSubscription;
 import rxjf.internal.schedulers.EventLoopsScheduler;
 import rxjf.schedulers.Scheduler;
-import rxjf.subscribers.CancellableSubscriber;
+import rxjf.subscribers.DisposableSubscriber;
 
 /**
  * 
@@ -77,7 +77,7 @@ public final class ScalarSynchronousFlow<T> extends Flowable<T> {
         }
         @Override
         public void accept(final Subscriber<? super T> child) {
-            CancellableSubscriber<? super T> cs = CancellableSubscriber.wrap(child);
+            DisposableSubscriber<? super T> cs = DisposableSubscriber.wrap(child);
             cs.add(es.scheduleDirect(new ScalarSynchronousAction<>(cs, value)));
         }
     }
@@ -93,7 +93,7 @@ public final class ScalarSynchronousFlow<T> extends Flowable<T> {
         
         @Override
         public void accept(final Subscriber<? super T> child) {
-            CancellableSubscriber<? super T> cs = CancellableSubscriber.wrap(child);
+            DisposableSubscriber<? super T> cs = DisposableSubscriber.wrap(child);
             Scheduler.Worker worker = scheduler.createWorker();
             cs.add(worker);
             worker.schedule(new ScalarSynchronousAction<>(cs, value));

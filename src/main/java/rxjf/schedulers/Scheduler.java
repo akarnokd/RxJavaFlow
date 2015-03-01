@@ -17,7 +17,7 @@ package rxjf.schedulers;
 
 import java.util.concurrent.TimeUnit;
 
-import rxjf.cancellables.*;
+import rxjf.disposables.*;
 
 /**
  *
@@ -26,33 +26,33 @@ public interface Scheduler {
     /**
      * 
      */
-    interface Worker extends Cancellable {
+    interface Worker extends Disposable {
         
-        Cancellable schedule(Runnable task);
+        Disposable schedule(Runnable task);
         
-        Cancellable schedule(Runnable task, long delay, TimeUnit unit);
+        Disposable schedule(Runnable task, long delay, TimeUnit unit);
         
         default long now() {
             return System.currentTimeMillis();
         }
         
-        default Cancellable schedule(Runnable task, long initialDelay, long period, TimeUnit unit) {
+        default Disposable schedule(Runnable task, long initialDelay, long period, TimeUnit unit) {
             final long periodInNanos = unit.toNanos(period);
             final long startInNanos = TimeUnit.MILLISECONDS.toNanos(now()) + unit.toNanos(initialDelay);
 
-            final MultipleAssignmentCancellable mas = new MultipleAssignmentCancellable();
+            final MultipleAssignmentDisposable mas = new MultipleAssignmentDisposable();
             final Runnable recursiveRunnable = new Runnable() {
                 long count = 0;
                 @Override
                 public void run() {
-                    if (!mas.isCancelled()) {
+                    if (!mas.isDisposed()) {
                         task.run();
                         long nextTick = startInNanos + (++count * periodInNanos);
                         mas.set(schedule(this, nextTick - TimeUnit.MILLISECONDS.toNanos(now()), TimeUnit.NANOSECONDS));
                     }
                 }
             };
-            MultipleAssignmentCancellable s = new MultipleAssignmentCancellable();
+            MultipleAssignmentDisposable s = new MultipleAssignmentDisposable();
             // Should call `mas.set` before `schedule`, or the new Subscription may replace the old one.
             mas.set(s);
             s.set(schedule(recursiveRunnable, initialDelay, unit));

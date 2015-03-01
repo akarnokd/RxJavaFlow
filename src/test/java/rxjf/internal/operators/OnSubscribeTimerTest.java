@@ -26,7 +26,7 @@ import org.mockito.*;
 
 import rxjf.*;
 import rxjf.Flow.Subscriber;
-import rxjf.cancellables.Cancellable;
+import rxjf.disposables.Disposable;
 import rxjf.exceptions.TestException;
 import rxjf.schedulers.TestScheduler;
 import rxjf.subscribers.AbstractSubscriber;
@@ -56,8 +56,8 @@ public class OnSubscribeTimerTest {
 
     @Test
     public void testTimerPeriodically() {
-        Cancellable c = Flowable.timer(100, 100, TimeUnit.MILLISECONDS, scheduler)
-                .subscribeCancellable(observer);
+        Disposable c = Flowable.timer(100, 100, TimeUnit.MILLISECONDS, scheduler)
+                .subscribeDisposable(observer);
         scheduler.advanceTimeBy(100, TimeUnit.MILLISECONDS);
 
         InOrder inOrder = inOrder(observer);
@@ -72,7 +72,7 @@ public class OnSubscribeTimerTest {
         scheduler.advanceTimeBy(100, TimeUnit.MILLISECONDS);
         inOrder.verify(observer, times(1)).onNext(3L);
 
-        c.cancel();
+        c.dispose();
         scheduler.advanceTimeBy(100, TimeUnit.MILLISECONDS);
         inOrder.verify(observer, never()).onNext(any());
 
@@ -82,7 +82,7 @@ public class OnSubscribeTimerTest {
     @Test
     public void testInterval() {
         Flowable<Long> w = Flowable.interval(1, TimeUnit.SECONDS, scheduler);
-        Cancellable sub = w.subscribeCancellable(observer);
+        Disposable sub = w.subscribeDisposable(observer);
 
         verify(observer, never()).onNext(0L);
         verify(observer, never()).onComplete();
@@ -97,7 +97,7 @@ public class OnSubscribeTimerTest {
         verify(observer, never()).onComplete();
         verify(observer, never()).onError(any(Throwable.class));
 
-        sub.cancel();
+        sub.dispose();
         scheduler.advanceTimeTo(4, TimeUnit.SECONDS);
         verify(observer, never()).onNext(2L);
         verify(observer, never()).onComplete();
@@ -107,8 +107,8 @@ public class OnSubscribeTimerTest {
     @Test
     public void testWithMultipleSubscribersStartingAtSameTime() {
         Flowable<Long> w = Flowable.interval(1, TimeUnit.SECONDS, scheduler);
-        Cancellable sub1 = w.subscribeCancellable(observer);
-        Cancellable sub2 = w.subscribeCancellable(observer2);
+        Disposable sub1 = w.subscribeDisposable(observer);
+        Disposable sub2 = w.subscribeDisposable(observer2);
 
         verify(observer, never()).onNext(anyLong());
         verify(observer2, never()).onNext(anyLong());
@@ -130,8 +130,8 @@ public class OnSubscribeTimerTest {
         verify(observer2, never()).onComplete();
         verify(observer2, never()).onError(any(Throwable.class));
 
-        sub1.cancel();
-        sub2.cancel();
+        sub1.dispose();
+        sub2.dispose();
         scheduler.advanceTimeTo(4, TimeUnit.SECONDS);
 
         verify(observer, never()).onNext(2L);
@@ -146,12 +146,12 @@ public class OnSubscribeTimerTest {
     @Test
     public void testWithMultipleStaggeredSubscribers() {
         Flowable<Long> w = Flowable.interval(1, TimeUnit.SECONDS, scheduler);
-        Cancellable sub1 = w.subscribeCancellable(observer);
+        Disposable sub1 = w.subscribeDisposable(observer);
 
         verify(observer, never()).onNext(anyLong());
 
         scheduler.advanceTimeTo(2, TimeUnit.SECONDS);
-        Cancellable sub2 = w.subscribeCancellable(observer2);
+        Disposable sub2 = w.subscribeDisposable(observer2);
 
         InOrder inOrder1 = inOrder(observer);
         inOrder1.verify(observer, times(1)).onNext(0L);
@@ -171,8 +171,8 @@ public class OnSubscribeTimerTest {
         inOrder2.verify(observer2, times(1)).onNext(0L);
         inOrder2.verify(observer2, times(1)).onNext(1L);
 
-        sub1.cancel();
-        sub2.cancel();
+        sub1.dispose();
+        sub2.dispose();
 
         inOrder1.verify(observer, never()).onNext(anyLong());
         inOrder1.verify(observer, never()).onComplete();
@@ -187,13 +187,13 @@ public class OnSubscribeTimerTest {
     public void testWithMultipleStaggeredSubscribersAndPublish() {
         ConnectableFlowable<Long> w = Flowable.interval(1, TimeUnit.SECONDS, scheduler)
                 .publish();
-        Cancellable sub1 = w.subscribeCancellable(observer);
+        Disposable sub1 = w.subscribeDisposable(observer);
         w.connect();
 
         verify(observer, never()).onNext(anyLong());
 
         scheduler.advanceTimeTo(2, TimeUnit.SECONDS);
-        Cancellable sub2 = w.subscribeCancellable(observer2);
+        Disposable sub2 = w.subscribeDisposable(observer2);
 
         InOrder inOrder1 = inOrder(observer);
         inOrder1.verify(observer, times(1)).onNext(0L);
@@ -213,8 +213,8 @@ public class OnSubscribeTimerTest {
         inOrder2.verify(observer2, times(1)).onNext(2L);
         inOrder2.verify(observer2, times(1)).onNext(3L);
 
-        sub1.cancel();
-        sub2.cancel();
+        sub1.dispose();
+        sub2.dispose();
 
         inOrder1.verify(observer, never()).onNext(anyLong());
         inOrder1.verify(observer, never()).onComplete();

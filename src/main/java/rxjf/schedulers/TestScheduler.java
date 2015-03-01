@@ -18,7 +18,8 @@ package rxjf.schedulers;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
 
-import rxjf.cancellables.*;
+import rxjf.disposables.*;
+import rxjf.internal.BooleanDisposable;
 
 /**
  * The {@code TestScheduler} is useful for debugging. It allows you to test schedules of events by manually
@@ -110,7 +111,7 @@ public final class TestScheduler implements Scheduler {
             queue.remove();
 
             // Only execute if not unsubscribed
-            if (!current.scheduler.isCancelled()) {
+            if (!current.scheduler.isDisposed()) {
                 current.action.run();
             }
         }
@@ -124,30 +125,30 @@ public final class TestScheduler implements Scheduler {
 
     private final class InnerTestScheduler implements Worker {
 
-        private final BooleanCancellable s = new BooleanCancellable();
+        private final BooleanDisposable s = new BooleanDisposable();
 
         @Override
-        public void cancel() {
-            s.cancel();
+        public void dispose() {
+            s.dispose();
         }
 
         @Override
-        public boolean isCancelled() {
-            return s.isCancelled();
+        public boolean isDisposed() {
+            return s.isDisposed();
         }
 
         @Override
-        public Cancellable schedule(Runnable action, long delayTime, TimeUnit unit) {
+        public Disposable schedule(Runnable action, long delayTime, TimeUnit unit) {
             final TimedAction timedAction = new TimedAction(this, time + unit.toNanos(delayTime), action);
             queue.add(timedAction);
-            return new BooleanCancellable(() -> queue.remove(timedAction));
+            return new BooleanDisposable(() -> queue.remove(timedAction));
         }
 
         @Override
-        public Cancellable schedule(Runnable action) {
+        public Disposable schedule(Runnable action) {
             final TimedAction timedAction = new TimedAction(this, 0, action);
             queue.add(timedAction);
-            return new BooleanCancellable(() -> queue.remove(timedAction));
+            return new BooleanDisposable(() -> queue.remove(timedAction));
         }
 
         @Override

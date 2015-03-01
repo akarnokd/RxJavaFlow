@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package rxjf.cancellables;
+package rxjf.disposables;
 
 import static rxjf.internal.UnsafeAccess.*;
 
@@ -23,50 +23,58 @@ import java.util.Objects;
 /**
  * 
  */
-public final class MultipleAssignmentCancellable implements Cancellable {
+public final class MultipleAssignmentDisposable implements Disposable {
     /** Unique terminal state. */
-    static final Cancellable STATE_CANCELLED = new Cancellable() {
+    static final Disposable STATE_CANCELLED = new Disposable() {
         @Override
-        public void cancel() {
+        public void dispose() {
             
         }
         @Override
-        public boolean isCancelled() {
+        public boolean isDisposed() {
             return true;
         }
     };
-    volatile Cancellable state;
-    static final long STATE = addressOf(MultipleAssignmentCancellable.class, "state");
-    public MultipleAssignmentCancellable() {
+    volatile Disposable state;
+    static final long STATE = addressOf(MultipleAssignmentDisposable.class, "state");
+    public MultipleAssignmentDisposable() {
         
     }
-    public MultipleAssignmentCancellable(Cancellable cancellable) {
-        Objects.requireNonNull(cancellable);
-        UNSAFE.putOrderedObject(this, STATE, cancellable);
+    public MultipleAssignmentDisposable(Disposable disposable) {
+        Objects.requireNonNull(disposable);
+        UNSAFE.putOrderedObject(this, STATE, disposable);
     }
-    public void set(Cancellable cancellable) {
-        Objects.requireNonNull(cancellable);
+    public Disposable get() {
+        Disposable d = state;
+        if (d == STATE_CANCELLED) {
+            return Disposable.DISPOSED;
+        }
+        return d;
+    }
+    public void set(Disposable disposable) {
+        Objects.requireNonNull(disposable);
         for (;;) {
-            Cancellable c = state;
+            Disposable c = state;
             if (c == STATE_CANCELLED) {
+                disposable.dispose();
                 return;
             }
-            if (UNSAFE.compareAndSwapObject(this, STATE, c, cancellable)) {
+            if (UNSAFE.compareAndSwapObject(this, STATE, c, disposable)) {
                 return;
             }
         }
     }
     @Override
-    public void cancel() {
+    public void dispose() {
         if (state != STATE_CANCELLED) {
-            Cancellable c = (Cancellable)UNSAFE.getAndSetObject(this, STATE, STATE_CANCELLED);
+            Disposable c = (Disposable)UNSAFE.getAndSetObject(this, STATE, STATE_CANCELLED);
             if (c != null) {
-                c.cancel();
+                c.dispose();
             }
         }
     }
     @Override
-    public boolean isCancelled() {
+    public boolean isDisposed() {
         return state == STATE_CANCELLED;
     }
 }

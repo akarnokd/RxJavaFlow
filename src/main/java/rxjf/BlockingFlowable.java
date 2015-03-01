@@ -16,6 +16,8 @@
 
 package rxjf;
 
+import java.util.Iterator;
+
 /**
  * 
  */
@@ -26,6 +28,26 @@ public final class BlockingFlowable<T> {
     }
     public T single() {
         // TODO
-        return null;
+        throw new UnsupportedOperationException();
+    }
+    public T singleOrDefault(T defaultValue) {
+        // TODO
+        throw new UnsupportedOperationException();
+    }
+    public T first() {
+        // TODO
+        throw new UnsupportedOperationException();
+    }
+    public T last() {
+        // TODO
+        throw new UnsupportedOperationException();
+    }
+    public T lastOrDefault() {
+        // TODO
+        throw new UnsupportedOperationException();
+    }
+    public Iterator<T> getIterator() {
+        // TODO
+        throw new UnsupportedOperationException();
     }
 }

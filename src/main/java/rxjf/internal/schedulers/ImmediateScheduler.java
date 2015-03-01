@@ -17,7 +17,8 @@ package rxjf.internal.schedulers;
 
 import java.util.concurrent.TimeUnit;
 
-import rxjf.cancellables.*;
+import rxjf.disposables.*;
+import rxjf.internal.BooleanDisposable;
 import rxjf.schedulers.Scheduler;
 
 /**
@@ -40,10 +41,10 @@ public final class ImmediateScheduler implements Scheduler {
 
     private final class InnerImmediateScheduler implements Scheduler.Worker {
 
-        final BooleanCancellable innerSubscription = new BooleanCancellable();
+        final BooleanDisposable innerSubscription = new BooleanDisposable();
 
         @Override
-        public Cancellable schedule(Runnable action, long delayTime, TimeUnit unit) {
+        public Disposable schedule(Runnable action, long delayTime, TimeUnit unit) {
             // since we are executing immediately on this thread we must cause this thread to sleep
             long execTime = now() + unit.toMillis(delayTime);
 
@@ -51,19 +52,19 @@ public final class ImmediateScheduler implements Scheduler {
         }
 
         @Override
-        public Cancellable schedule(Runnable action) {
+        public Disposable schedule(Runnable action) {
             action.run();
-            return Cancellable.CANCELLED;
+            return Disposable.DISPOSED;
         }
 
         @Override
-        public void cancel() {
-            innerSubscription.cancel();
+        public void dispose() {
+            innerSubscription.dispose();
         }
 
         @Override
-        public boolean isCancelled() {
-            return innerSubscription.isCancelled();
+        public boolean isDisposed() {
+            return innerSubscription.isDisposed();
         }
 
     }

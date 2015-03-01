@@ -16,7 +16,6 @@
 package rxjf;
 
 import rxjf.Flow.Subscriber;
-import rxjf.internal.operators.OnSubscribe;
 import rxjf.schedulers.Scheduler;
 
 /**

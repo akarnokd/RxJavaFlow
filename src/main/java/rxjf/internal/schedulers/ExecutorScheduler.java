@@ -20,7 +20,7 @@ import static rxjf.internal.UnsafeAccess.*;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import rxjf.cancellables.*;
+import rxjf.disposables.*;
 import rxjf.internal.*;
 import rxjf.plugins.RxJavaFlowPlugins;
 import rxjf.schedulers.Scheduler;
@@ -46,7 +46,7 @@ public final class ExecutorScheduler implements Scheduler {
     static final class ExecutorSchedulerWorker implements Scheduler.Worker, Runnable {
         final Executor executor;
         // TODO: use a better performing structure for task tracking
-        final CompositeCancellable tasks;
+        final CompositeDisposable tasks;
         final MpscLinkedQueue<ExecutorRunnable> queue; 
         final AtomicInteger wip;
         
@@ -54,13 +54,13 @@ public final class ExecutorScheduler implements Scheduler {
             this.executor = executor;
             this.queue = new MpscLinkedQueue<>();
             this.wip = new AtomicInteger();
-            this.tasks = new CompositeCancellable();
+            this.tasks = new CompositeDisposable();
         }
 
         @Override
-        public Cancellable schedule(Runnable action) {
-            if (isCancelled()) {
-                return Cancellable.CANCELLED;
+        public Disposable schedule(Runnable action) {
+            if (isDisposed()) {
+                return Disposable.DISPOSED;
             }
             ExecutorRunnable ea = new ExecutorRunnable(action, tasks);
             tasks.add(ea);
@@ -90,12 +90,12 @@ public final class ExecutorScheduler implements Scheduler {
         }
         
         @Override
-        public Cancellable schedule(final Runnable action, long delayTime, TimeUnit unit) {
+        public Disposable schedule(final Runnable action, long delayTime, TimeUnit unit) {
             if (delayTime <= 0) {
                 return schedule(action);
             }
-            if (isCancelled()) {
-                return Cancellable.CANCELLED;
+            if (isDisposed()) {
+                return Disposable.DISPOSED;
             }
             ScheduledExecutorService service;
             if (executor instanceof ScheduledExecutorService) {
@@ -104,20 +104,20 @@ public final class ExecutorScheduler implements Scheduler {
                 service = GenericScheduledExecutorService.getInstance();
             }
             
-            final MultipleAssignmentCancellable mas = new MultipleAssignmentCancellable();
+            final MultipleAssignmentDisposable mas = new MultipleAssignmentDisposable();
             // tasks.add(mas); // Needs a removal without unsubscription
-            MultipleAssignmentCancellable first = new MultipleAssignmentCancellable();
+            MultipleAssignmentDisposable first = new MultipleAssignmentDisposable();
             mas.set(first);
             
             try {
                 Future<?> f = service.schedule(() -> {
-                    if (mas.isCancelled()) {
+                    if (mas.isDisposed()) {
                         return;
                     }
                     mas.set(schedule(action));
                 }, delayTime, unit);
                 
-                first.set(new BooleanCancellable(() -> f.cancel(true)));
+                first.set(new BooleanDisposable(() -> f.cancel(true)));
             } catch (RejectedExecutionException t) {
                 // report the rejection to plugins
                 RxJavaFlowPlugins.getInstance().getErrorHandler().handleError(t);
@@ -128,32 +128,32 @@ public final class ExecutorScheduler implements Scheduler {
         }
 
         @Override
-        public boolean isCancelled() {
-            return tasks.isCancelled();
+        public boolean isDisposed() {
+            return tasks.isDisposed();
         }
 
         @Override
-        public void cancel() {
-            tasks.cancel();
+        public void dispose() {
+            tasks.dispose();
         }
         
     }
 
     /** Runs the actual action and maintains an unsubscription state. */
-    static final class ExecutorRunnable implements Runnable, Cancellable {
+    static final class ExecutorRunnable implements Runnable, Disposable {
         final Runnable actual;
-        final CompositeCancellable parent;
+        final CompositeDisposable parent;
         volatile int cancelled;
         static final long CANCELLED = addressOf(ExecutorRunnable.class, "cancelled");
 
-        public ExecutorRunnable(Runnable actual, CompositeCancellable parent) {
+        public ExecutorRunnable(Runnable actual, CompositeDisposable parent) {
             this.actual = actual;
             this.parent = parent;
         }
 
         @Override
         public void run() {
-            if (isCancelled()) {
+            if (isDisposed()) {
                 return;
             }
             try {
@@ -163,16 +163,16 @@ public final class ExecutorScheduler implements Scheduler {
                 Thread thread = Thread.currentThread();
                 thread.getUncaughtExceptionHandler().uncaughtException(thread, t);
             } finally {
-                cancel();
+                dispose();
             }
         }
         @Override
-        public boolean isCancelled() {
+        public boolean isDisposed() {
             return cancelled != 0;
         }
 
         @Override
-        public void cancel() {
+        public void dispose() {
             if (UNSAFE.getAndSetInt(this, CANCELLED, 1) == 0) {
                 parent.remove(this);
             }

@@ -18,7 +18,7 @@ package rxjf;
 import java.util.function.Consumer;
 
 import rxjf.Flow.Subscriber;
-import rxjf.cancellables.Cancellable;
+import rxjf.disposables.Disposable;
 import rxjf.internal.operators.*;
 
 /**
@@ -49,8 +49,8 @@ public abstract class ConnectableFlowable<T> extends Flowable<T> {
      * @return the subscription representing the connection
      * @see <a href="http://reactivex.io/documentation/operators/connect.html">ReactiveX documentation: Connect</a>
      */
-    public final Cancellable connect() {
-        final Cancellable[] out = new Cancellable[1];
+    public final Disposable connect() {
+        final Disposable[] out = new Disposable[1];
         connect(t1 -> out[0] = t1);
         return out[0];
     }
@@ -63,7 +63,7 @@ public abstract class ConnectableFlowable<T> extends Flowable<T> {
      *          allowing the caller to synchronously disconnect a synchronous source
      * @see <a href="http://reactivex.io/documentation/operators/connect.html">ReactiveX documentation: Connect</a>
      */
-    public abstract void connect(Consumer<? super Cancellable> connection);
+    public abstract void connect(Consumer<? super Disposable> connection);
 
     /**
      * Returns an {@code Flowable} that stays connected to this {@code ConnectableFlowable} as long as there
