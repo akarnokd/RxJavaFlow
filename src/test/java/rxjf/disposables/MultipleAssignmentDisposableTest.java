@@ -22,7 +22,7 @@ import static org.mockito.Mockito.verify;
 
 import org.junit.*;
 
-import rxjf.internal.BooleanDisposable;
+import rxjf.internal.disposables.BooleanDisposable;
 
 public class MultipleAssignmentDisposableTest {
 

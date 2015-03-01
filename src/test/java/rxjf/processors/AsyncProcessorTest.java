@@ -23,7 +23,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
 
-import org.junit.Test;
+import org.junit.*;
 import org.mockito.*;
 
 import rxjf.Flow.Subscriber;
@@ -69,7 +69,7 @@ public class AsyncProcessorTest {
         verify(observer, times(1)).onComplete();
     }
 
-    @Test
+    @Test(expected = NullPointerException.class)
     public void testNull() {
         AsyncProcessor<String> subject = AsyncProcessor.create();
 
@@ -78,15 +78,62 @@ public class AsyncProcessorTest {
         subject.subscribe(observer);
 
         subject.onNext(null);
+// Reactive-Streams prohibits null value
+//        subject.onComplete();
+//
+//        verify(observer, times(1)).onNext(null);
+//        verify(observer, Mockito.never()).onError(any(Throwable.class));
+//        verify(observer, times(1)).onComplete();
+    }
+
+    @Test
+    public void testSubscribeAfterCompleted() {
+        AsyncProcessor<String> subject = AsyncProcessor.create();
+
+        @SuppressWarnings("unchecked")
+        Subscriber<String> observer = mock(Subscriber.class);
+        
+        TestSubscriber<String> ts = new TestSubscriber<>(observer, 0);
+
+        subject.onNext("one");
+        subject.onNext("two");
+        subject.onNext("three");
         subject.onComplete();
 
-        verify(observer, times(1)).onNext(null);
+        subject.subscribe(ts);
+        
+        ts.requestMore(1);
+
+        verify(observer, times(1)).onNext("three");
         verify(observer, Mockito.never()).onError(any(Throwable.class));
         verify(observer, times(1)).onComplete();
     }
 
     @Test
-    public void testSubscribeAfterCompleted() {
+    public void testSubscribeAfterCompletedRequestBefore() {
+        AsyncProcessor<String> subject = AsyncProcessor.create();
+
+        @SuppressWarnings("unchecked")
+        Subscriber<String> observer = mock(Subscriber.class);
+        
+        TestSubscriber<String> ts = new TestSubscriber<>(observer);
+
+        subject.onNext("one");
+        subject.onNext("two");
+        subject.onNext("three");
+        subject.onComplete();
+
+        subject.subscribe(ts);
+        
+        ts.requestMore(1);
+
+        verify(observer, times(1)).onNext("three");
+        verify(observer, Mockito.never()).onError(any(Throwable.class));
+        verify(observer, times(1)).onComplete();
+    }
+
+    @Test
+    public void testSubscribeAfterCompletedNoRequest() {
         AsyncProcessor<String> subject = AsyncProcessor.create();
 
         @SuppressWarnings("unchecked")
@@ -99,9 +146,9 @@ public class AsyncProcessorTest {
 
         subject.subscribe(observer);
 
-        verify(observer, times(1)).onNext("three");
-        verify(observer, Mockito.never()).onError(any(Throwable.class));
-        verify(observer, times(1)).onComplete();
+        verify(observer, never()).onNext(anyString());
+        verify(observer, never()).onError(any(Throwable.class));
+        verify(observer, never()).onComplete();
     }
 
     @Test
@@ -152,7 +199,7 @@ public class AsyncProcessorTest {
 
         @SuppressWarnings("unchecked")
         Subscriber<String> observer = mock(Subscriber.class);
-        DisposableSubscriber<String> disposable = DisposableSubscriber.wrap(observer);
+        AbstractDisposableSubscriber<String> disposable = DisposableSubscriber.wrap(observer);
         subject.subscribe(disposable);
 
         subject.onNext("one");
@@ -170,6 +217,8 @@ public class AsyncProcessorTest {
         verify(observer, Mockito.never()).onNext(anyString());
         verify(observer, Mockito.never()).onError(any(Throwable.class));
         verify(observer, Mockito.never()).onComplete();
+        
+        assertFalse(subject.hasSubscribers());
     }
 
     @Test
@@ -187,6 +236,8 @@ public class AsyncProcessorTest {
         inOrder.verify(observer, never()).onNext(any(String.class));
         inOrder.verify(observer, times(1)).onComplete();
         inOrder.verifyNoMoreInteractions();
+        
+        assertFalse(subject.hasSubscribers());
     }
 
     /**
@@ -278,6 +329,7 @@ public class AsyncProcessorTest {
         }
     }
     
+    @Ignore // FIXME Reactive-Streams rules prohibit throwing exceptions
     @Test
     public void testOnErrorThrowsDoesntPreventDelivery() {
         AsyncProcessor<String> ps = AsyncProcessor.create();
@@ -299,6 +351,7 @@ public class AsyncProcessorTest {
     /**
      * This one has multiple failures so should get a CompositeException
      */
+    @Ignore // FIXME Reactive-Streams rules prohibit throwing exceptions
     @Test
     public void testOnErrorThrowsDoesntPreventDelivery2() {
         AsyncProcessor<String> ps = AsyncProcessor.create();

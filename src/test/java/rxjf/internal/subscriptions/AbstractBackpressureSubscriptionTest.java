@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package rxjf.internal;
+package rxjf.internal.subscriptions;
 
 import static org.junit.Assert.*;
 
@@ -162,6 +162,24 @@ public abstract class AbstractBackpressureSubscriptionTest {
         ts.assertError(MissingBackpressureException.class);
     }
 
+    @Test(expected = NullPointerException.class)
+    public void conformanceNonNullItem() {
+        TestSubscriber<Integer> ts = new TestSubscriber<>(0);
+        
+        AbstractBackpressureSubscription<Integer> qs = create(ts);
+
+        qs.onNext(null);
+    }
+
+    @Test(expected = NullPointerException.class)
+    public void conformanceNonNullThrowable() {
+        TestSubscriber<Integer> ts = new TestSubscriber<>(0);
+        
+        AbstractBackpressureSubscription<Integer> qs = create(ts);
+
+        qs.onError(null);
+    }
+    
     @Test
     public void conformancePositiveTry0() {
         SubscriptionConformanceTest.conformancePositiveTry0(this::create);
@@ -173,6 +191,10 @@ public abstract class AbstractBackpressureSubscriptionTest {
     @Test
     public void conformanceRequestAfterCancelNoError() {
         SubscriptionConformanceTest.conformanceRequestAfterCancelNoError(this::create);
+    }
+    @Test(expected = NullPointerException.class)
+    public void conformanceSubscriberNonNull() {
+        SubscriptionConformanceTest.conformanceSubscriberNonNull(this::create);
     }
 
 }

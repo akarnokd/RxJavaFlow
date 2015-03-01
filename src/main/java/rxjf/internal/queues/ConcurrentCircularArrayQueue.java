@@ -14,12 +14,13 @@
  * Original License: https://github.com/JCTools/JCTools/blob/master/LICENSE
  * Original location: https://github.com/JCTools/JCTools/blob/master/jctools-core/src/main/java/org/jctools/queues/ConcurrentCircularArrayQueue.java
  */
-package rxjf.internal;
+package rxjf.internal.queues;
 
 import static rxjf.internal.UnsafeAccess.UNSAFE;
 
 import java.util.*;
 
+import rxjf.internal.*;
 import sun.misc.Contended;
 
 /**

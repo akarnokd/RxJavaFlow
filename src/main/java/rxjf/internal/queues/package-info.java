@@ -14,13 +14,7 @@
  * limitations under the License.
  */
 
-package rxjf.internal;
-
 /**
  * 
  */
-@FunctionalInterface
-public interface OnRequested<T> {
-    
-    void apply(long n, SubscriptionState<T> state);
-}
+package rxjf.internal.queues;

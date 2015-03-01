@@ -20,7 +20,7 @@ import javax.security.auth.Subject;
 import rxjf.Flow.Subscriber;
 import rxjf.Flow.Subscription;
 import rxjf.*;
-import rxjf.internal.DelayedSubscription;
+import rxjf.internal.subscriptions.DelayedSubscription;
 import rxjf.subscribers.SerializedSubscriber;
 
 /**

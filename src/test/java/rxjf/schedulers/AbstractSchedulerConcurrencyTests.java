@@ -25,7 +25,7 @@ import org.junit.Test;
 import rxjf.Flow.Subscriber;
 import rxjf.*;
 import rxjf.Flowable.OnSubscribe;
-import rxjf.internal.BooleanDisposable;
+import rxjf.internal.disposables.BooleanDisposable;
 import rxjf.schedulers.Scheduler.Worker;
 import rxjf.subscribers.*;
 
@@ -265,7 +265,7 @@ public abstract class AbstractSchedulerConcurrencyTests extends AbstractSchedule
             Flowable<Integer> obs = Flowable.create(new OnSubscribe<Integer>() {
                 @Override
                 public void accept(final Subscriber<? super Integer> child) {
-                    DisposableSubscriber<? super Integer> cs = DisposableSubscriber.wrap(child);
+                    AbstractDisposableSubscriber<? super Integer> cs = DisposableSubscriber.wrap(child);
                     inner.schedule(new Runnable() {
                         @Override
                         public void run() {
@@ -308,7 +308,7 @@ public abstract class AbstractSchedulerConcurrencyTests extends AbstractSchedule
                 }
             };
             
-            DisposableSubscriber<Integer> cs = s.toDisposable();
+            AbstractDisposableSubscriber<Integer> cs = s.toDisposable();
             
             obs.subscribe(cs);
     

@@ -19,7 +19,7 @@ import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import rxjf.disposables.*;
-import rxjf.internal.BooleanDisposable;
+import rxjf.internal.disposables.BooleanDisposable;
 import static rxjf.internal.UnsafeAccess.*;
 import rxjf.schedulers.Scheduler;
 

@@ -15,6 +15,7 @@
  */
 package rxjf.subscribers;
 
+import java.io.Serializable;
 import java.util.*;
 import java.util.function.*;
 
@@ -176,10 +177,16 @@ public final class SerializedSubscriber<T> implements Subscriber<T> {
         }, v -> v, null, TYPE_COMPLETE);
     }
     
-    static final class ErrorToken {
+    static final class ErrorToken implements Serializable  {
+        /** */
+        private static final long serialVersionUID = 1283700143864356467L;
         final Throwable error;
         ErrorToken(Throwable error) {
             this.error = error;
+        }
+        @Override
+        public String toString() {
+            return "Error: " + error;
         }
     }
     static final class SubscribeToken {
@@ -187,9 +194,21 @@ public final class SerializedSubscriber<T> implements Subscriber<T> {
         SubscribeToken(Subscription subscription) {
             this.subscription = subscription;
         }
+        @Override
+        public String toString() {
+            return "Subscription";
+        }
     }
     
-    static final Object COMPLETE_TOKEN = new Object();
+    static final Object COMPLETE_TOKEN = new Serializable() {
+        /** */
+        private static final long serialVersionUID = 5009550202959465730L;
+
+        @Override
+        public String toString() {
+           return "Complete";
+        }
+    };
     
     public AbstractDisposableSubscriber<T> toDisposable() {
         return DisposableSubscriber.wrap(this);

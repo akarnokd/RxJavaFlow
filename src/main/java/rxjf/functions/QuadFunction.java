@@ -14,17 +14,12 @@
  * limitations under the License.
  */
 
-package rxjf.internal;
-
-import rxjf.Flow.Subscriber;
+package rxjf.functions;
 
 /**
  * 
  */
-public class QueueBackpressureSubscriptionTest extends AbstractBackpressureSubscriptionTest {
-    
-    @Override
-    protected <T> AbstractBackpressureSubscription<T> create(Subscriber<? super T> subscriber) {
-        return new QueueBackpressureSubscription<>(subscriber);
-    }
+@FunctionalInterface
+public interface QuadFunction<T1, T2, T3, T4, R> {
+    R apply(T1 t1, T2 t2, T3 t3, T4 t4);
 }

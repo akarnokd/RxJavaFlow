@@ -18,8 +18,8 @@ package rxjf.internal.operators;
 
 import rxjf.Flow.Subscriber;
 import rxjf.*;
-import rxjf.internal.AbstractSubscription;
 import rxjf.internal.schedulers.EventLoopsScheduler;
+import rxjf.internal.subscriptions.AbstractSubscription;
 import rxjf.schedulers.Scheduler;
 import rxjf.subscribers.*;
 

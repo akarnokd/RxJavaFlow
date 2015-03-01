@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package rxjf.internal;
+package rxjf.internal.subscriptions;
 
 import static org.junit.Assert.assertEquals;
 import static org.mockito.Matchers.*;
@@ -25,6 +25,7 @@ import org.mockito.InOrder;
 
 import rxjf.Flow.Subscriber;
 import rxjf.Flow.Subscription;
+import rxjf.internal.subscriptions.DelayedSubscription;
 
 /**
  * 
@@ -185,5 +186,9 @@ public class DelayedSubscriptionTest {
         verify(subscriber, never()).onNext(any());
         verify(subscriber).onError(any(IllegalArgumentException.class));
         verify(subscriber, never()).onComplete();
+    }
+    @Test(expected = NullPointerException.class)
+    public void conformanceSubscriberNonNull() {
+        SubscriptionConformanceTest.conformanceSubscriberNonNull(DelayedSubscription::new);
     }
 }

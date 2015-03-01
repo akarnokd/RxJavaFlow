@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package rxjf.internal;
+package rxjf.internal.disposables;
 
 import static org.junit.Assert.*;
 
@@ -25,6 +25,7 @@ import org.junit.Test;
 
 import rxjf.disposables.Disposable;
 import rxjf.exceptions.CompositeException;
+import rxjf.internal.disposables.DisposableList;
 
 public class DisposableListTest {
 

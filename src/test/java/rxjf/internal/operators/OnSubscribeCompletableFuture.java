@@ -20,8 +20,7 @@ import java.util.concurrent.*;
 
 import rxjf.Flow.Subscriber;
 import rxjf.Flowable.OnSubscribe;
-import rxjf.internal.AbstractSubscription;
-
+import rxjf.internal.subscriptions.AbstractSubscription;
 import static rxjf.internal.UnsafeAccess.*;
 
 /**

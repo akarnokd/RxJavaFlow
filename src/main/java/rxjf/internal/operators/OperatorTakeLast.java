@@ -20,6 +20,7 @@ import java.util.*;
 import rxjf.Flow.Subscriber;
 import rxjf.Flowable.Operator;
 import rxjf.internal.*;
+import rxjf.internal.subscriptions.QueueBackpressureSubscription;
 import rxjf.subscribers.AbstractSubscriber;
 
 /**

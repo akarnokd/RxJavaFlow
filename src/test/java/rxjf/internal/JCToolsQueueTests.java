@@ -20,6 +20,7 @@ import static org.junit.Assert.*;
 import org.junit.Test;
 
 import rxjf.Flow;
+import rxjf.internal.queues.*;
 
 public class JCToolsQueueTests {
     @Test

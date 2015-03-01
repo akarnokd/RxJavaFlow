@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package rxjf.internal;
+package rxjf.internal.subscriptions;
 
 import static org.mockito.Matchers.any;
 import static org.mockito.Mockito.*;
@@ -73,4 +73,9 @@ public final class SubscriptionConformanceTest {
         verify(subscriber, never()).onError(any(Throwable.class));
         verify(subscriber, never()).onComplete();
     }
+    
+    public static <T> void conformanceSubscriberNonNull(Function<? super Subscriber<?>, ? extends Subscription> supplier) {
+        supplier.apply(null);
+    }
+            
 }

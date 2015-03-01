@@ -14,10 +14,11 @@
  * limitations under the License.
  */
 
-package rxjf.internal;
+package rxjf.internal.subscriptions;
 
 import static rxjf.internal.UnsafeAccess.*;
 import rxjf.Flow.*;
+import rxjf.internal.Conformance;
 
 /**
  * Subscription that accumulates requests and cancellation until a real subscription
@@ -38,7 +39,7 @@ public final class DelayedSubscription implements Subscription {
     static final long REPLACED = Long.MIN_VALUE / 2;
     
     public DelayedSubscription(Subscriber<?> subscriber) {
-        this.subscriber = subscriber;
+        this.subscriber = Conformance.subscriberNonNull(subscriber);
     }
     @Override
     public void request(long n) {

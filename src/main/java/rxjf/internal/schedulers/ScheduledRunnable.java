@@ -21,7 +21,7 @@ import static rxjf.internal.UnsafeAccess.*;
 import java.util.concurrent.Future;
 
 import rxjf.disposables.*;
-import rxjf.internal.BooleanDisposable;
+import rxjf.internal.disposables.BooleanDisposable;
 
 public final class ScheduledRunnable implements Runnable, Disposable {
     final Runnable actual;

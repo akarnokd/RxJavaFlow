@@ -24,7 +24,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import org.junit.Test;
 
 import rxjf.exceptions.CompositeException;
-import rxjf.internal.BooleanDisposable;
+import rxjf.internal.disposables.BooleanDisposable;
 
 public class CompositeDisposableTest {
 

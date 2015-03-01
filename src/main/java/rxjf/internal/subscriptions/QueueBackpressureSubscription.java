@@ -14,12 +14,13 @@
  * limitations under the License.
  */
 
-package rxjf.internal;
+package rxjf.internal.subscriptions;
 
 import java.util.Queue;
 
 import rxjf.*;
 import rxjf.Flow.Subscriber;
+import rxjf.internal.queues.SpscArrayQueue;
 /**
  * A subscription, backed by a Queue, that coordinates value production (offer) and
  * value emission (onXXX) for a subscriber while respecting the subscriber's requests.

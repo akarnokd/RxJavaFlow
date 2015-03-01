@@ -14,11 +14,12 @@
  * limitations under the License.
  */
 
-package rxjf.internal;
+package rxjf.internal.subscriptions;
 
 import static rxjf.internal.UnsafeAccess.*;
 import rxjf.Flow.Subscriber;
 import rxjf.exceptions.MissingBackpressureException;
+import rxjf.internal.*;
 
 /**
  * A subscription, that coordinates value production and
@@ -38,8 +39,6 @@ public abstract class AbstractBackpressureSubscription<T> extends AbstractSubscr
     volatile int emitting;
     /** Atomic field accessor. */
     static final long EMITTING = addressOf(AbstractBackpressureSubscription.class, "emitting");
-    /** Helps converting events to objects and back. */
-    protected final NotificationLite<T> nl = NotificationLite.instance();
     /**
      * Constructs a QueueSubscription with the given subscriber and an SpscArrayQueue 
      * with capacity Flow.defaultBufferSize().
@@ -100,7 +99,7 @@ public abstract class AbstractBackpressureSubscription<T> extends AbstractSubscr
         if (terminal != null) {
             return;
         }
-        UNSAFE.putOrderedObject(this, TERMINAL, nl.complete());
+        UNSAFE.putOrderedObject(this, TERMINAL, NotificationLite.instance().complete());
         drain();
     }
     /**
@@ -109,10 +108,11 @@ public abstract class AbstractBackpressureSubscription<T> extends AbstractSubscr
      * Methods offer and terminate should be called non-concurrently.
      */
     public final void onError(Throwable t) {
+        Conformance.throwableNonNull(t);
         if (terminal != null) {
             return;
         }
-        UNSAFE.putOrderedObject(this, TERMINAL, nl.error(t));
+        UNSAFE.putOrderedObject(this, TERMINAL, NotificationLite.instance().error(t));
         drain();
     }
     
@@ -135,6 +135,7 @@ public abstract class AbstractBackpressureSubscription<T> extends AbstractSubscr
                     if (value == null) {
                         Object term = terminal;
                         if (term != null) {
+                            NotificationLite<T> nl = NotificationLite.instance();
                             nl.accept(subscriber, term);
                             dispose();
                             return;
@@ -142,6 +143,7 @@ public abstract class AbstractBackpressureSubscription<T> extends AbstractSubscr
                     } else
                     if (ERROR_CUTS_AHEAD) {
                         Object term = terminal;
+                        NotificationLite<T> nl = NotificationLite.instance();
                         if (nl.isError(term)) {
                             subscriber.onError(nl.getError(term));
                             return;

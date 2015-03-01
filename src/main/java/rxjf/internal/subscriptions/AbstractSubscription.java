@@ -14,12 +14,13 @@
  * limitations under the License.
  */
 
-package rxjf.internal;
+package rxjf.internal.subscriptions;
 
 import static rxjf.internal.UnsafeAccess.*;
 import rxjf.Flow.Subscriber;
 import rxjf.Flow.Subscription;
 import rxjf.disposables.Disposable;
+import rxjf.internal.*;
 
 /**
  * 
@@ -44,6 +45,20 @@ public abstract class AbstractSubscription<T> implements Subscription, Disposabl
                 onCancelled();
             }
         }
+    }
+    /**
+     * Retrieves the remaining requests and disposes the subscription
+     * @return the remaining requests, Long.MIN_VALUE if already disposed
+     */
+    public final long getAndDispose() {
+        long r = requested;
+        if (r >= 0) {
+            r = UNSAFE.getAndSetLong(this, REQUESTED, Long.MIN_VALUE);
+            if (r >= 0) {
+                onCancelled();
+            }
+        }
+        return r;
     }
     @Override
     public final void cancel() {

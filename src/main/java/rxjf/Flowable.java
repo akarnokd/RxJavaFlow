@@ -24,13 +24,12 @@ import javax.security.auth.Subject;
 import rxjf.Flow.Publisher;
 import rxjf.Flow.Subscriber;
 import rxjf.Flow.Subscription;
-import rxjf.Flowable.OnSubscribe;
-import rxjf.Flowable.Operator;
 import rxjf.annotations.*;
 import rxjf.disposables.Disposable;
 import rxjf.exceptions.*;
 import rxjf.internal.*;
 import rxjf.internal.operators.*;
+import rxjf.internal.subscriptions.AbstractSubscription;
 import rxjf.plugins.*;
 import rxjf.schedulers.*;
 import rxjf.subscribers.*;
@@ -59,7 +58,8 @@ public class Flowable<T> implements Publisher<T> {
     /**
      * Invoked when Obserable.subscribe is called.
      */
-    public static interface OnSubscribe<T> extends Consumer<Subscriber<? super T>> {
+    @FunctionalInterface
+    public interface OnSubscribe<T> extends Consumer<Subscriber<? super T>> {
         // cover for generics insanity
         @Override
         void accept(Subscriber<? super T> child);
@@ -68,6 +68,7 @@ public class Flowable<T> implements Publisher<T> {
     /**
      * Operator function for lifting into an Flowable.
      */
+    @FunctionalInterface
     public interface Operator<R, T> extends Function<Subscriber<? super R>, Subscriber<? super T>> {
         // cover for generics insanity
         @Override
@@ -77,7 +78,8 @@ public class Flowable<T> implements Publisher<T> {
      * Transformer function used by {@link #compose}.
      * @warn more complete description needed
      */
-    public static interface Transformer<T, R> extends Function<Flowable<T>, Flowable<R>> {
+    @FunctionalInterface
+    public interface Transformer<T, R> extends Function<Flowable<T>, Flowable<R>> {
         // cover for generics insanity
     }
     
@@ -661,11 +663,10 @@ public class Flowable<T> implements Publisher<T> {
      *         timeout
      * @see <a href="http://reactivex.io/documentation/operators/timeout.html">ReactiveX operators documentation: Timeout</a>
      */
-    public final Flowable<T> timeout(long timeout, TimeUnit unit, Scheduler scheduler) {
-        Objects.requireNonNull(unit);
+    public final Flowable<T> timeout(long timeout, TimeUnit timeUnit, Scheduler scheduler) {
+        Objects.requireNonNull(timeUnit);
         Objects.requireNonNull(scheduler);
-        // TODO
-        throw new UnsupportedOperationException();
+        return timeout(timeout, timeUnit, null, scheduler);
     }
     /**
      * Converts an Flowable into a {@link BlockingFlowable} (an Flowable with blocking operators).
@@ -8540,6 +8541,8 @@ public class Flowable<T> implements Publisher<T> {
      * @see <a href="http://reactivex.io/documentation/operators/timeout.html">ReactiveX operators documentation: Timeout</a>
      */
     public final Flowable<T> timeout(long timeout, TimeUnit timeUnit, Flowable<? extends T> other, Scheduler scheduler) {
+        Objects.requireNonNull(timeUnit);
+        Objects.requireNonNull(scheduler);
         return lift(new OperatorTimeout<T>(timeout, timeUnit, other, scheduler));
     }
 

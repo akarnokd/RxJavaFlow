@@ -21,7 +21,8 @@ import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import rxjf.disposables.*;
-import rxjf.internal.*;
+import rxjf.internal.disposables.BooleanDisposable;
+import rxjf.internal.queues.MpscLinkedQueue;
 import rxjf.plugins.RxJavaFlowPlugins;
 import rxjf.schedulers.Scheduler;
 

@@ -28,6 +28,7 @@ import rxjf.Flowable.Operator;
 import rxjf.disposables.Disposable;
 import rxjf.exceptions.MissingBackpressureException;
 import rxjf.internal.*;
+import rxjf.internal.queues.SpscArrayQueue;
 import rxjf.internal.schedulers.*;
 import rxjf.schedulers.Scheduler;
 import rxjf.subscribers.AbstractSubscriber;

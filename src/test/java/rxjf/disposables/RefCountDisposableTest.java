@@ -24,7 +24,7 @@ import org.junit.Before;
 import org.junit.Test;
 import org.mockito.InOrder;
 
-import rxjf.internal.BooleanDisposable;
+import rxjf.internal.disposables.BooleanDisposable;
 
 public class RefCountDisposableTest {
     Runnable main;

@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package rxjf.internal;
+package rxjf.internal.subscriptions;
 
 import java.util.Objects;
 import java.util.function.*;

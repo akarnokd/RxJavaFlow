@@ -13,14 +13,16 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package rx.internal.operators;
+package rxjf.internal.operators;
 
-import java.util.concurrent.TimeUnit;
+import java.util.concurrent.*;
 
-import rx.Observable;
-import rx.Scheduler;
-import rx.Subscription;
-import rx.functions.Action0;
+import rxjf.Flow.Subscriber;
+import rxjf.*;
+import rxjf.Flowable.Operator;
+import rxjf.disposables.SerialDisposable;
+import rxjf.schedulers.Scheduler;
+import rxjf.subscribers.*;
 
 /**
  * Applies a timeout policy for each element in the observable sequence, using
@@ -29,31 +31,69 @@ import rx.functions.Action0;
  * the other observable sequence is used to produce future messages from that
  * point on.
  */
-public final class OperatorTimeout<T> extends OperatorTimeoutBase<T> {
+public final class OperatorTimeout<T> implements Operator<T, T> {
 
-    public OperatorTimeout(final long timeout, final TimeUnit timeUnit, Observable<? extends T> other, Scheduler scheduler) {
-        super(new FirstTimeoutStub<T>() {
+    final long timeout;
+    final TimeUnit timeUnit;
+    final Flowable<? extends T> other;
+    final Scheduler scheduler;
 
+    public OperatorTimeout(long timeout, TimeUnit timeUnit, 
+            Flowable<? extends T> other, Scheduler scheduler) {
+        this.timeout = timeout;
+        this.timeUnit = timeUnit;
+        this.other = other;
+        this.scheduler = scheduler;
+    }
+    
+    @Override
+    public Subscriber<? super T> apply(Subscriber<? super T> child) {
+        AbstractDisposableSubscriber<? super T> disposable = DisposableSubscriber.wrap(child);
+        
+        SerializedSubscriber<? super T> serialized = disposable.toSerialized();
+        
+        Scheduler.Worker worker = scheduler.createWorker();
+        SerialDisposable timeouts = new SerialDisposable();
+
+        disposable.add(worker);
+        disposable.add(timeouts);
+        
+        return new AbstractSubscriber<T>() {
             @Override
-            public Subscription call(final TimeoutSubscriber<T> timeoutSubscriber, final Long seqId, Scheduler.Worker inner) {
-                return inner.schedule(new Action0() {
-                    @Override
-                    public void call() {
-                        timeoutSubscriber.onTimeout(seqId);
-                    }
-                }, timeout, timeUnit);
+            protected void onSubscribe() {
+                serialized.onSubscribe(subscription);
+                scheduleTimeout();
             }
-        }, new TimeoutStub<T>() {
-
             @Override
-            public Subscription call(final TimeoutSubscriber<T> timeoutSubscriber, final Long seqId, T value, Scheduler.Worker inner) {
-                return inner.schedule(new Action0() {
-                    @Override
-                    public void call() {
-                        timeoutSubscriber.onTimeout(seqId);
-                    }
-                }, timeout, timeUnit);
+            public void onNext(T item) {
+                serialized.onNext(item);
+                scheduleTimeout();
             }
-        }, other, scheduler);
+            @Override
+            public void onError(Throwable throwable) {
+                serialized.onError(throwable);
+            }
+            @Override
+            public void onComplete() {
+                serialized.onComplete();
+            }
+            
+            void scheduleTimeout() {
+                timeouts.set(worker.schedule(() -> {
+                    if (other == null) {
+                        serialized.onError(new TimeoutException());
+                    } else {
+                        subscribeOther();
+                    }
+                }, timeout, timeUnit));
+            }
+            void subscribeOther() {
+                // cancel subscription
+                // take unfulfilled requests
+                // subscribe to other
+                // request unfulfilled
+                // TODO
+            }
+        };
     }
 }

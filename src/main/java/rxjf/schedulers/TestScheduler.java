@@ -19,7 +19,7 @@ import java.util.*;
 import java.util.concurrent.TimeUnit;
 
 import rxjf.disposables.*;
-import rxjf.internal.BooleanDisposable;
+import rxjf.internal.disposables.BooleanDisposable;
 
 /**
  * The {@code TestScheduler} is useful for debugging. It allows you to test schedules of events by manually

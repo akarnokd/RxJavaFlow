@@ -14,7 +14,7 @@
  * Original License: https://github.com/JCTools/JCTools/blob/master/LICENSE
  * Original location: https://github.com/JCTools/JCTools/blob/master/jctools-core/src/main/java/org/jctools/queues/MpmcArrayQueue.java
  */
-package rxjf.internal;
+package rxjf.internal.queues;
 
 import static rxjf.internal.UnsafeAccess.*;
 

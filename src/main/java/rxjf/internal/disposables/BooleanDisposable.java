@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package rxjf.internal;
+package rxjf.internal.disposables;
 
 import static rxjf.internal.UnsafeAccess.*;
 

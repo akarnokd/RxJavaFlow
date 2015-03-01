@@ -138,4 +138,8 @@ public abstract class AbstractDisposableSubscriber<T> implements Subscriber<T>, 
     protected void internalDispose() {
         
     }
+    
+    public SerializedSubscriber<T> toSerialized() {
+        return SerializedSubscriber.wrap(this);
+    }
 }

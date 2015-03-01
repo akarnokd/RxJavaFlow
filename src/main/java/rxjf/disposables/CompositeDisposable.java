@@ -57,6 +57,7 @@ public final class CompositeDisposable implements Disposable {
                         disposables = rs;
                     }
                     rs.add(resource);
+                    return;
                 }
             }
         }

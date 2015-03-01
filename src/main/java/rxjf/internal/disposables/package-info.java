@@ -14,20 +14,7 @@
  * limitations under the License.
  */
 
-package rxjf.internal;
-
-import rxjf.Flow.Subscriber;
-
 /**
  * 
  */
-public interface SubscriptionState<T> {
-
-    boolean isDisposed();
-    
-    long requested();
-    
-    long produced(long n);
-    
-    Subscriber<? super T> subscriber();
-}
+package rxjf.internal.disposables;

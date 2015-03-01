@@ -16,18 +16,17 @@
 
 package rxjf.schedulers;
 
-import java.lang.management.*;
-import java.util.concurrent.*;
+import static org.junit.Assert.assertTrue;
 
-import junit.framework.Assert;
+import java.lang.management.*;
+import java.util.concurrent.TimeUnit;
+
+import org.junit.Assert;
 
 import org.junit.Test;
 
-import rx.Observable;
-import rx.Scheduler;
-import rx.functions.*;
-import rx.internal.schedulers.NewThreadWorker;
-import static org.junit.Assert.assertTrue;
+import rxjf.Flowable;
+import rxjf.internal.schedulers.NewThreadWorker;
 
 public class CachedThreadSchedulerTest extends AbstractSchedulerConcurrencyTests {
 
@@ -42,23 +41,15 @@ public class CachedThreadSchedulerTest extends AbstractSchedulerConcurrencyTests
     @Test
     public final void testIOScheduler() {
 
-        Observable<Integer> o1 = Observable.just(1, 2, 3, 4, 5);
-        Observable<Integer> o2 = Observable.just(6, 7, 8, 9, 10);
-        Observable<String> o = Observable.merge(o1, o2).map(new Func1<Integer, String>() {
-
-            @Override
-            public String call(Integer t) {
-                assertTrue(Thread.currentThread().getName().startsWith("RxCachedThreadScheduler"));
-                return "Value_" + t + "_Thread_" + Thread.currentThread().getName();
-            }
+        Flowable<Integer> o1 = Flowable.just(1, 2, 3, 4, 5);
+        Flowable<Integer> o2 = Flowable.just(6, 7, 8, 9, 10);
+        Flowable<String> o = Flowable.merge(o1, o2).map(t -> {
+            assertTrue(Thread.currentThread().getName().startsWith("RxCachedThreadScheduler"));
+            return "Value_" + t + "_Thread_" + Thread.currentThread().getName();
         });
 
-        o.subscribeOn(Schedulers.io()).toBlocking().forEach(new Action1<String>() {
-
-            @Override
-            public void call(String t) {
-                System.out.println("t: " + t);
-            }
+        o.subscribeOn(Schedulers.io()).toBlocking().forEach(t -> {
+            System.out.println("t: " + t);
         });
     }
 
@@ -94,14 +85,14 @@ public class CachedThreadSchedulerTest extends AbstractSchedulerConcurrencyTests
             if (i % 50000 == 0) {
                 System.out.println("  -> still scheduling: " + i);
             }
-            w.schedule(Actions.empty(), 1, TimeUnit.DAYS);
+            w.schedule(() -> { }, 1, TimeUnit.DAYS);
         }
         
         memHeap = memoryMXBean.getHeapMemoryUsage();
         long after = memHeap.getUsed();
         System.out.printf("Peak: %.3f MB%n", after / 1024.0 / 1024.0);
         
-        w.unsubscribe();
+        w.dispose();
         
         System.out.println("Wait before second GC");
         Thread.sleep(NewThreadWorker.PURGE_FREQUENCY + 2000);

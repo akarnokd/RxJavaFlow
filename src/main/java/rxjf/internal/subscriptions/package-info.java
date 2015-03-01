@@ -14,18 +14,7 @@
  * limitations under the License.
  */
 
-package rxjf.internal.operators;
-
-import rxjf.Flow.Subscriber;
-import rxjf.Flowable.OnSubscribe;
-import rxjf.internal.subscriptions.AbstractSubscription;
-
 /**
  * 
  */
-public final class OnSubscribeNever<T> implements OnSubscribe<T> {
-    @Override
-    public void accept(Subscriber<? super T> t) {
-        t.onSubscribe(AbstractSubscription.createEmpty(t));
-    }
-}
+package rxjf.internal.subscriptions;

@@ -14,18 +14,17 @@
  * limitations under the License.
  */
 
-package rxjf.internal.operators;
+package rxjf.internal.subscriptions;
 
 import rxjf.Flow.Subscriber;
-import rxjf.Flowable.OnSubscribe;
-import rxjf.internal.subscriptions.AbstractSubscription;
 
 /**
  * 
  */
-public final class OnSubscribeNever<T> implements OnSubscribe<T> {
+public class QueueBackpressureSubscriptionTest extends AbstractBackpressureSubscriptionTest {
+    
     @Override
-    public void accept(Subscriber<? super T> t) {
-        t.onSubscribe(AbstractSubscription.createEmpty(t));
+    protected <T> AbstractBackpressureSubscription<T> create(Subscriber<? super T> subscriber) {
+        return new QueueBackpressureSubscription<>(subscriber);
     }
 }

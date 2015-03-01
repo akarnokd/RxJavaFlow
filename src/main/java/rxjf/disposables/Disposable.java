@@ -18,7 +18,7 @@ package rxjf.disposables;
 import java.util.concurrent.Future;
 
 import rxjf.Flow.Subscription;
-import rxjf.internal.BooleanDisposable;
+import rxjf.internal.disposables.BooleanDisposable;
 
 /**
  * Represents a disposable resource.

@@ -14,11 +14,11 @@
  * limitations under the License.
  */
 
-package rxjf.internal;
+package rxjf.internal.subscriptions;
 
 import java.util.concurrent.ConcurrentLinkedQueue;
 
-import rxjf.Flow;
+import rxjf.*;
 import rxjf.Flow.Subscriber;
 
 /**

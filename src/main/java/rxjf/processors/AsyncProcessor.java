@@ -23,8 +23,11 @@ import java.util.*;
 import rxjf.Flow.Subscriber;
 import rxjf.Flow.Subscription;
 import rxjf.*;
+import rxjf.disposables.Disposable;
 import rxjf.exceptions.Exceptions;
 import rxjf.internal.*;
+import rxjf.internal.subscriptions.ScalarBackpressureSubscription;
+import rxjf.subscribers.*;
 
 /**
  * 
@@ -33,15 +36,23 @@ public final class AsyncProcessor<T> extends Flowable<T> implements ProcessorEx<
     public static <T> AsyncProcessor<T> create() {
         ProcessorSubscriptionManager<T> psm = new ProcessorSubscriptionManager<>();
         OnSubscribe<T> onSubscribe = subscriber -> {
+            // FIXME this feels to be excessive, we need only to hook the cancel call of sbs
+            AbstractDisposableSubscriber<? super T> s = DisposableSubscriber.wrap(subscriber);
             NotificationLite<T> nl = NotificationLite.instance();
-            // FIXME this ignores the request amount and emits regardless
-            subscriber.onSubscribe(AbstractSubscription.createEmpty(subscriber));
-            if (!psm.add(subscriber)) {
+            ScalarBackpressureSubscription<T> sbs = new ScalarBackpressureSubscription<>(s);
+            s.onSubscribe(sbs);
+            if (!psm.add(s)) {
                 Object v = psm.get();
-                nl.accept(subscriber, v);
-                if (v == null || (!nl.isCompleted(v) && !nl.isError(v))) {
-                    subscriber.onComplete();
+                if (v == null || nl.isCompleted(v)) {
+                    sbs.onComplete();
+                } else
+                if (nl.isError(v)) {
+                    sbs.onError(nl.getError(v));
+                } else {
+                    sbs.onNext(nl.getValue(v));
                 }
+            } else {
+                s.add(Disposable.from(() -> psm.remove(s)));
             }
         };
         return new AsyncProcessor<>(onSubscribe, psm);
@@ -59,14 +70,16 @@ public final class AsyncProcessor<T> extends Flowable<T> implements ProcessorEx<
     }
     @Override
     public void onSubscribe(Subscription subscription) {
-        subscription.request(Long.MAX_VALUE);
+        Conformance.subscriptionNonNull(subscription).request(Long.MAX_VALUE);
     }
     @Override
     public void onNext(T item) {
+        Conformance.itemNonNull(item);
         UNSAFE.putOrderedObject(this, LAST_VALUE, nl.next(item));
     }
     @Override
     public void onError(Throwable throwable) {
+        Conformance.throwableNonNull(throwable);
         if (psm.active) {
             Object n = nl.error(throwable);
             List<Throwable> errors = null;

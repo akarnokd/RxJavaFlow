@@ -20,7 +20,7 @@ import static org.mockito.Mockito.*;
 
 import org.junit.Test;
 
-import rxjf.internal.BooleanDisposable;
+import rxjf.internal.disposables.BooleanDisposable;
 
 public class DisposablesTest {
 

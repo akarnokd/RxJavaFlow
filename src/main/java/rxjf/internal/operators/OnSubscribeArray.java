@@ -20,7 +20,7 @@ import java.util.Objects;
 
 import rxjf.Flow.Subscriber;
 import rxjf.Flowable.OnSubscribe;
-import rxjf.internal.AbstractSubscription;
+import rxjf.internal.subscriptions.AbstractSubscription;
 
 /**
  * 

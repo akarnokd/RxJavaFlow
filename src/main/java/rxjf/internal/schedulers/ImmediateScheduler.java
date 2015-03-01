@@ -18,7 +18,7 @@ package rxjf.internal.schedulers;
 import java.util.concurrent.TimeUnit;
 
 import rxjf.disposables.*;
-import rxjf.internal.BooleanDisposable;
+import rxjf.internal.disposables.BooleanDisposable;
 import rxjf.schedulers.Scheduler;
 
 /**

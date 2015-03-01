@@ -14,9 +14,10 @@
  * Original License: https://github.com/JCTools/JCTools/blob/master/LICENSE
  * Original location: https://github.com/JCTools/JCTools/blob/master/jctools-core/src/main/java/org/jctools/queues/ConcurrentSequencedCircularArrayQueue.java
  */
-package rxjf.internal;
+package rxjf.internal.queues;
 
 import static rxjf.internal.UnsafeAccess.UNSAFE;
+import rxjf.internal.UnsafeAccess;
 
 public abstract class ConcurrentSequencedCircularArrayQueue<E> extends ConcurrentCircularArrayQueue<E> {
     private static final long ARRAY_BASE;
