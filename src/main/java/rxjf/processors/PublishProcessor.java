@@ -16,55 +16,131 @@
 
 package rxjf.processors;
 
-import rxjf.Flow.*;
+import java.util.*;
+
+import rxjf.Flow.Subscriber;
+import rxjf.Flow.Subscription;
+import rxjf.*;
+import rxjf.disposables.Disposable;
+import rxjf.exceptions.Exceptions;
+import rxjf.internal.*;
+import rxjf.internal.subscriptions.*;
 
 /**
- * 
+ * TODO javadoc and explaing onSubscribe being optional.
  */
-public final class PublishProcessor<T> implements ProcessorEx<T, T> {
-    @Override
-    public void subscribe(Subscriber<? super T> subscriber) {
-        // TODO Auto-generated method stub
-        
+public final class PublishProcessor<T> extends Flowable<T> implements ProcessorEx<T, T> {
+    /**
+     * Creates and returns a new {@code PublishSubject}.
+     *
+     * @param <T> the value type
+     * @return the new {@code PublishSubject}
+     */
+    public static <T> PublishProcessor<T> create() {
+        ProcessorSubscriptionManager<T> psm = new ProcessorSubscriptionManager<>();
+        OnSubscribe<T> onSubscribe = subscriber -> {
+            Subscription empty = AbstractSubscription.createEmpty(subscriber);
+            DisposableSubscription ds = new DisposableSubscription(empty);
+            
+            subscriber.onSubscribe(ds);
+            
+            if (!psm.add(subscriber)) {
+                NotificationLite<T> nl = NotificationLite.instance();
+                Object v = psm.get();
+
+                if (nl.isCompleted(v)) {
+                    subscriber.onComplete();
+                } else
+                if (nl.isError(v)) {
+                    subscriber.onError(nl.getError(v));
+                } else {
+                    subscriber.onError(new IllegalStateException("PublishProcessor has a value instead of terminal event: " + v));
+                }
+            } else {
+                ds.add(Disposable.from(() -> psm.remove(subscriber)));
+            }
+        };
+        return new PublishProcessor<>(onSubscribe, psm);
     }
+    
+    final ProcessorSubscriptionManager<T> psm;
+    private final NotificationLite<T> nl = NotificationLite.instance();
+    /** Keeps the subscription to be able to report setting it multiple times. */
+    Subscription subscription;
+    
+    protected PublishProcessor(OnSubscribe<T> onSubscribe, ProcessorSubscriptionManager<T> psm) {
+        super(onSubscribe);
+        this.psm = psm;
+    }
+
     @Override
     public void onSubscribe(Subscription subscription) {
-        // TODO Auto-generated method stub
-        
+        Conformance.subscriptionNonNull(subscription);
+        Subscription curr = subscription;
+        if (Conformance.onSubscribeOnce(curr, this)) {
+            curr.cancel();
+            return;
+        }
+        this.subscription = subscription;
+        subscription.request(Long.MAX_VALUE);
     }
     @Override
     public void onNext(T item) {
-        // TODO Auto-generated method stub
-        
+        Conformance.itemNonNull(item);
+        for (Subscriber<T> bo : psm.subscribers()) {
+            bo.onNext(item);
+        }
     }
     @Override
     public void onError(Throwable throwable) {
-        // TODO Auto-generated method stub
-        
+        Conformance.throwableNonNull(throwable);
+        if (psm.active) {
+            Object n = nl.error(throwable);
+            List<Throwable> errors = null;
+            for (Subscriber<T> bo : psm.terminate(n)) {
+                try {
+                    // bo.emitNext(n, nl);
+                    bo.onError(throwable);
+                } catch (Throwable e2) {
+                    if (errors == null) {
+                        errors = new ArrayList<>();
+                    }
+                    errors.add(e2);
+                }
+            }
+            Exceptions.throwIfAny(errors);
+        }
     }
     @Override
     public void onComplete() {
-        // TODO Auto-generated method stub
-        
+        if (psm.active) {
+            Object n = nl.complete();
+            for (Subscriber<T> bo : psm.terminate(n)) {
+                // bo.emitNext(n, nl);
+                bo.onComplete();
+            }
+        }
     }
     @Override
     public boolean hasComplete() {
-        // TODO Auto-generated method stub
-        return false;
+        Object o = psm.get();
+        return o != null && !nl.isError(o);
     }
     @Override
     public boolean hasSubscribers() {
-        // TODO Auto-generated method stub
-        return false;
+        return psm.subscribers().length > 0;
     }
     @Override
     public Throwable getThrowable() {
-        // TODO Auto-generated method stub
+        Object o = psm.get();
+        if (nl.isError(o)) {
+            return nl.getError(o);
+        }
         return null;
     }
     @Override
     public boolean hasThrowable() {
-        // TODO Auto-generated method stub
-        return false;
+        Object o = psm.get();
+        return nl.isError(o);
     }
 }

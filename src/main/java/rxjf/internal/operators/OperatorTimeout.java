@@ -21,7 +21,7 @@ import rxjf.Flow.Subscriber;
 import rxjf.*;
 import rxjf.Flowable.Operator;
 import rxjf.disposables.SerialDisposable;
-import rxjf.internal.subscriptions.SubscriptionArbiter;
+import rxjf.internal.subscriptions.*;
 import rxjf.schedulers.Scheduler;
 import rxjf.subscribers.*;
 
@@ -49,20 +49,21 @@ public final class OperatorTimeout<T> implements Operator<T, T> {
     
     @Override
     public Subscriber<? super T> apply(Subscriber<? super T> child) {
-        AbstractDisposableSubscriber<? super T> disposable = DisposableSubscriber.wrap(child);
-        
+
+        SubscriptionArbiter<T> arbiter = new SubscriptionArbiter<>(child);
+        DisposableSubscription disposable = new DisposableSubscription(arbiter);
+
         Scheduler.Worker worker = scheduler.createWorker();
         SerialDisposable timeouts = new SerialDisposable();
 
         disposable.add(worker);
         disposable.add(timeouts);
         
-        SubscriptionArbiter<T> arbiter = new SubscriptionArbiter<>(disposable);
-        disposable.add(arbiter);
         
         return new AbstractSubscriber<T>() {
             @Override
             protected void onSubscribe() {
+                child.onSubscribe(disposable);
                 arbiter.set(subscription);
                 scheduleTimeout();
             }

@@ -19,15 +19,19 @@ package rxjf.disposables;
 import java.util.*;
 
 /**
- * 
+ * Disposable that represents a group of Disposables that are disposed together.
  */
 public final class CompositeDisposable implements Disposable {
     volatile boolean disposed;
     /** Guarded by this. */
     Set<Disposable> disposables;
+    
+    // TODO javadoc
     public CompositeDisposable() {
         
     }
+    
+    // TODO javadoc
     @SafeVarargs
     public CompositeDisposable(Disposable... disposables) {
         Objects.requireNonNull(disposables);
@@ -37,12 +41,22 @@ public final class CompositeDisposable implements Disposable {
         }
     }
     
+    // TODO javadoc
     public CompositeDisposable(Iterable<? extends Disposable> disposables) {
         Objects.requireNonNull(disposables);
         this.disposables = new HashSet<>();
         disposables.forEach(this.disposables::add);
     }
     
+    /**
+     * Adds a new {@link Disposable} to this {@code CompositeDisposable} if the
+     * {@code CompositeDisposable} is not yet disposed. If the {@code CompositeDisposable} <em>is</em>
+     * unsubscribed, {@code add} will indicate this by explicitly disposing the new {@code Disposable} as
+     * well.
+     *
+     * @param s
+     *          the {@link Disposable} to add
+     */
     public void add(Disposable resource) {
         if (resource.isDisposed()) {
             return;
@@ -64,6 +78,13 @@ public final class CompositeDisposable implements Disposable {
         resource.dispose();
     }
     
+    /**
+     * Removes a {@link Disposable} from this {@code CompositeDisposable}, and unsubscribes the
+     * {@link Disposable}.
+     *
+     * @param s
+     *          the {@link Disposable} to remove
+     */
     public void remove(Disposable resource) {
         if (!disposed) {
             synchronized (this) {
@@ -75,6 +96,11 @@ public final class CompositeDisposable implements Disposable {
         }
     }
     
+    /**
+     * Unsubscribes any Disposables that are currently part of this {@code CompositeDisposable} and remove
+     * them from the {@code CompositeDisposable} so that the {@code CompositeDisposable} is empty and in
+     * an unoperative state.
+     */
     public void clear() {
         if (!disposed) {
             clearOrCancel(false);
@@ -99,6 +125,12 @@ public final class CompositeDisposable implements Disposable {
         
     }
     
+    /**
+     * Returns true if this composite is not unsubscribed and contains Disposables.
+     *
+     * @return {@code true} if this composite is not unsubscribed and contains Disposables.
+     * @since 2.0.0
+     */
     public boolean hasDisposables() {
         if (!disposed) {
             synchronized (this) {

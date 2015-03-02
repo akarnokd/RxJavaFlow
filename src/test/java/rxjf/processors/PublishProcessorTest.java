@@ -13,75 +13,63 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package rx.subjects;
+package rxjf.processors;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
-import static org.mockito.Matchers.any;
-import static org.mockito.Mockito.inOrder;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
+import static org.junit.Assert.*;
+import static org.mockito.Matchers.*;
+import static org.mockito.Mockito.*;
 
 import java.util.ArrayList;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.Function;
 
 import org.junit.Test;
-import org.mockito.InOrder;
-import org.mockito.Mockito;
+import org.mockito.*;
 
-import rx.Observable;
-import rx.Observer;
-import rx.Subscription;
-import rx.exceptions.CompositeException;
-import rx.exceptions.OnErrorNotImplementedException;
-import rx.exceptions.TestException;
-import rx.functions.Action1;
-import rx.functions.Func1;
-import rx.observers.TestSubscriber;
+import rxjf.Flow.Subscriber;
+import rxjf.*;
+import rxjf.disposables.Disposable;
+import rxjf.exceptions.*;
+import rxjf.subscribers.*;
 
-public class PublishSubjectTest {
+public class PublishProcessorTest {
 
     @Test
     public void testCompleted() {
-        PublishSubject<String> subject = PublishSubject.create();
+        PublishProcessor<String> subject = PublishProcessor.create();
 
         @SuppressWarnings("unchecked")
-        Observer<String> observer = mock(Observer.class);
+        Subscriber<String> observer = mock(Subscriber.class);
         subject.subscribe(observer);
 
         subject.onNext("one");
         subject.onNext("two");
         subject.onNext("three");
-        subject.onCompleted();
+        subject.onComplete();
 
         @SuppressWarnings("unchecked")
-        Observer<String> anotherObserver = mock(Observer.class);
-        subject.subscribe(anotherObserver);
+        Subscriber<String> anotherSubscriber = mock(Subscriber.class);
+        subject.subscribe(anotherSubscriber);
 
         subject.onNext("four");
-        subject.onCompleted();
+        subject.onComplete();
         subject.onError(new Throwable());
 
-        assertCompletedObserver(observer);
-        // todo bug?            assertNeverObserver(anotherObserver);
+        assertCompletedSubscriber(observer);
+        // todo bug?            assertNeverSubscriber(anotherSubscriber);
     }
 
     @Test
     public void testCompletedStopsEmittingData() {
-        PublishSubject<Object> channel = PublishSubject.create();
+        PublishProcessor<Object> channel = PublishProcessor.create();
         @SuppressWarnings("unchecked")
-        Observer<Object> observerA = mock(Observer.class);
+        Subscriber<Object> observerA = mock(Subscriber.class);
         @SuppressWarnings("unchecked")
-        Observer<Object> observerB = mock(Observer.class);
+        Subscriber<Object> observerB = mock(Subscriber.class);
         @SuppressWarnings("unchecked")
-        Observer<Object> observerC = mock(Observer.class);
+        Subscriber<Object> observerC = mock(Subscriber.class);
 
-        Subscription a = channel.subscribe(observerA);
+        Disposable a = channel.subscribeDisposable(observerA);
         channel.subscribe(observerB);
 
         InOrder inOrderA = inOrder(observerA);
@@ -93,20 +81,20 @@ public class PublishSubjectTest {
         inOrderA.verify(observerA).onNext(42);
         inOrderB.verify(observerB).onNext(42);
 
-        a.unsubscribe();
+        a.dispose();
         inOrderA.verifyNoMoreInteractions();
 
         channel.onNext(4711);
 
         inOrderB.verify(observerB).onNext(4711);
 
-        channel.onCompleted();
+        channel.onComplete();
 
-        inOrderB.verify(observerB).onCompleted();
+        inOrderB.verify(observerB).onComplete();
 
         channel.subscribe(observerC);
 
-        inOrderC.verify(observerC).onCompleted();
+        inOrderC.verify(observerC).onComplete();
 
         channel.onNext(13);
 
@@ -114,20 +102,20 @@ public class PublishSubjectTest {
         inOrderC.verifyNoMoreInteractions();
     }
 
-    private void assertCompletedObserver(Observer<String> observer) {
+    private void assertCompletedSubscriber(Subscriber<String> observer) {
         verify(observer, times(1)).onNext("one");
         verify(observer, times(1)).onNext("two");
         verify(observer, times(1)).onNext("three");
         verify(observer, Mockito.never()).onError(any(Throwable.class));
-        verify(observer, times(1)).onCompleted();
+        verify(observer, times(1)).onComplete();
     }
 
     @Test
     public void testError() {
-        PublishSubject<String> subject = PublishSubject.create();
+        PublishProcessor<String> subject = PublishProcessor.create();
 
         @SuppressWarnings("unchecked")
-        Observer<String> observer = mock(Observer.class);
+        Subscriber<String> observer = mock(Subscriber.class);
         subject.subscribe(observer);
 
         subject.onNext("one");
@@ -136,31 +124,31 @@ public class PublishSubjectTest {
         subject.onError(testException);
 
         @SuppressWarnings("unchecked")
-        Observer<String> anotherObserver = mock(Observer.class);
-        subject.subscribe(anotherObserver);
+        Subscriber<String> anotherSubscriber = mock(Subscriber.class);
+        subject.subscribe(anotherSubscriber);
 
         subject.onNext("four");
         subject.onError(new Throwable());
-        subject.onCompleted();
+        subject.onComplete();
 
-        assertErrorObserver(observer);
-        // todo bug?            assertNeverObserver(anotherObserver);
+        assertErrorSubscriber(observer);
+        // todo bug?            assertNeverSubscriber(anotherSubscriber);
     }
 
-    private void assertErrorObserver(Observer<String> observer) {
+    private void assertErrorSubscriber(Subscriber<String> observer) {
         verify(observer, times(1)).onNext("one");
         verify(observer, times(1)).onNext("two");
         verify(observer, times(1)).onNext("three");
         verify(observer, times(1)).onError(testException);
-        verify(observer, Mockito.never()).onCompleted();
+        verify(observer, Mockito.never()).onComplete();
     }
 
     @Test
     public void testSubscribeMidSequence() {
-        PublishSubject<String> subject = PublishSubject.create();
+        PublishProcessor<String> subject = PublishProcessor.create();
 
         @SuppressWarnings("unchecked")
-        Observer<String> observer = mock(Observer.class);
+        Subscriber<String> observer = mock(Subscriber.class);
         subject.subscribe(observer);
 
         subject.onNext("one");
@@ -169,99 +157,88 @@ public class PublishSubjectTest {
         assertObservedUntilTwo(observer);
 
         @SuppressWarnings("unchecked")
-        Observer<String> anotherObserver = mock(Observer.class);
-        subject.subscribe(anotherObserver);
+        Subscriber<String> anotherSubscriber = mock(Subscriber.class);
+        subject.subscribe(anotherSubscriber);
 
         subject.onNext("three");
-        subject.onCompleted();
+        subject.onComplete();
 
-        assertCompletedObserver(observer);
-        assertCompletedStartingWithThreeObserver(anotherObserver);
+        assertCompletedSubscriber(observer);
+        assertCompletedStartingWithThreeSubscriber(anotherSubscriber);
     }
 
-    private void assertCompletedStartingWithThreeObserver(Observer<String> observer) {
+    private void assertCompletedStartingWithThreeSubscriber(Subscriber<String> observer) {
         verify(observer, Mockito.never()).onNext("one");
         verify(observer, Mockito.never()).onNext("two");
         verify(observer, times(1)).onNext("three");
         verify(observer, Mockito.never()).onError(any(Throwable.class));
-        verify(observer, times(1)).onCompleted();
+        verify(observer, times(1)).onComplete();
     }
 
     @Test
-    public void testUnsubscribeFirstObserver() {
-        PublishSubject<String> subject = PublishSubject.create();
+    public void testUnsubscribeFirstSubscriber() {
+        PublishProcessor<String> subject = PublishProcessor.create();
 
         @SuppressWarnings("unchecked")
-        Observer<String> observer = mock(Observer.class);
-        Subscription subscription = subject.subscribe(observer);
+        Subscriber<String> observer = mock(Subscriber.class);
+        Disposable subscription = subject.subscribeDisposable(observer);
 
         subject.onNext("one");
         subject.onNext("two");
 
-        subscription.unsubscribe();
+        subscription.dispose();
         assertObservedUntilTwo(observer);
 
         @SuppressWarnings("unchecked")
-        Observer<String> anotherObserver = mock(Observer.class);
-        subject.subscribe(anotherObserver);
+        Subscriber<String> anotherSubscriber = mock(Subscriber.class);
+        subject.subscribe(anotherSubscriber);
 
         subject.onNext("three");
-        subject.onCompleted();
+        subject.onComplete();
 
         assertObservedUntilTwo(observer);
-        assertCompletedStartingWithThreeObserver(anotherObserver);
+        assertCompletedStartingWithThreeSubscriber(anotherSubscriber);
     }
 
-    private void assertObservedUntilTwo(Observer<String> observer) {
+    private void assertObservedUntilTwo(Subscriber<String> observer) {
         verify(observer, times(1)).onNext("one");
         verify(observer, times(1)).onNext("two");
         verify(observer, Mockito.never()).onNext("three");
         verify(observer, Mockito.never()).onError(any(Throwable.class));
-        verify(observer, Mockito.never()).onCompleted();
+        verify(observer, Mockito.never()).onComplete();
     }
 
     @Test
     public void testNestedSubscribe() {
-        final PublishSubject<Integer> s = PublishSubject.create();
+        final PublishProcessor<Integer> s = PublishProcessor.create();
 
         final AtomicInteger countParent = new AtomicInteger();
         final AtomicInteger countChildren = new AtomicInteger();
         final AtomicInteger countTotal = new AtomicInteger();
 
-        final ArrayList<String> list = new ArrayList<String>();
+        final ArrayList<String> list = new ArrayList<>();
 
-        s.flatMap(new Func1<Integer, Observable<String>>() {
-
+        s.flatMap(new Function<Integer, Flowable<String>>() {
+            // Note: turing this into a lambda causes a type-inference bug and String is lost.
             @Override
-            public Observable<String> call(final Integer v) {
-                countParent.incrementAndGet();
+            public Flowable<String> apply(Integer v) {
+                    countParent.incrementAndGet();
 
-                // then subscribe to subject again (it will not receive the previous value)
-                return s.map(new Func1<Integer, String>() {
-
-                    @Override
-                    public String call(Integer v2) {
-                        countChildren.incrementAndGet();
-                        return "Parent: " + v + " Child: " + v2;
-                    }
-
-                });
+                    // then subscribe to subject again (it will not receive the previous value)
+                    return s.map(v2 -> {
+                            countChildren.incrementAndGet();
+                            return "Parent: " + v + " Child: " + v2;
+                    });
             }
-
-        }).subscribe(new Action1<String>() {
-
-            @Override
-            public void call(String v) {
-                countTotal.incrementAndGet();
-                list.add(v);
-            }
-
+        }).subscribe(v -> {
+            countTotal.incrementAndGet();
+            list.add(v);
         });
 
         for (int i = 0; i < 10; i++) {
             s.onNext(i);
         }
-        s.onCompleted();
+        s.onComplete();
 
         //            System.out.println("countParent: " + countParent.get());
         //            System.out.println("countChildren: " + countChildren.get());
@@ -272,15 +249,15 @@ public class PublishSubjectTest {
     }
 
     /**
-     * Should be able to unsubscribe all Observers, have it stop emitting, then subscribe new ones and it start emitting again.
+     * Should be able to unsubscribe all Subscribers, have it stop emitting, then subscribe new ones and it start emitting again.
      */
     @Test
     public void testReSubscribe() {
-        final PublishSubject<Integer> ps = PublishSubject.create();
+        final PublishProcessor<Integer> ps = PublishProcessor.create();
 
         @SuppressWarnings("unchecked")
-        Observer<Integer> o1 = mock(Observer.class);
-        Subscription s1 = ps.subscribe(o1);
+        Subscriber<Integer> o1 = mock(Subscriber.class);
+        Disposable s1 = ps.subscribeDisposable(o1);
 
         // emit
         ps.onNext(1);
@@ -291,14 +268,14 @@ public class PublishSubjectTest {
         inOrder1.verifyNoMoreInteractions();
 
         // unsubscribe
-        s1.unsubscribe();
+        s1.dispose();
 
         // emit again but nothing will be there to receive it
         ps.onNext(2);
 
         @SuppressWarnings("unchecked")
-        Observer<Integer> o2 = mock(Observer.class);
-        Subscription s2 = ps.subscribe(o2);
+        Subscriber<Integer> o2 = mock(Subscriber.class);
+        Disposable s2 = ps.subscribeDisposable(o2);
 
         // emit
         ps.onNext(3);
@@ -308,30 +285,24 @@ public class PublishSubjectTest {
         inOrder2.verify(o2, times(1)).onNext(3);
         inOrder2.verifyNoMoreInteractions();
 
-        s2.unsubscribe();
+        s2.dispose();
     }
 
     private final Throwable testException = new Throwable();
 
     @Test(timeout = 1000)
     public void testUnsubscriptionCase() {
-        PublishSubject<String> src = PublishSubject.create();
+        PublishProcessor<String> src = PublishProcessor.create();
 
         for (int i = 0; i < 10; i++) {
             @SuppressWarnings("unchecked")
-            final Observer<Object> o = mock(Observer.class);
+            final Subscriber<Object> o = mock(Subscriber.class);
             InOrder inOrder = inOrder(o);
             String v = "" + i;
             System.out.printf("Turn: %d%n", i);
             src.first()
-                .flatMap(new Func1<String, Observable<String>>() {
-
-                    @Override
-                    public Observable<String> call(String t1) {
-                        return Observable.just(t1 + ", " + t1);
-                    }
-                })
-                .subscribe(new Observer<String>() {
+                .flatMap(t1 -> Flowable.just(t1 + ", " + t1))
+                .subscribe(new AbstractSubscriber<String>() {
                     @Override
                     public void onNext(String t) {
                         o.onNext(t);
@@ -343,14 +314,14 @@ public class PublishSubjectTest {
                     }
 
                     @Override
-                    public void onCompleted() {
-                        o.onCompleted();
+                    public void onComplete() {
+                        o.onComplete();
                     }
                 });
             src.onNext(v);
             
             inOrder.verify(o).onNext(v + ", " + v);
-            inOrder.verify(o).onCompleted();
+            inOrder.verify(o).onComplete();
             verify(o, never()).onError(any(Throwable.class));
         }
     }
@@ -358,10 +329,10 @@ public class PublishSubjectTest {
     
     @Test
     public void testOnErrorThrowsDoesntPreventDelivery() {
-        PublishSubject<String> ps = PublishSubject.create();
+        PublishProcessor<String> ps = PublishProcessor.create();
 
         ps.subscribe();
-        TestSubscriber<String> ts = new TestSubscriber<String>();
+        TestSubscriber<String> ts = new TestSubscriber<>();
         ps.subscribe(ts);
 
         try {
@@ -379,11 +350,11 @@ public class PublishSubjectTest {
      */
     @Test
     public void testOnErrorThrowsDoesntPreventDelivery2() {
-        PublishSubject<String> ps = PublishSubject.create();
+        PublishProcessor<String> ps = PublishProcessor.create();
 
         ps.subscribe();
         ps.subscribe();
-        TestSubscriber<String> ts = new TestSubscriber<String>();
+        TestSubscriber<String> ts = new TestSubscriber<>();
         ps.subscribe(ts);
         ps.subscribe();
         ps.subscribe();
@@ -401,51 +372,76 @@ public class PublishSubjectTest {
     }
     @Test
     public void testCurrentStateMethodsNormal() {
-        PublishSubject<Object> as = PublishSubject.create();
+        PublishProcessor<Object> as = PublishProcessor.create();
         
         assertFalse(as.hasThrowable());
-        assertFalse(as.hasCompleted());
+        assertFalse(as.hasComplete());
         assertNull(as.getThrowable());
         
         as.onNext(1);
         
         assertFalse(as.hasThrowable());
-        assertFalse(as.hasCompleted());
+        assertFalse(as.hasComplete());
         assertNull(as.getThrowable());
         
-        as.onCompleted();
+        as.onComplete();
         
         assertFalse(as.hasThrowable());
-        assertTrue(as.hasCompleted());
+        assertTrue(as.hasComplete());
         assertNull(as.getThrowable());
     }
     
     @Test
     public void testCurrentStateMethodsEmpty() {
-        PublishSubject<Object> as = PublishSubject.create();
+        PublishProcessor<Object> as = PublishProcessor.create();
         
         assertFalse(as.hasThrowable());
-        assertFalse(as.hasCompleted());
+        assertFalse(as.hasComplete());
         assertNull(as.getThrowable());
         
-        as.onCompleted();
+        as.onComplete();
         
         assertFalse(as.hasThrowable());
-        assertTrue(as.hasCompleted());
+        assertTrue(as.hasComplete());
         assertNull(as.getThrowable());
     }
     @Test
     public void testCurrentStateMethodsError() {
-        PublishSubject<Object> as = PublishSubject.create();
+        PublishProcessor<Object> as = PublishProcessor.create();
         
         assertFalse(as.hasThrowable());
-        assertFalse(as.hasCompleted());
+        assertFalse(as.hasComplete());
         assertNull(as.getThrowable());
         
         as.onError(new TestException());
         
         assertTrue(as.hasThrowable());
-        assertFalse(as.hasCompleted());
+        assertFalse(as.hasComplete());
         assertTrue(as.getThrowable() instanceof TestException);
+    }
+    
+    @Test
+    public void testOnSubscribeCalled() {
+        TestSubscriber<Object> ts = new TestSubscriber<>();
+        
+        PublishProcessor<Object> as = PublishProcessor.create();
+        
+        as.subscribe(ts);
+        
+        ts.assertSubscription();
+    }
+    
+    // FIXME: RS is adamant about on onNext unless requested
+    @Test
+    public void testIgnoresBackpressure() {
+        TestSubscriber<Object> ts = new TestSubscriber<>(0);
+        
+        PublishProcessor<Object> as = PublishProcessor.create();
+        
+        as.subscribe(ts);
+        
+        as.onNext(1);
+        
+        ts.assertValues(1);
     }
 }

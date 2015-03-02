@@ -17,12 +17,13 @@ package rxjf.exceptions;
 
 import static org.junit.Assert.*;
 
-import java.util.Observer;
-
-import org.junit.Test;
+import org.junit.*;
 
 import rxjf.Flowable;
+import rxjf.processors.PublishProcessor;
+import rxjf.subscribers.AbstractSubscriber;
 
+@Ignore // RS prohibits throwing from onXXX methods
 public class ExceptionsTest {
 
     @Test(expected = OnErrorNotImplementedException.class)
@@ -32,29 +33,12 @@ public class ExceptionsTest {
 
     @Test(expected = StackOverflowError.class)
     public void testStackOverflowIsThrown() {
-        final PublishSubject<Integer> a = PublishSubject.create();
-        final PublishSubject<Integer> b = PublishSubject.create();
-        new Observer<Integer>() {
+        final PublishProcessor<Integer> a = PublishProcessor.create();
+        final PublishProcessor<Integer> b = PublishProcessor.create();
+        a.subscribe(new AbstractSubscriber<Integer>() {
 
             @Override
-            public void onCompleted() {
-
-            }
-
-            @Override
-            public void onError(Throwable e) {
-                e.printStackTrace();
-            }
-
-            @Override
-            public void onNext(Integer args) {
-                System.out.println(args);
-            }
-        };
-        a.subscribe(new Observer<Integer>() {
-
-            @Override
-            public void onCompleted() {
+            public void onComplete() {
 
             }
 
@@ -69,10 +53,10 @@ public class ExceptionsTest {
             }
         });
         b.subscribe();
-        a.subscribe(new Observer<Integer>() {
+        a.subscribe(new AbstractSubscriber<Integer>() {
 
             @Override
-            public void onCompleted() {
+            public void onComplete() {
 
             }
 
@@ -86,10 +70,10 @@ public class ExceptionsTest {
                 b.onNext(args + 1);
             }
         });
-        b.subscribe(new Observer<Integer>() {
+        b.subscribe(new AbstractSubscriber<Integer>() {
 
             @Override
-            public void onCompleted() {
+            public void onComplete() {
 
             }
 
@@ -108,10 +92,10 @@ public class ExceptionsTest {
 
     @Test(expected = ThreadDeath.class)
     public void testThreadDeathIsThrown() {
-        Flowable.just(1).subscribe(new Observer<Integer>() {
+        Flowable.just(1).subscribe(new AbstractSubscriber<Integer>() {
 
             @Override
-            public void onCompleted() {
+            public void onComplete() {
 
             }
 
@@ -134,9 +118,9 @@ public class ExceptionsTest {
     @Test
     public void testOnErrorExceptionIsThrown() {
         try {
-            Flowable.error(new IllegalArgumentException("original exception")).subscribe(new Observer<Object>() {
+            Flowable.error(new IllegalArgumentException("original exception")).subscribe(new AbstractSubscriber<Object>() {
                 @Override
-                public void onCompleted() {
+                public void onComplete() {
 
                 }
 

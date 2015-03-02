@@ -17,8 +17,7 @@
 package rxjf.subscribers;
 
 import java.util.*;
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.TimeUnit;
+import java.util.concurrent.*;
 
 import rxjf.Flow.Subscriber;
 import rxjf.Flow.Subscription;
@@ -26,7 +25,7 @@ import rxjf.exceptions.CompositeException;
 import rxjf.internal.Conformance;
 
 /**
- * 
+ * TODO javadoc
  */
 public class TestSubscriber<T> implements Subscriber<T> {
     final List<T> nexts = new ArrayList<>();
@@ -69,6 +68,11 @@ public class TestSubscriber<T> implements Subscriber<T> {
         }
         s.request(n);
     }
+    public final void cancel() {
+        Conformance.subscriptionNonNull(s);
+        s.cancel();
+    }
+    
     @Override
     public void onNext(T item) {
         Conformance.itemNonNull(item);

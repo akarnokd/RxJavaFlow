@@ -26,22 +26,26 @@ import rxjf.*;
 import rxjf.disposables.Disposable;
 import rxjf.exceptions.Exceptions;
 import rxjf.internal.*;
-import rxjf.internal.subscriptions.ScalarBackpressureSubscription;
-import rxjf.subscribers.*;
+import rxjf.internal.subscriptions.*;
 
 /**
- * 
+ * TODO javadoc with explanation about onSubscribe being optional
  */
 public final class AsyncProcessor<T> extends Flowable<T> implements ProcessorEx<T, T> {
+    /**
+     * Creates and returns a new {@code AsyncProcessor}.
+     * @param <T> the result value type
+     * @return the new {@code AsyncProcessor}
+     */
     public static <T> AsyncProcessor<T> create() {
         ProcessorSubscriptionManager<T> psm = new ProcessorSubscriptionManager<>();
         OnSubscribe<T> onSubscribe = subscriber -> {
-            // FIXME this feels to be excessive, we need only to hook the cancel call of sbs
-            AbstractDisposableSubscriber<? super T> s = DisposableSubscriber.wrap(subscriber);
-            NotificationLite<T> nl = NotificationLite.instance();
-            ScalarBackpressureSubscription<T> sbs = new ScalarBackpressureSubscription<>(s);
-            s.onSubscribe(sbs);
-            if (!psm.add(s)) {
+            ScalarBackpressureSubscription<T> sbs = new ScalarBackpressureSubscription<>(subscriber);
+            DisposableSubscription ds = new DisposableSubscription(sbs);
+            subscriber.onSubscribe(ds);
+            
+            if (!psm.add(subscriber)) {
+                NotificationLite<T> nl = NotificationLite.instance();
                 Object v = psm.get();
                 if (v == null || nl.isCompleted(v)) {
                     sbs.onComplete();
@@ -52,7 +56,7 @@ public final class AsyncProcessor<T> extends Flowable<T> implements ProcessorEx<
                     sbs.onNext(nl.getValue(v));
                 }
             } else {
-                s.add(Disposable.from(() -> psm.remove(s)));
+                ds.add(Disposable.from(() -> psm.remove(subscriber)));
             }
         };
         return new AsyncProcessor<>(onSubscribe, psm);
@@ -64,13 +68,23 @@ public final class AsyncProcessor<T> extends Flowable<T> implements ProcessorEx<
     volatile Object lastValue;
     static final long LAST_VALUE = addressOf(AsyncProcessor.class, "lastValue");
     
+    /** Keeps the subscription to be able to report setting it multiple times. */
+    Subscription subscription;
+    
     private AsyncProcessor(OnSubscribe<T> onSubscribe, ProcessorSubscriptionManager<T> psm) {
         super(onSubscribe);
         this.psm = psm;
     }
     @Override
     public void onSubscribe(Subscription subscription) {
-        Conformance.subscriptionNonNull(subscription).request(Long.MAX_VALUE);
+        Conformance.subscriptionNonNull(subscription);
+        Subscription curr = subscription;
+        if (Conformance.onSubscribeOnce(curr, this)) {
+            curr.cancel();
+            return;
+        }
+        this.subscription = subscription;
+        subscription.request(Long.MAX_VALUE);
     }
     @Override
     public void onNext(T item) {
