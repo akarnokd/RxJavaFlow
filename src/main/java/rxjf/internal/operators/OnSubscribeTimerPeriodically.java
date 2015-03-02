@@ -20,7 +20,7 @@ import java.util.concurrent.TimeUnit;
 import rxjf.Flow.Subscriber;
 import rxjf.Flowable.OnSubscribe;
 import rxjf.schedulers.Scheduler;
-import rxjf.subscribers.DisposableSubscriber;
+import rxjf.subscribers.*;
 
 /**
  * Emit 0L after the initial period and ever increasing number after each period.
@@ -42,7 +42,7 @@ public final class OnSubscribeTimerPeriodically implements OnSubscribe<Long> {
     @Override
     public void accept(final Subscriber<? super Long> child) {
         final Scheduler.Worker worker = scheduler.createWorker();
-        DisposableSubscriber<? super Long> cs = DisposableSubscriber.wrap(child);
+        AbstractDisposableSubscriber<? super Long> cs = DisposableSubscriber.wrap(child);
         cs.add(worker);
         worker.schedule(new Runnable() {
             long counter;

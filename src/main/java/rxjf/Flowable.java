@@ -978,6 +978,9 @@ public class Flowable<T> implements Publisher<T> {
      * @see <a href="http://reactivex.io/documentation/operators/merge.html">ReactiveX operators documentation: Merge</a>
      */
     public final static <T> Flowable<T> merge(Flowable<? extends Flowable<? extends T>> source, int maxConcurrent) {
+        if (maxConcurrent <= 0) {
+            throw new IllegalArgumentException("maxConcurrent > 0 required");
+        }
         return source.lift(OperatorMerge.<T>instance(false, maxConcurrent));
     }
     /**

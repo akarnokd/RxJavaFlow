@@ -29,6 +29,7 @@ public abstract class AbstractSubscriber<T> implements Subscriber<T> {
     public final void onSubscribe(Subscription subscription) {
         Conformance.subscriptionNonNull(subscription);
         if (!Conformance.onSubscribeOnce(this.subscription, this)) {
+            subscription.cancel();
             return;
         }
         this.subscription = subscription;

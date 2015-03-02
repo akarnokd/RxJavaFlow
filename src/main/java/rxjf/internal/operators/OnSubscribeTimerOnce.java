@@ -20,7 +20,7 @@ import java.util.concurrent.TimeUnit;
 import rxjf.Flow.Subscriber;
 import rxjf.Flowable.OnSubscribe;
 import rxjf.schedulers.Scheduler;
-import rxjf.subscribers.DisposableSubscriber;
+import rxjf.subscribers.*;
 
 /**
  * Timer that emits a single 0L and completes after the specified time.
@@ -40,7 +40,7 @@ public final class OnSubscribeTimerOnce implements OnSubscribe<Long> {
     @Override
     public void accept(final Subscriber<? super Long> child) {
         Scheduler.Worker worker = scheduler.createWorker();
-        DisposableSubscriber<? super Long> cs = DisposableSubscriber.wrap(child);
+        AbstractDisposableSubscriber<? super Long> cs = DisposableSubscriber.wrap(child);
         cs.add(worker);
         worker.schedule(() -> {
             try {

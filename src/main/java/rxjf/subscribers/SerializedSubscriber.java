@@ -24,7 +24,8 @@ import rxjf.Flow.Subscription;
 import rxjf.internal.Conformance;
 
 /**
- *
+ * Serializes invocations of the Subscriber methods onSubscribe, onNext, onError and onCompleted
+ * in respect to each other.
  */
 public final class SerializedSubscriber<T> implements Subscriber<T> {
     final Subscriber<? super T> actual;
@@ -64,12 +65,18 @@ public final class SerializedSubscriber<T> implements Subscriber<T> {
             return false;
         } else
         if (clazz == SubscribeToken.class) {
-            if (subscription != null) {
-                done = true;
-                actual.onError(new IllegalStateException("Subscription already set!")); // FIXME reference rule
+            Subscription s = ((SubscribeToken)value).subscription;
+            if (done) {
+                s.cancel();
                 return false;
             }
-            Subscription s = ((SubscribeToken)value).subscription;
+            Subscription curr = subscription;
+            if (curr != null) {
+                done = true;
+                s.cancel();
+                Conformance.onSubscribeOnce(curr, actual);
+                return false;
+            }
             this.subscription = s;
             actual.onSubscribe(s);
             return true;
@@ -83,11 +90,9 @@ public final class SerializedSubscriber<T> implements Subscriber<T> {
     }
     
     <U> void handle(Consumer<U> firstEmitter, Function<U, Object> lateEmitter, U value, int mode) {
-        if (done) {
-            return;
-        }
         synchronized (this) {
-            if (done) {
+            // we must cancel subscriptions after completion
+            if (done && mode != TYPE_SUBSCRIPTION) {
                 return;
             }
             if (emitting) {
@@ -109,10 +114,6 @@ public final class SerializedSubscriber<T> implements Subscriber<T> {
         try {
             
             firstEmitter.accept(value);
-            if (mode == TYPE_ERROR || mode == TYPE_COMPLETE) {
-                done = true;
-                return;
-            }
             
             for (;;) {
                 List<Object> q;
@@ -142,6 +143,10 @@ public final class SerializedSubscriber<T> implements Subscriber<T> {
     @Override
     public void onSubscribe(Subscription subscription) {
         Conformance.subscriptionNonNull(subscription);
+        if (done) {
+            subscription.cancel();
+            return;
+        }
         handle(s -> {
             Subscription curr = this.subscription;
             if (!Conformance.onSubscribeOnce(curr, this)) {
@@ -156,6 +161,9 @@ public final class SerializedSubscriber<T> implements Subscriber<T> {
     @Override
     public void onNext(T item) {
         Conformance.itemNonNull(item);
+        if (done) {
+            return;
+        }
         handle(v -> {
             Conformance.subscriptionNonNull(subscription);
             this.actual.onNext(v);
@@ -164,6 +172,9 @@ public final class SerializedSubscriber<T> implements Subscriber<T> {
     @Override
     public void onError(Throwable throwable) {
         Conformance.throwableNonNull(throwable);
+        if (done) {
+            return;
+        }
         handle(v -> {
             Conformance.subscriptionNonNull(subscription);
             actual.onError(v);
@@ -171,6 +182,9 @@ public final class SerializedSubscriber<T> implements Subscriber<T> {
     }
     @Override
     public void onComplete() {
+        if (done) {
+            return;
+        }
         handle(v -> { 
             Conformance.subscriptionNonNull(subscription);
             actual.onComplete(); 

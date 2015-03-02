@@ -31,6 +31,6 @@ public final class OnSubscribeRefCount<T> implements OnSubscribe<T> {
     @Override
     public void accept(Subscriber<? super T> child) {
         // TODO Auto-generated method stub
-        
+        throw new UnsupportedOperationException();
     }
 }

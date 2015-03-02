@@ -16,9 +16,18 @@
 
 package rxjf.internal.operators;
 
+import static rxjf.internal.UnsafeAccess.*;
+
+import java.util.Queue;
+
 import rxjf.Flow.Subscriber;
+import rxjf.Flow.Subscription;
 import rxjf.*;
 import rxjf.Flowable.Operator;
+import rxjf.disposables.CompositeDisposable;
+import rxjf.internal.Conformance;
+import rxjf.internal.queues.*;
+import rxjf.subscribers.AbstractSubscriber;
 
 /**
  * 
@@ -59,7 +68,126 @@ public final class OperatorMerge<T> implements Operator<T, Flowable<? extends T>
     }
     @Override
     public Subscriber<? super Flowable<? extends T>> apply(Subscriber<? super T> child) {
-        // TODO Auto-generated method stub
-        throw new UnsupportedOperationException();
+        return new MergeSubscriber<>(child, delayErrors, maxConcurrent);
+    }
+    static final class MergeSubscriber<T> extends AbstractSubscriber<Flowable<? extends T>> implements Subscription {
+        final boolean delayErrors;
+        final int maxConcurrent;
+        final Subscriber<? super T> actual;
+        final Queue<Throwable> errors;
+        final CompositeDisposable composite;
+        
+        Subscription subscription;
+        
+        volatile int wip;
+        static final long WIP = addressOf(MergeSubscriber.class, "wip");
+        
+        /** Indicates the main source has completed. */
+        volatile boolean done;
+        
+        /** Guarded by this. */
+        boolean emitting;
+        
+        volatile Queue<T> scalarQueue;
+        static final long SCALAR_QUEUE = addressOf(MergeSubscriber.class, "scalarQueue");
+        
+        volatile long requested;
+        static final long REQUESTED = addressOf(MergeSubscriber.class, "requested");
+        
+        public MergeSubscriber(Subscriber<? super T> actual, boolean delayErrors, int maxConcurrent) {
+            this.actual = actual;
+            this.delayErrors = delayErrors;
+            this.maxConcurrent = maxConcurrent;
+            this.errors = new MpscLinkedQueue<>();
+            this.composite = new CompositeDisposable();
+        }
+        @Override
+        public void onSubscribe() {
+            actual.onSubscribe(this);
+            if (maxConcurrent == Integer.MAX_VALUE) {
+                subscription.request(Long.MAX_VALUE);
+            } else {
+                subscription.request(maxConcurrent);
+            }
+        }
+        @Override
+        public void onNext(Flowable<? extends T> item) {
+            Conformance.itemNonNull(item);
+            Conformance.subscriptionNonNull(subscription);
+            
+            if (item instanceof ScalarSynchronousFlow) {
+                getScalarQueue().offer(((ScalarSynchronousFlow<? extends T>)item).get());
+            } else {
+                UNSAFE.getAndAddInt(this, WIP, 1);
+                
+                item.unsafeSubscribe(new InnerSubscriber());
+            }
+            
+            drain();
+        }
+        
+        Queue<T> getScalarQueue() {
+            Queue<T> q = scalarQueue;
+            if (q == null) {
+                q = new SpscLinkedQueue<>();
+                UNSAFE.putOrderedObject(this, SCALAR_QUEUE, q);
+            }
+            return q;
+        }
+        
+        @Override
+        public void onError(Throwable throwable) {
+            Conformance.throwableNonNull(throwable);
+            Conformance.subscriptionNonNull(subscription);
+            errors.offer(throwable);
+            done = true;
+            
+            drain();
+        }
+        @Override
+        public void onComplete() {
+            Conformance.subscriptionNonNull(subscription);
+            done = true;
+            drain();
+        }
+        
+        @Override
+        public void request(long n) {
+            // TODO Auto-generated method stub
+            
+        }
+        
+        @Override
+        public void cancel() {
+            // TODO Auto-generated method stub
+            
+        }
+        
+        void drain() {
+            // TODO
+        }
+        
+        final class InnerSubscriber extends AbstractSubscriber<T> {
+            final SpscArrayQueue<T> queue = new SpscArrayQueue<>(Flow.defaultBufferSize());
+            @Override
+            protected void onSubscribe() {
+                subscription.request(Flow.defaultBufferSize());
+            }
+            @Override
+            public void onNext(T item) {
+                Conformance.itemNonNull(item);
+                if (!queue.offer(item)) {
+                    Conformance.mustRequestFirst(this);
+                }
+            }
+            @Override
+            public void onError(Throwable throwable) {
+                MergeSubscriber.this.onError(throwable);
+            }
+            @Override
+            public void onComplete() {
+                // TODO Auto-generated method stub
+            }
+        }
     }
 }
