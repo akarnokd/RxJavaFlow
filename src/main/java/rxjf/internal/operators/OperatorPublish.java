@@ -74,7 +74,7 @@ public class OperatorPublish<T> extends ConnectableObservable<T> {
 
                     @Override
                     public void call() {
-                        requestHandler.state.removeSubscriber(subscriber);
+                        requestHandler.state.removeInner(subscriber);
                     }
 
                 }));

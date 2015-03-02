@@ -18,13 +18,14 @@ package rxjf.internal.operators;
 
 import static rxjf.internal.UnsafeAccess.*;
 
-import java.util.Queue;
+import java.util.*;
 
+import rxjf.*;
 import rxjf.Flow.Subscriber;
 import rxjf.Flow.Subscription;
-import rxjf.*;
 import rxjf.Flowable.Operator;
-import rxjf.disposables.CompositeDisposable;
+import rxjf.disposables.*;
+import rxjf.exceptions.CompositeException;
 import rxjf.internal.Conformance;
 import rxjf.internal.queues.*;
 import rxjf.subscribers.AbstractSubscriber;
@@ -70,29 +71,49 @@ public final class OperatorMerge<T> implements Operator<T, Flowable<? extends T>
     public Subscriber<? super Flowable<? extends T>> apply(Subscriber<? super T> child) {
         return new MergeSubscriber<>(child, delayErrors, maxConcurrent);
     }
+    /**
+     * Subscriber receiving Flowable sources and manages the backpressure-aware
+     * emission of buffered values.
+     * 
+     * @param <T> the value type to emit
+     */
     static final class MergeSubscriber<T> extends AbstractSubscriber<Flowable<? extends T>> implements Subscription {
+        /** Avoid allocating the empty array on drain. */
+        static final Object[] EMPTY = new Object[0];
+        /** Indicates if errors should be delayed until all sources have produced. */
         final boolean delayErrors;
+        /** The maximum number of simultaneous subscriptions to sources. */
         final int maxConcurrent;
+        /** The actual subscriber receiving the events. */
         final Subscriber<? super T> actual;
+        /** Queue for errors. */
         final Queue<Throwable> errors;
+        /** The composite tracking all inner subscriptions. */
         final CompositeDisposable composite;
-        
-        Subscription subscription;
-        
-        volatile int wip;
-        static final long WIP = addressOf(MergeSubscriber.class, "wip");
+        /** Guarded by itself. */
+        final List<InnerSubscriber> subscribers;
         
         /** Indicates the main source has completed. */
         volatile boolean done;
         
         /** Guarded by this. */
         boolean emitting;
+        /** Guarded by this. */
+        boolean missed;
+        /** The last buffer index in the round-robin drain scheme. Accessed while emitting == true. */
+        int lastIndex;
         
+        /** The queue holding the scalar values. */
         volatile Queue<T> scalarQueue;
         static final long SCALAR_QUEUE = addressOf(MergeSubscriber.class, "scalarQueue");
         
+        /** Tracks the downstream requested amounts. */
         volatile long requested;
         static final long REQUESTED = addressOf(MergeSubscriber.class, "requested");
+        
+        /** Holds an unique index generated for new InnerSubscriptions. */
+        volatile long index;
+        static final long INDEX = addressOf(MergeSubscriber.class, "index");
         
         public MergeSubscriber(Subscriber<? super T> actual, boolean delayErrors, int maxConcurrent) {
             this.actual = actual;
@@ -100,9 +121,11 @@ public final class OperatorMerge<T> implements Operator<T, Flowable<? extends T>
             this.maxConcurrent = maxConcurrent;
             this.errors = new MpscLinkedQueue<>();
             this.composite = new CompositeDisposable();
+            this.subscribers = new ArrayList<>();
         }
         @Override
         public void onSubscribe() {
+            composite.add(Disposable.from(subscription));
             actual.onSubscribe(this);
             if (maxConcurrent == Integer.MAX_VALUE) {
                 subscription.request(Long.MAX_VALUE);
@@ -114,18 +137,26 @@ public final class OperatorMerge<T> implements Operator<T, Flowable<? extends T>
         public void onNext(Flowable<? extends T> item) {
             Conformance.itemNonNull(item);
             Conformance.subscriptionNonNull(subscription);
+            if (done || requested < 0) {
+                return;
+            }
             
             if (item instanceof ScalarSynchronousFlow) {
-                getScalarQueue().offer(((ScalarSynchronousFlow<? extends T>)item).get());
+                T scalar = ((ScalarSynchronousFlow<? extends T>)item).get();
+                getScalarQueue().offer(scalar);
             } else {
-                UNSAFE.getAndAddInt(this, WIP, 1);
-                
-                item.unsafeSubscribe(new InnerSubscriber());
+                int index = UNSAFE.getAndAddInt(this, INDEX, 1);
+                InnerSubscriber inner = new InnerSubscriber(index);
+                synchronized (subscribers) {
+                    subscribers.add(inner);
+                }
+                item.unsafeSubscribe(inner);
             }
             
             drain();
         }
         
+        /** Returns or creates the queue to hold scalar values. */
         Queue<T> getScalarQueue() {
             Queue<T> q = scalarQueue;
             if (q == null) {
@@ -148,45 +179,318 @@ public final class OperatorMerge<T> implements Operator<T, Flowable<? extends T>
         public void onComplete() {
             Conformance.subscriptionNonNull(subscription);
             done = true;
+            
             drain();
         }
         
         @Override
         public void request(long n) {
-            // TODO Auto-generated method stub
-            
+            if (!Conformance.requestPositive(n, this)) {
+                return;
+            }
+            for (;;) {
+                long r = requested;
+                if (r < 0) {
+                    return;
+                }
+                long u = r + n;
+                if (u < 0) {
+                    u = Long.MAX_VALUE;
+                }
+                if (UNSAFE.compareAndSwapLong(this, REQUESTED, r, u)) {
+                    break;
+                }
+            }
+            drain();
         }
         
         @Override
         public void cancel() {
-            // TODO Auto-generated method stub
+            long r = requested;
+            if (r >= 0) {
+                r = UNSAFE.getAndSetLong(this, REQUESTED, Long.MIN_VALUE);
+                if (r >= 0) {
+                    synchronized (subscribers) {
+                        subscribers.clear();
+                    }
+                    composite.dispose();
+                    // release the scalar queue
+                    UNSAFE.putOrderedObject(this, SCALAR_QUEUE, null);
+                }
+            }
+        }
+
+        void completeInner(InnerSubscriber inner) {
+            if (inner.queue.isEmpty()) {
+                removeInner(inner);
+            }
             
+            if (maxConcurrent != Integer.MAX_VALUE) {
+                subscribeNext();
+            }
+            drain();
+        }
+        
+        void removeInner(InnerSubscriber inner) {
+            synchronized (subscribers) {
+                subscribers.remove(inner);
+            }
+            composite.remove(inner.disposable);
+        }
+        
+        void errorInner(InnerSubscriber inner, Throwable error) {
+            if (!delayErrors || inner.queue.isEmpty()) {
+                removeInner(inner);
+            }
+            errors.offer(error);
+            if (maxConcurrent != Integer.MAX_VALUE && delayErrors) {
+                subscribeNext();
+            }
+            drain();
+        }
+        
+        long produced(long n) {
+            if (n < 0) {
+                actual.onError(new IllegalArgumentException("Negative produced value: " + n));
+                cancel();
+                return Long.MIN_VALUE;
+            }
+            for (;;) {
+                long r = requested;
+                if (n == 0) {
+                    return r;
+                }
+                if (r < 0) {
+                    return Long.MIN_VALUE;
+                }
+                long u = r - n;
+                if (u < 0) {
+                    actual.onError(new IllegalArgumentException("More produced (" + n + " than requested (" + r + ")!"));
+                    cancel();
+                    return Long.MIN_VALUE;
+                }
+                if (UNSAFE.compareAndSwapLong(this, REQUESTED, r, u)) {
+                    return u;
+                }
+            }
+        }
+        
+        void subscribeNext() {
+            subscription.request(1);
         }
         
         void drain() {
-            // TODO
+            synchronized (this) {
+                if (emitting) {
+                    missed = true;
+                    return;
+                }
+                emitting = true;
+                missed = false;
+            }
+            
+            final List<InnerSubscriber> list = this.subscribers;
+            final Subscriber<? super T> child = this.actual;
+            Object[] active = EMPTY;
+            
+            boolean skipFinal = false;
+            
+            try {
+                outer:
+                for (;;) {
+                    long r = requested;
+                    if (r < 0) {
+                        skipFinal = true;
+                        return;
+                    }
+                    if (!delayErrors && !errors.isEmpty()) {
+                        skipFinal = true;
+                        reportErrors(child);
+                        cancel();
+                        return;
+                    }
+
+                    if (r > 0) {
+                        Queue<T> sq = scalarQueue;
+                        if (sq != null) {
+                            for (;;) {
+                                T v = sq.poll();
+                                if (v == null) {
+                                    break;
+                                }
+                                
+                                child.onNext(v);
+                                
+                                r = produced(1);
+                                if (r < 0) {
+                                    skipFinal = true;
+                                    return;
+                                } else
+                                if (r == 0) {
+                                    break;
+                                }
+                            }
+                        }
+                    }
+                    
+                    if (r > 0) {
+                        // get the list of active InnerSubscribers
+                        synchronized (list) {
+                            if (active.length == list.size()) {
+                                list.toArray(active);
+                            } else {
+                                active = list.toArray();
+                            }
+                        }
+                        int idx = lastIndex;
+
+                        // locate the inner subscriber to resume the round-robin
+                        int resumeIndex = 0;
+                        int j = 0;
+                        for (Object o : active) {
+                            @SuppressWarnings("unchecked")
+                            InnerSubscriber e = (InnerSubscriber)o;
+                            if (e.index == idx) {
+                                resumeIndex = j;
+                                break;
+                            }
+                            j++;
+                        }
+                        for (int i = 0; i < active.length; i++) {
+                            j = (i + resumeIndex) % active.length;
+                            
+                            @SuppressWarnings("unchecked")
+                            InnerSubscriber e = (InnerSubscriber)active[j];
+                            Queue<T> q = e.queue;
+                            lastIndex = e.index;
+                            
+                            if (e.done && q.isEmpty()) {
+                                removeInner(e);
+                                if (maxConcurrent != Integer.MAX_VALUE) {
+                                    subscribeNext();
+                                }
+                                continue outer;
+                            }
+                            
+                            int consumed = 0;
+                            T v;
+                            while (r > 0 && (v = q.poll()) != null) {
+                                child.onNext(v);
+                                consumed++;
+                                r = produced(1);
+                            }
+                            if (r < 0) {
+                                skipFinal = true;
+                                return;
+                            }
+                            if (consumed > 0) {
+                                e.requestMore(consumed);
+                            }
+                            if (r == 0) {
+                                break;
+                            }
+                        }
+                    }
+
+                    if  ((active.length == 0 && done) 
+                            || (!delayErrors && !errors.isEmpty())) {
+                        skipFinal = true;
+                        if (!errors.isEmpty()) {
+                            reportErrors(child);
+                        } else {
+                            child.onComplete();
+                        }
+                        cancel();
+                        return;
+                    }
+                    
+                    synchronized (this) {
+                        if (!missed) {
+                            skipFinal = true;
+                            emitting = false;
+                            break;
+                        }
+                        missed = false;
+                    }
+                }
+            } finally {
+                if (!skipFinal) {
+                    synchronized (this) {
+                        emitting = false;
+                    }
+                }
+            }
         }
         
+        void reportErrors(final Subscriber<? super T> child) {
+            List<Throwable> throwables = new ArrayList<>();
+            for (;;) {
+                Throwable t = errors.poll();
+                if (t == null) {
+                    break;
+                }
+                throwables.add(t);
+            }
+            if (throwables.size() == 1) {
+                child.onError(throwables.get(0));
+            } else {
+                child.onError(new CompositeException(throwables));
+            }
+        }
+        
+        /**
+         * Subscriber that is subscribed to each Flowable received through oNext.
+         */
         final class InnerSubscriber extends AbstractSubscriber<T> {
-            final SpscArrayQueue<T> queue = new SpscArrayQueue<>(Flow.defaultBufferSize());
+            final SpscArrayQueue<T> queue;
+            final int index;
+            Disposable disposable;
+            volatile boolean done;
+            public InnerSubscriber(int index) {
+                this.index = index;
+                this.queue = new SpscArrayQueue<>(Flow.defaultBufferSize());
+            }
             @Override
             protected void onSubscribe() {
+                disposable = Disposable.from(subscription);
+                MergeSubscriber.this.composite.add(disposable);
                 subscription.request(Flow.defaultBufferSize());
             }
+            
+            void requestMore(long n) {
+                subscription.request(n);
+            }
+            
             @Override
             public void onNext(T item) {
                 Conformance.itemNonNull(item);
+                Conformance.subscriptionNonNull(subscription);
+                if (done) {
+                    return;
+                }
                 if (!queue.offer(item)) {
                     Conformance.mustRequestFirst(this);
                 }
+                drain();
             }
             @Override
             public void onError(Throwable throwable) {
-                MergeSubscriber.this.onError(throwable);
+                Conformance.throwableNonNull(throwable);
+                Conformance.subscriptionNonNull(subscription);
+                if (done) {
+                    return;
+                }
+                done = true;
+                errorInner(this, throwable);
             }
             @Override
             public void onComplete() {
-                // TODO Auto-generated method stub
+                Conformance.subscriptionNonNull(subscription);
+                if (done) {
+                    return;
+                }
+                done = true;
+                completeInner(this);
             }
         }
     }

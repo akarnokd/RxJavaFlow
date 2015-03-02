@@ -22,26 +22,16 @@ import java.util.*;
 import java.util.function.*;
 
 import org.junit.*;
-import org.mockito.*;
 
 import rxjf.Flow.Subscriber;
 import rxjf.*;
 import rxjf.exceptions.OnErrorNotImplementedException;
 import rxjf.schedulers.Schedulers;
+import rxjf.subscribers.TestSubscriber;
 
 public class OperatorMapTest {
 
-    @Mock
-    Subscriber<String> stringObserver;
-    @Mock
-    Subscriber<String> stringObserver2;
-
     final static BiFunction<String, Integer, String> APPEND_INDEX = (value, index) -> value + index;
-
-    @Before
-    public void before() {
-        MockitoAnnotations.initMocks(this);
-    }
 
     @Test
     public void testMap() {
@@ -50,7 +40,12 @@ public class OperatorMapTest {
         Flowable<Map<String, String>> observable = Flowable.from(m1, m2);
 
         Flowable<String> m = observable.map(map -> map.get("firstName"));
-        m.subscribe(stringObserver);
+        
+        @SuppressWarnings("unchecked")
+        Subscriber<String> stringObserver = mock(Subscriber.class);
+        TestSubscriber<String> ts = new TestSubscriber<>(stringObserver);
+        
+        m.subscribe(ts);
 
         verify(stringObserver, never()).onError(any(Throwable.class));
         verify(stringObserver, times(1)).onNext("OneFirst");
@@ -81,8 +76,13 @@ public class OperatorMapTest {
             return subFlowable.map(map -> map.get("firstName"));
         });
         
-        m.subscribe(stringObserver);
+        @SuppressWarnings("unchecked")
+        Subscriber<String> stringObserver = mock(Subscriber.class);
+        TestSubscriber<String> ts = new TestSubscriber<>(stringObserver);
+        
+        m.subscribe(ts);
 
+        ts.assertSubscription();
         verify(stringObserver, never()).onError(any(Throwable.class));
         verify(stringObserver, times(1)).onNext("OneFirst");
         verify(stringObserver, times(1)).onNext("TwoFirst");
@@ -105,7 +105,11 @@ public class OperatorMapTest {
 
         Flowable<String> m = observable.flatMap( o -> o.map(map -> map.get("firstName")));
         
-        m.subscribe(stringObserver);
+        @SuppressWarnings("unchecked")
+        Subscriber<String> stringObserver = mock(Subscriber.class);
+        TestSubscriber<String> ts = new TestSubscriber<>(stringObserver);
+
+        m.subscribe(ts);
 
         verify(stringObserver, never()).onError(any(Throwable.class));
         verify(stringObserver, times(1)).onNext("OneFirst");
@@ -127,7 +131,11 @@ public class OperatorMapTest {
             }
         ).doOnError(t1 -> t1.printStackTrace());
 
-        m.subscribe(stringObserver);
+        @SuppressWarnings("unchecked")
+        Subscriber<String> stringObserver = mock(Subscriber.class);
+        TestSubscriber<String> ts = new TestSubscriber<>(stringObserver);
+        m.subscribe(ts);
+        
         verify(stringObserver, times(1)).onNext("one");
         verify(stringObserver, never()).onNext("two");
         verify(stringObserver, never()).onNext("three");
@@ -135,13 +143,14 @@ public class OperatorMapTest {
         verify(stringObserver, times(1)).onError(any(Throwable.class));
     }
 
-    @Test(expected = IllegalArgumentException.class)
+    @Test(timeout = 1000, expected = IllegalArgumentException.class)
     public void testMapWithIssue417() {
         Flowable.just(1).observeOn(Schedulers.computation())
-                .map(v -> { throw new IllegalArgumentException("any error"); }).toBlocking().single();
+                .map(v -> { throw new IllegalArgumentException("any error"); })
+                .toBlocking().single();
     }
 
-    @Test(expected = IllegalArgumentException.class)
+    @Test(timeout = 1000, expected = IllegalArgumentException.class)
     public void testMapWithErrorInFuncAndThreadPoolScheduler() throws InterruptedException {
         // The error will throw in one of threads in the thread pool.
         // If map does not handle it, the error will disappear.
@@ -161,7 +170,8 @@ public class OperatorMapTest {
      */
     @Test(expected = NoSuchElementException.class)
     public void testErrorPassesThruMap() {
-        Flowable.range(1, 0).last().map(i -> i).toBlocking().single();
+        Flowable.range(1, 0).last().map(i -> i)
+        .toBlocking().single();
     }
 
     /**
@@ -181,6 +191,7 @@ public class OperatorMapTest {
         Flowable.range(1, 1).last().map(i -> i / 0).toBlocking().single();
     }
 
+    @Ignore // TODO Reactive-Streams spec prohibits throwing
     @Test(expected = OnErrorNotImplementedException.class)
     public void verifyExceptionIsThrownIfThereIsNoExceptionHandler() {
 
@@ -215,6 +226,7 @@ public class OperatorMapTest {
         return m;
     }
 
+    @Ignore // Reactive-Streams spec prohibits throwing 
     @Test(expected = OnErrorNotImplementedException.class)
     public void testShouldNotSwallowOnErrorNotImplementedException() {
         Flowable.from("a", "b").flatMap(s -> Flowable.from(s + "1", s + "2"))
