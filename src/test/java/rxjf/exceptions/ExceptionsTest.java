@@ -13,30 +13,21 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package rx.exceptions;
+package rxjf.exceptions;
 
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import static org.junit.Assert.*;
+
+import java.util.Observer;
 
 import org.junit.Test;
 
-import rx.Observable;
-import rx.Observer;
-import rx.functions.Action1;
-import rx.subjects.PublishSubject;
+import rxjf.Flowable;
 
 public class ExceptionsTest {
 
     @Test(expected = OnErrorNotImplementedException.class)
     public void testOnErrorNotImplementedIsThrown() {
-        Observable.just(1, 2, 3).subscribe(new Action1<Integer>() {
-
-            @Override
-            public void call(Integer t1) {
-                throw new RuntimeException("hello");
-            }
-
-        });
+        Flowable.just(1, 2, 3).subscribe(t1 -> { throw new RuntimeException("hello"); });
     }
 
     @Test(expected = StackOverflowError.class)
@@ -117,7 +108,7 @@ public class ExceptionsTest {
 
     @Test(expected = ThreadDeath.class)
     public void testThreadDeathIsThrown() {
-        Observable.just(1).subscribe(new Observer<Integer>() {
+        Flowable.just(1).subscribe(new Observer<Integer>() {
 
             @Override
             public void onCompleted() {
@@ -143,7 +134,7 @@ public class ExceptionsTest {
     @Test
     public void testOnErrorExceptionIsThrown() {
         try {
-            Observable.error(new IllegalArgumentException("original exception")).subscribe(new Observer<Object>() {
+            Flowable.error(new IllegalArgumentException("original exception")).subscribe(new Observer<Object>() {
                 @Override
                 public void onCompleted() {
 

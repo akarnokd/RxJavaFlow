@@ -20,6 +20,7 @@ import java.util.Objects;
 
 import rxjf.Flow.Subscriber;
 import rxjf.Flow.Subscription;
+import rxjf.exceptions.MissingBackpressureException;
 
 /**
  * Offers standard conformance checking methods that report errors
@@ -113,5 +114,20 @@ public final class Conformance {
             return throwable;
         }
         return Objects.requireNonNull(throwable, "Rule \u00a71.9: Throwable MUST NOT be null");
+    }
+    /**
+     * Reports violation of Rule &#xa7;1.1: Producer MUST NOT produce an onNext event without a preceding request(n | n > 0).
+     * @param subscriber the subscriber to report the error to
+     */
+    public static void mustRequestFirst(Subscriber<?> subscriber) {
+        subscriber.onError(mustRequestFirst());
+    }
+    /**
+     * Constructs a MissingBackpressureException with the rule text
+     * Rule &#xa7;1.1: Producer MUST NOT produce an onNext event without a preceding request(n | n > 0)
+     * @return "Rule &#xa7;1.1: Producer MUST NOT produce an onNext event without a preceding request(n | n > 0)"
+     */
+    public static MissingBackpressureException mustRequestFirst() {
+        return new MissingBackpressureException("Rule \u00a71.1: Producer MUST NOT produce an onNext event without a preceding request(n | n > 0)");
     }
 }

@@ -71,7 +71,7 @@ public final class SubscriptionArbiter<T> implements Subscription, Disposable {
     }
     @Override
     public void cancel() {
-        handle(null, (o, r) -> doCancel(), e -> CANCEL, true);
+        handle(null, (o, r) -> doCancel(r), e -> CANCEL, true);
     }
     
     /**
@@ -188,7 +188,7 @@ public final class SubscriptionArbiter<T> implements Subscription, Disposable {
             return doComplete(requested);
         } else
         if (value == CANCEL) {
-            return doCancel();
+            return doCancel(requested);
         } else
         if (value instanceof ErrorWrapper) {
             return doError(((ErrorWrapper)value).error, requested);
@@ -215,7 +215,12 @@ public final class SubscriptionArbiter<T> implements Subscription, Disposable {
     }
     long doNext(Object value, long requested) {
         Conformance.subscriptionNonNull(current);
-        if (requested >= 0) {
+        if (requested == 0) {
+            Conformance.mustRequestFirst(subscriber);
+            soRequested(Long.MIN_VALUE);
+            return Long.MIN_VALUE;
+        }
+        if (requested > 0) {
             @SuppressWarnings("unchecked")
             T value2 = (T)value;
             subscriber.onNext(value2);
@@ -232,6 +237,9 @@ public final class SubscriptionArbiter<T> implements Subscription, Disposable {
         if (requested >= 0) {
             subscriber.onError(value);
             soRequested(Long.MIN_VALUE);
+            if (current != null) {
+                current.cancel();
+            }
             return Long.MIN_VALUE;
         }
         return requested;
@@ -241,6 +249,9 @@ public final class SubscriptionArbiter<T> implements Subscription, Disposable {
         if (requested >= 0) {
             subscriber.onComplete();
             soRequested(Long.MIN_VALUE);
+            if (current != null) {
+                current.cancel();
+            }
             return Long.MIN_VALUE;
         }
         return requested;
@@ -259,12 +270,13 @@ public final class SubscriptionArbiter<T> implements Subscription, Disposable {
         }
         return requested;
     }
-    long doCancel() {
-        if (current != null) {
-            current.cancel();
-            current = null;
+    long doCancel(long requested) {
+        if (requested >= 0) {
+            if (current != null) {
+                current.cancel();
+            }
+            soRequested(Long.MIN_VALUE);
         }
-        soRequested(Long.MIN_VALUE);
         return Long.MIN_VALUE;
     }
     

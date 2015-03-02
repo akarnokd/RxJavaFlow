@@ -16,13 +16,15 @@
 package rxjf.internal.subscriptions;
 
 import static org.junit.Assert.*;
+import static org.mockito.Mockito.*;
 
 import org.junit.Test;
+import org.mockito.InOrder;
 
 import rxjf.Flow.Subscriber;
-import rxjf.exceptions.TestException;
+import rxjf.Flow.Subscription;
+import rxjf.exceptions.*;
 import rxjf.subscribers.TestSubscriber;
-
 /**
  *
  */
@@ -155,5 +157,239 @@ public class SubscriptionArbiterTest {
         ts.assertNoComplete();
         
         assertTrue(qs.isDisposed());
+    }
+    
+    @Test
+    public void cancelRetainsSubscription() {
+        TestSubscriber<Integer> ts = new TestSubscriber<>(0);
+        
+        SubscriptionArbiter<Integer> qs = create(ts);
+        
+        ts.onSubscribe(qs);
+        
+        Subscription createEmpty = AbstractSubscription.createEmpty(ts);
+        qs.set(createEmpty);
+        
+        qs.cancel();
+        
+        assertEquals(createEmpty, qs.current);
+    }
+    
+    @Test
+    public void cancelCutsAhead() {
+        TestSubscriber<Integer> ts = new TestSubscriber<Integer>(0) {
+            @Override
+            public void onNext(Integer item) {
+                super.onNext(item);
+                if (item == 0) {
+                    ((SubscriptionArbiter<?>)subscription()).cancel();
+                }
+            }
+        };
+        
+        SubscriptionArbiter<Integer> qs = create(ts);
+        
+        ts.onSubscribe(qs);
+        
+        qs.set(AbstractSubscription.createEmpty(ts));
+        
+        ts.requestMore(10);
+        
+        qs.onNext(0);
+        qs.onNext(1);
+        
+        ts.assertValues(0);
+        ts.assertNoErrors();
+        ts.assertNoComplete();
+        
+        assertTrue(qs.isDisposed());
+    }
+    
+    @Test
+    public void noEventsBeforeRequest() {
+        TestSubscriber<Integer> ts = new TestSubscriber<>(0);
+        
+        SubscriptionArbiter<Integer> qs = create(ts);
+        
+        ts.onSubscribe(qs);
+        
+        qs.set(AbstractSubscription.createEmpty(ts));
+
+        qs.onNext(1);
+        qs.onNext(2);
+        qs.onError(new TestException());
+        qs.onComplete();
+        
+        ts.assertValues();
+        ts.assertNoComplete();
+        ts.assertError(MissingBackpressureException.class);
+    }
+    
+    @Test
+    public void noEventsAfterCancel() {
+        TestSubscriber<Integer> ts = new TestSubscriber<>(0);
+        
+        SubscriptionArbiter<Integer> qs = create(ts);
+        
+        ts.onSubscribe(qs);
+        
+        qs.set(AbstractSubscription.createEmpty(ts));
+
+        ts.requestMore(1);
+        
+        qs.onNext(0);
+        qs.cancel();
+        
+        qs.onNext(1);
+        qs.onError(new Throwable());
+        qs.onComplete();
+
+        assertEquals(Long.MIN_VALUE, qs.requested());
+        assertTrue(qs.isDisposed());
+
+        ts.assertNoErrors();
+        ts.assertNoComplete();
+        ts.assertValues(0);
+        
+    }
+    
+    @Test
+    public void cancelIdempotent() {
+        TestSubscriber<Integer> ts = new TestSubscriber<>(0);
+        
+        SubscriptionArbiter<Integer> qs = create(ts);
+        
+        ts.onSubscribe(qs);
+        
+        Subscription createEmpty = mock(Subscription.class);
+        
+        qs.set(createEmpty);
+        
+        qs.cancel();
+        qs.cancel();
+
+        verify(createEmpty).cancel();
+        
+        assertEquals(createEmpty, qs.current);
+    }
+    
+    @Test
+    public void subscriptionChangeAndComplete() {
+        TestSubscriber<Integer> ts = new TestSubscriber<>(0);
+        
+        SubscriptionArbiter<Integer> qs = create(ts);
+        
+        ts.onSubscribe(qs);
+        
+        Subscription first = mock(Subscription.class);
+        InOrder inOrder1 = inOrder(first);
+        Subscription second = mock(Subscription.class);
+        InOrder inOrder2 = inOrder(second);
+        
+        qs.set(first);
+        
+        ts.requestMore(5);
+        
+        inOrder1.verify(first).request(5);
+        
+        qs.onNext(1);
+        qs.onNext(2);
+        
+        assertEquals(3, qs.requested());
+        
+        qs.set(second);
+        
+        inOrder1.verify(first).cancel();
+        
+        inOrder2.verify(second).request(3);
+        
+        ts.requestMore(5);
+        
+        assertEquals(8, qs.requested());
+        inOrder2.verify(second).request(5);
+        
+        qs.onNext(3);
+        qs.onComplete();
+        
+        qs.onNext(4);
+        qs.onError(new TestException());
+        qs.onComplete();
+        
+        inOrder1.verifyNoMoreInteractions();
+        inOrder2.verify(second).cancel();
+        inOrder2.verifyNoMoreInteractions();
+        
+        ts.assertNoErrors();
+        ts.assertComplete();
+        ts.assertValues(1, 2, 3);
+    }
+    @Test
+    public void subscriptionChangeAndError() {
+        TestSubscriber<Integer> ts = new TestSubscriber<>(0);
+        
+        SubscriptionArbiter<Integer> qs = create(ts);
+        
+        ts.onSubscribe(qs);
+        
+        Subscription first = mock(Subscription.class);
+        InOrder inOrder1 = inOrder(first);
+        Subscription second = mock(Subscription.class);
+        InOrder inOrder2 = inOrder(second);
+        
+        qs.set(first);
+        
+        ts.requestMore(5);
+        
+        inOrder1.verify(first).request(5);
+        
+        qs.onNext(1);
+        qs.onNext(2);
+        
+        assertEquals(3, qs.requested());
+        
+        qs.set(second);
+        
+        inOrder1.verify(first).cancel();
+        
+        inOrder2.verify(second).request(3);
+        
+        ts.requestMore(5);
+        
+        assertEquals(8, qs.requested());
+        inOrder2.verify(second).request(5);
+        
+        qs.onNext(3);
+        qs.onError(new TestException());
+
+        qs.onNext(4);
+        qs.onError(new TestException());
+        qs.onComplete();
+        
+        inOrder1.verifyNoMoreInteractions();
+        inOrder2.verify(second).cancel();
+        inOrder2.verifyNoMoreInteractions();
+        
+        ts.assertError(TestException.class);
+        ts.assertNoComplete();
+        ts.assertValues(1, 2, 3);
+    }
+    
+    @Test
+    public void setAfterCancel() {
+        TestSubscriber<Integer> ts = new TestSubscriber<>(0);
+        
+        SubscriptionArbiter<Integer> qs = create(ts);
+        
+        ts.onSubscribe(qs);
+        
+        Subscription first = mock(Subscription.class);
+
+        ts.requestMore(5);
+        
+        qs.cancel();
+        qs.set(first);
+        
+        verify(first, never()).request(anyLong());
+        verify(first).cancel();
     }
 }

@@ -21,6 +21,7 @@ import rxjf.Flow.Subscriber;
 import rxjf.*;
 import rxjf.Flowable.Operator;
 import rxjf.disposables.SerialDisposable;
+import rxjf.internal.subscriptions.SubscriptionArbiter;
 import rxjf.schedulers.Scheduler;
 import rxjf.subscribers.*;
 
@@ -50,49 +51,63 @@ public final class OperatorTimeout<T> implements Operator<T, T> {
     public Subscriber<? super T> apply(Subscriber<? super T> child) {
         AbstractDisposableSubscriber<? super T> disposable = DisposableSubscriber.wrap(child);
         
-        SerializedSubscriber<? super T> serialized = disposable.toSerialized();
-        
         Scheduler.Worker worker = scheduler.createWorker();
         SerialDisposable timeouts = new SerialDisposable();
 
         disposable.add(worker);
         disposable.add(timeouts);
         
+        SubscriptionArbiter<T> arbiter = new SubscriptionArbiter<>(disposable);
+        disposable.add(arbiter);
+        
         return new AbstractSubscriber<T>() {
             @Override
             protected void onSubscribe() {
-                serialized.onSubscribe(subscription);
+                arbiter.set(subscription);
                 scheduleTimeout();
             }
             @Override
             public void onNext(T item) {
-                serialized.onNext(item);
+                arbiter.onNext(item);
                 scheduleTimeout();
             }
             @Override
             public void onError(Throwable throwable) {
-                serialized.onError(throwable);
+                arbiter.onError(throwable);
             }
             @Override
             public void onComplete() {
-                serialized.onComplete();
+                arbiter.onComplete();
             }
             
             void scheduleTimeout() {
                 timeouts.set(worker.schedule(() -> {
                     if (other == null) {
-                        serialized.onError(new TimeoutException());
+                        arbiter.onError(new TimeoutException());
                     } else {
                         subscribeOther();
                     }
                 }, timeout, timeUnit));
             }
             void subscribeOther() {
-                // cancel subscription
-                // take unfulfilled requests
-                // subscribe to other
-                // request unfulfilled
-                // TODO
+                other.unsafeSubscribe(new AbstractSubscriber<T>() {
+                    @Override
+                    protected void onSubscribe() {
+                        arbiter.set(subscription);
+                    }
+                    @Override
+                    public void onNext(T item) {
+                        arbiter.onNext(item);
+                    }
+                    @Override
+                    public void onError(Throwable throwable) {
+                        arbiter.onError(throwable);
+                    }
+                    @Override
+                    public void onComplete() {
+                        arbiter.onComplete();
+                    }
+                });
             }
         };
     }
