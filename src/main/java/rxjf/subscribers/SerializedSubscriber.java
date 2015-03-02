@@ -177,6 +177,17 @@ public final class SerializedSubscriber<T> implements Subscriber<T> {
         }, v -> v, null, TYPE_COMPLETE);
     }
     
+    static final class SubscribeToken {
+        final Subscription subscription;
+        SubscribeToken(Subscription subscription) {
+            this.subscription = subscription;
+        }
+        @Override
+        public String toString() {
+            return "Subscription";
+        }
+    }
+
     static final class ErrorToken implements Serializable  {
         /** */
         private static final long serialVersionUID = 1283700143864356467L;
@@ -187,16 +198,6 @@ public final class SerializedSubscriber<T> implements Subscriber<T> {
         @Override
         public String toString() {
             return "Error: " + error;
-        }
-    }
-    static final class SubscribeToken {
-        final Subscription subscription;
-        SubscribeToken(Subscription subscription) {
-            this.subscription = subscription;
-        }
-        @Override
-        public String toString() {
-            return "Subscription";
         }
     }
     

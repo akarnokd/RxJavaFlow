@@ -38,6 +38,11 @@ public final class DelayedSubscription implements Subscription {
     static final long CANCELLED = Long.MIN_VALUE;
     static final long REPLACED = Long.MIN_VALUE / 2;
     
+    /**
+     * Creates a DelayedSubscription with the given {@link Subscriber} as the target
+     * for reporting conformance violations.
+     * @param subscriber the target Subscriber
+     */
     public DelayedSubscription(Subscriber<?> subscriber) {
         this.subscriber = Conformance.subscriberNonNull(subscriber);
     }

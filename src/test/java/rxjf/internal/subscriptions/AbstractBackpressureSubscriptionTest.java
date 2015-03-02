@@ -138,7 +138,7 @@ public abstract class AbstractBackpressureSubscriptionTest {
     }
 
     @Test
-    public void chechMissingBackpressure() {
+    public void checkMissingBackpressure() {
         TestSubscriber<Integer> ts = new TestSubscriber<>(0);
         
         AbstractBackpressureSubscription<Integer> qs = create(ts);

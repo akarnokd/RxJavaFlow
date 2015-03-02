@@ -59,7 +59,7 @@ public final class ScalarBackpressureSubscription<T> implements Subscription {
     
     /**
      * Constructs a scalar backpressure-subscription with the given subscriber
-     * as the client
+     * as the client.
      * @param subscriber the subscriber to deliver the events to
      */
     public ScalarBackpressureSubscription(Subscriber<? super T> subscriber) {

@@ -22,6 +22,7 @@ import java.util.concurrent.TimeUnit;
 
 import rxjf.Flow.Subscriber;
 import rxjf.Flow.Subscription;
+import rxjf.exceptions.CompositeException;
 import rxjf.internal.Conformance;
 
 /**
@@ -103,6 +104,14 @@ public class TestSubscriber<T> implements Subscriber<T> {
         }
     }
     
+    public final Subscription subscription() {
+        return s;
+    }
+    
+    // ---------------------------------------------
+    // Assertion tests
+    // ---------------------------------------------
+    
     public final void assertSubscription() {
         if (s == null) {
             throw new AssertionError("No subscription");
@@ -114,7 +123,7 @@ public class TestSubscriber<T> implements Subscriber<T> {
             throw new AssertionError("No errors");
         } else
         if (errors.size() > 1) {
-            throw new AssertionError("More than one error: " + errors);
+            throw new AssertionError("More than one error: " + errors, new CompositeException(errors));
         }
     }
     public final void assertError(Class<? extends Throwable> clazz) {
@@ -122,17 +131,19 @@ public class TestSubscriber<T> implements Subscriber<T> {
             throw new AssertionError("No errors");
         } else
         if (errors.size() > 1) {
-            throw new AssertionError("More than one error: " + errors);
+            throw new AssertionError("More than one error: " + errors, new CompositeException(errors));
         } else 
         if (!clazz.isInstance(errors.get(0))) {
-            
-            throw new AssertionError("Expected: " + clazz + ", Actual: " + errors.get(0));
+            throw new AssertionError("Expected: " + clazz + ", Actual: " + errors.get(0), errors.get(0));
         }
     }
     
     public final void assertNoErrors() {
-        if (!errors.isEmpty()) {
-            throw new AssertionError("One or more errors: " + errors);
+        if (errors.size() == 1) {
+            throw new AssertionError("One error present: " + errors.get(0), errors.get(0));
+        } else
+        if (errors.size() > 1) {
+            throw new AssertionError("Multiple errors present: " + errors, new CompositeException(errors));
         }
     }
     
@@ -141,7 +152,7 @@ public class TestSubscriber<T> implements Subscriber<T> {
             throw new AssertionError("No terminal event(s)");
         }
         if (errors.size() > 1) {
-            throw new AssertionError("Multiple errors: " + errors);
+            throw new AssertionError("Multiple errors: " + errors, new CompositeException(errors));
         }
         if (complete > 1) {
             throw new AssertionError("Multiple completion events: " + complete);
@@ -149,7 +160,8 @@ public class TestSubscriber<T> implements Subscriber<T> {
     }
     public final void assertNoTerminalEvent() {
         if (!errors.isEmpty() || complete != 0) {
-            throw new AssertionError("Terminal event(s) present: " + errors + ", complete: " + complete);
+            throw new AssertionError("Terminal event(s) present: " + errors + ", complete: " + complete, 
+                    errors.size() == 1 ? errors.get(0) : new CompositeException(errors));
         }
     }
     public final void assertComplete() {
