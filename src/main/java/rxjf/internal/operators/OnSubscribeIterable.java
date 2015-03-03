@@ -34,7 +34,7 @@ public final class OnSubscribeIterable<T> implements OnSubscribe<T> {
     public void accept(Subscriber<? super T> t) {
         Iterator<? extends T> it = iterable.iterator();
         if (!it.hasNext()) {
-            t.onSubscribe(AbstractSubscription.createEmpty(t));
+            AbstractSubscription.setEmptyOn(t);
             t.onComplete();
             return;
         }

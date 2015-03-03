@@ -36,11 +36,26 @@ import rxjf.subscribers.*;
 import sun.security.pkcs11.wrapper.Functions;
 
 /**
- *
+ * The Flowable class that implements the Reactive Pattern via the java Flow API and Reactive-Streams specification.
+ * <p>
+ * This class provides methods for subscribing to the Flowable as well as delegate methods to the various
+ * Observers.
+ * <p>
+ * The documentation for this class makes use of marble diagrams. The following legend explains these diagrams:
+ * <p>
+ * <img width="640" height="301" src="https://raw.github.com/wiki/ReactiveX/RxJava/images/rx-operators/legend.png" alt="">
+ * <p>
+ * For more information see the <a href="http://reactivex.io/documentation/observable.html">ReactiveX
+ * documentation</a>.
+ * 
+ * @param <T>
+ *            the type of the items emitted by the Flowable
  */
 public class Flowable<T> implements Publisher<T> {
-    private static final RxJavaFlowableExecutionHook hook = RxJavaFlowPlugins.getInstance().getFlowableExecutionHook();
+    /** The Flowable lifecycle hook. */
+    static final RxJavaFlowableExecutionHook hook = RxJavaFlowPlugins.getInstance().getFlowableExecutionHook();
 
+    /** The function executed when a Subscriber subscribes or an Operator is lifted. */
     final OnSubscribe<T> onSubscribe;
     
     /**
@@ -144,13 +159,14 @@ public class Flowable<T> implements Publisher<T> {
                 // FIXME We can't be sure the subscription was set or not at this point!
                 subscriber.onError(t);
             } catch (Throwable t2) {
-                handleUncaught(t2);
+                handleUncaught(new CompositeException(Arrays.asList(t, t2)));
             }
         }
     }
     static void handleUncaught(Throwable t) {
         Thread currentThread = Thread.currentThread();
         currentThread.getUncaughtExceptionHandler().uncaughtException(currentThread, t);
+        RxJavaFlowPlugins.getInstance().getErrorHandler().handleError(t);
     }
     /**
      * Lifts a function to the current Flowable and returns a new Flowable that when subscribed to will pass
@@ -573,14 +589,14 @@ public class Flowable<T> implements Publisher<T> {
         if (count < 0) {
             throw new IllegalArgumentException("count must be non-negative");
         } else
-        if (start > Integer.MAX_VALUE - count + 1) {
-            throw new IllegalArgumentException("start + count can not exceed Integer.MAX_VALUE");
-        } else
         if (count == 0) {
             return empty();
         } else
         if (count == 1) {
             return just(start);
+        } else
+        if (start > Integer.MAX_VALUE - count + 1) {
+            throw new IllegalArgumentException("start + count can not exceed Integer.MAX_VALUE");
         }
         return create(new OnSubscribeRange(start, count));
     }
@@ -607,14 +623,14 @@ public class Flowable<T> implements Publisher<T> {
         if (count < 0) {
             throw new IllegalArgumentException("count must be non-negative");
         } else
-        if (start > Long.MAX_VALUE - count + 1) {
-            throw new IllegalArgumentException("start + count can not exceed Long.MAX_VALUE");
-        } else
         if (count == 0) {
             return empty();
         } else
         if (count == 1) {
             return just(start);
+        } else
+        if (start > Long.MAX_VALUE - count + 1) {
+            throw new IllegalArgumentException("start + count can not exceed Long.MAX_VALUE");
         }
         return create(new OnSubscribeRangeLong(start, count));
     }
@@ -1366,7 +1382,7 @@ public class Flowable<T> implements Publisher<T> {
      */
     public final static <T> Flowable<T> error(Throwable exception) {
         return create(s -> {
-            s.onSubscribe(AbstractSubscription.createEmpty(s));
+            AbstractSubscription.setEmptyOn(s);
             s.onError(exception);
         });
     }

@@ -15,6 +15,7 @@
  */
 package rxjf.internal.subscriptions;
 
+import rxjf.Flow.Subscriber;
 import rxjf.Flow.Subscription;
 import rxjf.disposables.*;
 import rxjf.internal.Conformance;
@@ -71,5 +72,13 @@ public final class DisposableSubscription implements Subscription, Disposable {
      */
     public void add(Disposable disposable) {
         composite.add(disposable);
+    }
+    /**
+     * Constructs a DisposableSubscription with an empty actual subscription.
+     * @param subscriber the subscriber to report conformance errors to
+     * @return the created DisposableSubscription
+     */
+    public static DisposableSubscription createEmpty(Subscriber<?> subscriber) {
+        return new DisposableSubscription(AbstractSubscription.createEmpty(subscriber));
     }
 }

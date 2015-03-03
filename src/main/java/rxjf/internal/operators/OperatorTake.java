@@ -20,6 +20,7 @@ import rxjf.Flow.Subscriber;
 import rxjf.Flow.Subscription;
 import rxjf.Flowable.Operator;
 import rxjf.internal.subscriptions.AbstractSubscription;
+import rxjf.subscribers.AbstractSubscriber;
 
 /**
  * 
@@ -32,8 +33,9 @@ public final class OperatorTake<T> implements Operator<T, T> {
     @Override
     public Subscriber<? super T> apply(Subscriber<? super T> t) {
         if (n == 0) {
-            t.onSubscribe(AbstractSubscription.createEmpty(t));
+            AbstractSubscription.setEmptyOn(t);
             t.onComplete();
+            return AbstractSubscriber.cancelled();
         }
         long r = n;
         return new Subscriber<T>() {

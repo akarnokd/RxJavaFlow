@@ -65,10 +65,10 @@ public final class SafeSubscriber<T> implements Subscriber<T> {
     @Override
     public void onError(Throwable throwable) {
         if (!done) {
-            done = true;
             Subscription s = subscription;
             Conformance.subscriptionNonNull(s);
             Conformance.throwableNonNull(throwable);
+            done = true;
             try {
                 actual.onError(throwable);
             } catch (Throwable t) {
@@ -81,9 +81,9 @@ public final class SafeSubscriber<T> implements Subscriber<T> {
     @Override
     public void onComplete() {
         if (!done) {
-            done = true;
             Subscription s = subscription;
             Conformance.subscriptionNonNull(s);
+            done = true;
             try {
                 actual.onComplete();
             } catch (Throwable t) {

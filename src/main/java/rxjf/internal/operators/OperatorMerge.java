@@ -144,6 +144,9 @@ public final class OperatorMerge<T> implements Operator<T, Flowable<? extends T>
             if (item instanceof ScalarSynchronousFlow) {
                 T scalar = ((ScalarSynchronousFlow<? extends T>)item).get();
                 getScalarQueue().offer(scalar);
+                if (maxConcurrent != Integer.MAX_VALUE) {
+                    subscription.request(1);
+                }
             } else {
                 int index = UNSAFE.getAndAddInt(this, INDEX, 1);
                 InnerSubscriber inner = new InnerSubscriber(index);
@@ -226,7 +229,7 @@ public final class OperatorMerge<T> implements Operator<T, Flowable<? extends T>
             }
             
             if (maxConcurrent != Integer.MAX_VALUE) {
-                subscribeNext();
+                subscription.request(1);
             }
             drain();
         }
@@ -244,7 +247,7 @@ public final class OperatorMerge<T> implements Operator<T, Flowable<? extends T>
             }
             errors.offer(error);
             if (maxConcurrent != Integer.MAX_VALUE && delayErrors) {
-                subscribeNext();
+                subscription.request(1);
             }
             drain();
         }
@@ -273,10 +276,6 @@ public final class OperatorMerge<T> implements Operator<T, Flowable<? extends T>
                     return u;
                 }
             }
-        }
-        
-        void subscribeNext() {
-            subscription.request(1);
         }
         
         void drain() {
@@ -310,8 +309,8 @@ public final class OperatorMerge<T> implements Operator<T, Flowable<? extends T>
                         return;
                     }
 
+                    Queue<T> sq = scalarQueue;
                     if (r > 0) {
-                        Queue<T> sq = scalarQueue;
                         if (sq != null) {
                             for (;;) {
                                 T v = sq.poll();
@@ -333,15 +332,32 @@ public final class OperatorMerge<T> implements Operator<T, Flowable<? extends T>
                         }
                     }
                     
-                    if (r > 0) {
-                        // get the list of active InnerSubscribers
-                        synchronized (list) {
-                            if (active.length == list.size()) {
+                    // get the list of active InnerSubscribers
+                    int size;
+                    synchronized (list) {
+                        size = list.size();
+                        if (active.length == size) {
+                            if (size > 0) {
                                 list.toArray(active);
-                            } else {
-                                active = list.toArray();
                             }
+                        } else {
+                            active = list.toArray();
                         }
+                    }
+                    // see if main is done and no more active InnerSubscribers
+                    if  ((size == 0 && done && (sq == null || sq.isEmpty())) 
+                            || (!delayErrors && !errors.isEmpty())) {
+                        skipFinal = true;
+                        if (!errors.isEmpty()) {
+                            reportErrors(child);
+                        } else {
+                            child.onComplete();
+                        }
+                        cancel();
+                        return;
+                    }
+                    
+                    if (r > 0 && size > 0) {
                         int idx = lastIndex;
 
                         // locate the inner subscriber to resume the round-robin
@@ -363,15 +379,16 @@ public final class OperatorMerge<T> implements Operator<T, Flowable<? extends T>
                             InnerSubscriber e = (InnerSubscriber)active[j];
                             Queue<T> q = e.queue;
                             lastIndex = e.index;
-                            
+
+                            // if drain to completion, ask for the next subscriber
                             if (e.done && q.isEmpty()) {
                                 removeInner(e);
                                 if (maxConcurrent != Integer.MAX_VALUE) {
-                                    subscribeNext();
+                                    subscription.request(1);
                                 }
                                 continue outer;
                             }
-                            
+
                             int consumed = 0;
                             T v;
                             while (r > 0 && (v = q.poll()) != null) {
@@ -386,24 +403,21 @@ public final class OperatorMerge<T> implements Operator<T, Flowable<? extends T>
                             if (consumed > 0) {
                                 e.requestMore(consumed);
                             }
+                            // if drain to completion, ask for the next subscriber
+                            if (e.done && q.isEmpty()) {
+                                removeInner(e);
+                                if (maxConcurrent != Integer.MAX_VALUE) {
+                                    subscription.request(1);
+                                }
+                                continue outer;
+                            }
+                            
                             if (r == 0) {
                                 break;
                             }
                         }
                     }
 
-                    if  ((active.length == 0 && done) 
-                            || (!delayErrors && !errors.isEmpty())) {
-                        skipFinal = true;
-                        if (!errors.isEmpty()) {
-                            reportErrors(child);
-                        } else {
-                            child.onComplete();
-                        }
-                        cancel();
-                        return;
-                    }
-                    
                     synchronized (this) {
                         if (!missed) {
                             skipFinal = true;

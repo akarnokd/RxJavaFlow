@@ -19,8 +19,7 @@ import java.util.*;
 
 import rxjf.Flow.Subscriber;
 import rxjf.Flowable.Operator;
-import rxjf.internal.*;
-import rxjf.internal.subscriptions.QueueBackpressureSubscription;
+import rxjf.internal.subscriptions.*;
 import rxjf.subscribers.AbstractSubscriber;
 
 /**
@@ -55,15 +54,16 @@ public final class OperatorTakeLast<T> implements Operator<T, T> {
 
             @Override
             public void onComplete() {
-                qs.onComplete();
                 // we onSubscribe only now that all values have been received
                 // and let the QueueSubscription handle the requests
                 subscriber.onSubscribe(qs);
+                qs.onComplete();
             }
 
             @Override
             public void onError(Throwable e) {
                 deque.clear();
+                AbstractSubscription.setEmptyOn(subscriber);
                 subscriber.onError(e);
             }
 

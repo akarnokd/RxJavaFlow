@@ -163,15 +163,29 @@ public abstract class AbstractSubscription<T> implements Subscription, Disposabl
     
     public static <T> Subscription createEmpty(Subscriber<? super T> subscriber) {
         Conformance.subscriberNonNull(subscriber);
-        return new Subscription() {
-            @Override
-            public void cancel() {
-                // NO OP
-            }
-            @Override
-            public void request(long n) {
-                Conformance.requestPositive(n, subscriber);
-            }
-        };
+        return new EmptySubscription(subscriber);
+    }
+    
+    /** Subscription that does noting. */
+    static final class EmptySubscription implements Subscription {
+        final Subscriber<?> subscriber;
+        EmptySubscription(Subscriber<?> subscriber) {
+            this.subscriber = subscriber;
+        }
+        @Override
+        public void cancel() {
+            // NO OP
+        }
+        @Override
+        public void request(long n) {
+            Conformance.requestPositive(n, subscriber);
+        }
+    }
+    /**
+     * Sets an empty subscription on the subscriber.
+     * @param subscriber the target subscriber
+     */
+    public static void setEmptyOn(Subscriber<?> subscriber) {
+        subscriber.onSubscribe(createEmpty(subscriber));
     }
 }

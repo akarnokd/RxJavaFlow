@@ -17,11 +17,13 @@
 package rxjf.internal.operators;
 
 import rxjf.Flow.Subscriber;
+import rxjf.Flow.Subscription;
 import rxjf.*;
 import rxjf.internal.schedulers.EventLoopsScheduler;
 import rxjf.internal.subscriptions.AbstractSubscription;
 import rxjf.schedulers.Scheduler;
 import rxjf.subscribers.*;
+import static rxjf.internal.UnsafeAccess.*;
 
 /**
  * 
@@ -98,9 +100,11 @@ public final class ScalarSynchronousFlow<T> extends Flowable<T> {
         }
     }
     /** Action that emits a single value when called. */
-    static final class ScalarSynchronousAction<T> implements Runnable {
+    static final class ScalarSynchronousAction<T> implements Runnable, Subscription {
         private final Subscriber<? super T> subscriber;
         private final T value;
+        volatile int once;
+        static final long ONCE = addressOf(ScalarSynchronousAction.class, "once");
 
         private ScalarSynchronousAction(Subscriber<? super T> subscriber,
                 T value) {
@@ -110,13 +114,23 @@ public final class ScalarSynchronousFlow<T> extends Flowable<T> {
 
         @Override
         public void run() {
-            try {
-                subscriber.onNext(value);
-            } catch (Throwable t) {
-                subscriber.onError(t);
-                return;
+            subscriber.onSubscribe(this);
+        }
+        @Override
+        public void request(long n) {
+            if (UNSAFE.getAndSetInt(this, ONCE, 1) == 0) {
+                try {
+                    subscriber.onNext(value);
+                } catch (Throwable t) {
+                    subscriber.onError(t);
+                    return;
+                }
+                subscriber.onComplete();
             }
-            subscriber.onComplete();
+        }
+        @Override
+        public void cancel() {
+            UNSAFE.getAndSetInt(this, ONCE, 1);
         }
     }
 }

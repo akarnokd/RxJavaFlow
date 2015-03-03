@@ -26,7 +26,7 @@ import rxjf.internal.subscriptions.AbstractSubscription;
 public final class OnSubscribeEmpty<T> implements OnSubscribe<T> {
     @Override
     public void accept(Subscriber<? super T> t) {
-        t.onSubscribe(AbstractSubscription.createEmpty(t));
+        AbstractSubscription.setEmptyOn(t);
         t.onComplete();
     }
 }

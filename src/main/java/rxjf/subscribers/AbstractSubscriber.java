@@ -52,4 +52,36 @@ public abstract class AbstractSubscriber<T> implements Subscriber<T> {
     public CheckedSubscriber<T> toChecked() {
         return (CheckedSubscriber<T>)CheckedSubscriber.wrap(this);
     }
+    
+    /**
+     * Returns a Subscriber that cancels any subscribers it receives
+     * and does only basic null-checking for conformance.
+     * @return the cancelled subscriber
+     */
+    @SuppressWarnings("unchecked")
+    public static <T> Subscriber<T> cancelled() {
+        return (Subscriber<T>)CANCELLED;
+    }
+    /** Single instance because it is stateless. */
+    static final CancelledSubscriber CANCELLED = new CancelledSubscriber();
+    /** A Subscriber that cancels any subscription immediately and ignores events. */
+    static final class CancelledSubscriber implements Subscriber<Object> {
+        @Override
+        public void onSubscribe(Subscription subscription) {
+            Conformance.subscriptionNonNull(subscription);
+            subscription.cancel();
+        }
+        @Override
+        public void onNext(Object item) {
+            Conformance.itemNonNull(item);
+        }
+        @Override
+        public void onError(Throwable throwable) {
+            Conformance.throwableNonNull(throwable);
+        }
+        @Override
+        public void onComplete() {
+            
+        }
+    }
 }

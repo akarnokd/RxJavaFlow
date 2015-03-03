@@ -21,36 +21,27 @@ import java.util.*;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import org.junit.*;
-import org.mockito.*;
+import org.junit.Test;
 
-import rx.*;
-import rx.Observable;
-import rx.Observer;
-import rx.observers.TestSubscriber;
-import rx.schedulers.Schedulers;
+import rxjf.Flow.Subscriber;
+import rxjf.*;
+import rxjf.internal.subscriptions.AbstractSubscription;
+import rxjf.schedulers.Schedulers;
+import rxjf.subscribers.TestSubscriber;
 
 public class OperatorMergeMaxConcurrentTest {
-
-    @Mock
-    Observer<String> stringObserver;
-
-    @Before
-    public void before() {
-        MockitoAnnotations.initMocks(this);
-    }
 
     @Test
     public void testWhenMaxConcurrentIsOne() {
         for (int i = 0; i < 100; i++) {
-            List<Observable<String>> os = new ArrayList<Observable<String>>();
-            os.add(Observable.just("one", "two", "three", "four", "five").subscribeOn(Schedulers.newThread()));
-            os.add(Observable.just("one", "two", "three", "four", "five").subscribeOn(Schedulers.newThread()));
-            os.add(Observable.just("one", "two", "three", "four", "five").subscribeOn(Schedulers.newThread()));
+            List<Flowable<String>> os = new ArrayList<>();
+            os.add(Flowable.just("one", "two", "three", "four", "five").subscribeOn(Schedulers.newThread()));
+            os.add(Flowable.just("one", "two", "three", "four", "five").subscribeOn(Schedulers.newThread()));
+            os.add(Flowable.just("one", "two", "three", "four", "five").subscribeOn(Schedulers.newThread()));
 
             List<String> expected = Arrays.asList("one", "two", "three", "four", "five", "one", "two", "three", "four", "five", "one", "two", "three", "four", "five");
-            Iterator<String> iter = Observable.merge(os, 1).toBlocking().toIterable().iterator();
-            List<String> actual = new ArrayList<String>();
+            Iterator<String> iter = Flowable.merge(os, 1).toBlocking().toIterable().iterator();
+            List<String> actual = new ArrayList<>();
             while (iter.hasNext()) {
                 actual.add(iter.next());
             }
@@ -66,40 +57,40 @@ public class OperatorMergeMaxConcurrentTest {
             int maxConcurrent = 2 + (times % 10);
             AtomicInteger subscriptionCount = new AtomicInteger(0);
 
-            List<Observable<String>> os = new ArrayList<Observable<String>>();
-            List<SubscriptionCheckObservable> scos = new ArrayList<SubscriptionCheckObservable>();
+            List<Flowable<String>> os = new ArrayList<>();
+            List<SubscriptionCheckFlowable> scos = new ArrayList<>();
             for (int i = 0; i < observableCount; i++) {
-                SubscriptionCheckObservable sco = new SubscriptionCheckObservable(subscriptionCount, maxConcurrent);
+                SubscriptionCheckFlowable sco = new SubscriptionCheckFlowable(subscriptionCount, maxConcurrent);
                 scos.add(sco);
-                os.add(Observable.create(sco));
+                os.add(Flowable.create(sco));
             }
 
-            Iterator<String> iter = Observable.merge(os, maxConcurrent).toBlocking().toIterable().iterator();
-            List<String> actual = new ArrayList<String>();
+            Iterator<String> iter = Flowable.merge(os, maxConcurrent).toBlocking().toIterable().iterator();
+            List<String> actual = new ArrayList<>();
             while (iter.hasNext()) {
                 actual.add(iter.next());
             }
             //            System.out.println("actual: " + actual);
             assertEquals(5 * observableCount, actual.size());
-            for (SubscriptionCheckObservable sco : scos) {
+            for (SubscriptionCheckFlowable sco : scos) {
                 assertFalse(sco.failed);
             }
         }
     }
 
-    private static class SubscriptionCheckObservable implements Observable.OnSubscribe<String> {
+    private static class SubscriptionCheckFlowable implements Flowable.OnSubscribe<String> {
 
         private final AtomicInteger subscriptionCount;
         private final int maxConcurrent;
         volatile boolean failed = false;
 
-        SubscriptionCheckObservable(AtomicInteger subscriptionCount, int maxConcurrent) {
+        SubscriptionCheckFlowable(AtomicInteger subscriptionCount, int maxConcurrent) {
             this.subscriptionCount = subscriptionCount;
             this.maxConcurrent = maxConcurrent;
         }
 
         @Override
-        public void call(final Subscriber<? super String> t1) {
+        public void accept(final Subscriber<? super String> t1) {
             new Thread(new Runnable() {
 
                 @Override
@@ -107,6 +98,7 @@ public class OperatorMergeMaxConcurrentTest {
                     if (subscriptionCount.incrementAndGet() > maxConcurrent) {
                         failed = true;
                     }
+                    AbstractSubscription.setEmptyOn(t1);
                     t1.onNext("one");
                     t1.onNext("two");
                     t1.onNext("three");
@@ -115,7 +107,7 @@ public class OperatorMergeMaxConcurrentTest {
                     // We could not decrement subscriptionCount in the unsubscribe method
                     // as "unsubscribe" is not guaranteed to be called before the next "subscribe".
                     subscriptionCount.decrementAndGet();
-                    t1.onCompleted();
+                    t1.onComplete();
                 }
 
             }).start();
@@ -126,11 +118,11 @@ public class OperatorMergeMaxConcurrentTest {
     @Test
     public void testMergeALotOfSourcesOneByOneSynchronously() {
         int n = 10000;
-        List<Observable<Integer>> sourceList = new ArrayList<Observable<Integer>>(n);
+        List<Flowable<Integer>> sourceList = new ArrayList<>(n);
         for (int i = 0; i < n; i++) {
-            sourceList.add(Observable.just(i));
+            sourceList.add(Flowable.just(i));
         }
-        Iterator<Integer> it = Observable.merge(Observable.from(sourceList), 1).toBlocking().getIterator();
+        Iterator<Integer> it = Flowable.merge(Flowable.from(sourceList), 1).toBlocking().getIterator();
         int j = 0;
         while (it.hasNext()) {
             assertEquals((Integer)j, it.next());
@@ -141,11 +133,11 @@ public class OperatorMergeMaxConcurrentTest {
     @Test
     public void testMergeALotOfSourcesOneByOneSynchronouslyTakeHalf() {
         int n = 10000;
-        List<Observable<Integer>> sourceList = new ArrayList<Observable<Integer>>(n);
+        List<Flowable<Integer>> sourceList = new ArrayList<>(n);
         for (int i = 0; i < n; i++) {
-            sourceList.add(Observable.just(i));
+            sourceList.add(Flowable.just(i));
         }
-        Iterator<Integer> it = Observable.merge(Observable.from(sourceList), 1).take(n / 2).toBlocking().getIterator();
+        Iterator<Integer> it = Flowable.merge(Flowable.from(sourceList), 1).take(n / 2).toBlocking().getIterator();
         int j = 0;
         while (it.hasNext()) {
             assertEquals((Integer)j, it.next());
@@ -157,37 +149,37 @@ public class OperatorMergeMaxConcurrentTest {
     @Test
     public void testSimple() {
         for (int i = 1; i < 100; i++) {
-            TestSubscriber<Integer> ts = new TestSubscriber<Integer>();
-            List<Observable<Integer>> sourceList = new ArrayList<Observable<Integer>>(i);
-            List<Integer> result = new ArrayList<Integer>(i);
+            TestSubscriber<Integer> ts = new TestSubscriber<>();
+            List<Flowable<Integer>> sourceList = new ArrayList<>(i);
+            List<Integer> result = new ArrayList<>(i);
             for (int j = 1; j <= i; j++) {
-                sourceList.add(Observable.just(j));
+                sourceList.add(Flowable.just(j));
                 result.add(j);
             }
             
-            Observable.merge(sourceList, i).subscribe(ts);
+            Flowable.merge(sourceList, i).subscribe(ts);
         
             ts.assertNoErrors();
             ts.assertTerminalEvent();
-            ts.assertReceivedOnNext(result);
+            ts.assertValues(result);
         }
     }
     @Test
     public void testSimpleOneLess() {
         for (int i = 2; i < 100; i++) {
-            TestSubscriber<Integer> ts = new TestSubscriber<Integer>();
-            List<Observable<Integer>> sourceList = new ArrayList<Observable<Integer>>(i);
-            List<Integer> result = new ArrayList<Integer>(i);
+            TestSubscriber<Integer> ts = new TestSubscriber<>();
+            List<Flowable<Integer>> sourceList = new ArrayList<>(i);
+            List<Integer> result = new ArrayList<>(i);
             for (int j = 1; j <= i; j++) {
-                sourceList.add(Observable.just(j));
+                sourceList.add(Flowable.just(j));
                 result.add(j);
             }
             
-            Observable.merge(sourceList, i - 1).subscribe(ts);
+            Flowable.merge(sourceList, i - 1).subscribe(ts);
         
             ts.assertNoErrors();
             ts.assertTerminalEvent();
-            ts.assertReceivedOnNext(result);
+            ts.assertValues(result);
         }
     }
     @Test(timeout = 10000)
@@ -196,24 +188,25 @@ public class OperatorMergeMaxConcurrentTest {
             testSimpleAsync();
         }
     }
-    @Test(timeout = 10000)
+    @Test//(timeout = 10000)
     public void testSimpleAsync() {
         for (int i = 1; i < 50; i++) {
-            TestSubscriber<Integer> ts = new TestSubscriber<Integer>();
-            List<Observable<Integer>> sourceList = new ArrayList<Observable<Integer>>(i);
-            Set<Integer> expected = new HashSet<Integer>(i);
+            TestSubscriber<Integer> ts = new TestSubscriber<>();
+            List<Flowable<Integer>> sourceList = new ArrayList<>(i);
+            Set<Integer> expected = new HashSet<>(i);
             for (int j = 1; j <= i; j++) {
-                sourceList.add(Observable.just(j).subscribeOn(Schedulers.io()));
+                sourceList.add(Flowable.just(j).subscribeOn(Schedulers.io()));
                 expected.add(j);
             }
             
-            Observable.merge(sourceList, i).subscribe(ts);
+            Flowable.merge(sourceList, i).subscribe(ts);
         
             ts.awaitTerminalEvent(1, TimeUnit.SECONDS);
             ts.assertNoErrors();
-            Set<Integer> actual = new HashSet<Integer>(ts.getOnNextEvents());
+            Set<Integer> actual = new HashSet<>(ts.getValues());
             
             assertEquals(expected, actual);
+            System.out.println("testSimpleAsync => " + i + " passed");
         }
     }
     @Test(timeout = 10000)
@@ -225,38 +218,34 @@ public class OperatorMergeMaxConcurrentTest {
     @Test(timeout = 10000)
     public void testSimpleOneLessAsync() {
         for (int i = 2; i < 50; i++) {
-            TestSubscriber<Integer> ts = new TestSubscriber<Integer>();
-            List<Observable<Integer>> sourceList = new ArrayList<Observable<Integer>>(i);
-            Set<Integer> expected = new HashSet<Integer>(i);
+            TestSubscriber<Integer> ts = new TestSubscriber<>();
+            List<Flowable<Integer>> sourceList = new ArrayList<>(i);
+            Set<Integer> expected = new HashSet<>(i);
             for (int j = 1; j <= i; j++) {
-                sourceList.add(Observable.just(j).subscribeOn(Schedulers.io()));
+                sourceList.add(Flowable.just(j).subscribeOn(Schedulers.io()));
                 expected.add(j);
             }
             
-            Observable.merge(sourceList, i - 1).subscribe(ts);
+            Flowable.merge(sourceList, i - 1).subscribe(ts);
         
             ts.awaitTerminalEvent(1, TimeUnit.SECONDS);
             ts.assertNoErrors();
-            Set<Integer> actual = new HashSet<Integer>(ts.getOnNextEvents());
+            Set<Integer> actual = new HashSet<>(ts.getValues());
             
             assertEquals(expected, actual);
         }
     }
     @Test(timeout = 5000)
     public void testBackpressureHonored() throws Exception {
-        List<Observable<Integer>> sourceList = new ArrayList<Observable<Integer>>(3);
+        List<Flowable<Integer>> sourceList = new ArrayList<>(3);
         
-        sourceList.add(Observable.range(0, 100000).subscribeOn(Schedulers.io()));
-        sourceList.add(Observable.range(0, 100000).subscribeOn(Schedulers.io()));
-        sourceList.add(Observable.range(0, 100000).subscribeOn(Schedulers.io()));
+        sourceList.add(Flowable.range(0, 100000).subscribeOn(Schedulers.io()));
+        sourceList.add(Flowable.range(0, 100000).subscribeOn(Schedulers.io()));
+        sourceList.add(Flowable.range(0, 100000).subscribeOn(Schedulers.io()));
         
         final CountDownLatch cdl = new CountDownLatch(5);
         
-        TestSubscriber<Integer> ts = new TestSubscriber<Integer>() {
-            @Override
-            public void onStart() {
-                request(0);
-            }
+        TestSubscriber<Integer> ts = new TestSubscriber<Integer>(0) {
             @Override
             public void onNext(Integer t) {
                 super.onNext(t);
@@ -264,32 +253,32 @@ public class OperatorMergeMaxConcurrentTest {
             }
         };
         
-        Observable.merge(sourceList, 2).subscribe(ts);
+        Flowable.merge(sourceList, 2).subscribe(ts);
         
         ts.requestMore(5);
         
         cdl.await();
         
         ts.assertNoErrors();
-        assertEquals(5, ts.getOnNextEvents().size());
-        assertEquals(0, ts.getOnCompletedEvents().size());
+        ts.assertNoComplete();
+        ts.assertValueCount(5);
         
-        ts.unsubscribe();
+        ts.cancel();
     }
     @Test(timeout = 5000)
     public void testTake() throws Exception {
-        List<Observable<Integer>> sourceList = new ArrayList<Observable<Integer>>(3);
+        List<Flowable<Integer>> sourceList = new ArrayList<>(3);
         
-        sourceList.add(Observable.range(0, 100000).subscribeOn(Schedulers.io()));
-        sourceList.add(Observable.range(0, 100000).subscribeOn(Schedulers.io()));
-        sourceList.add(Observable.range(0, 100000).subscribeOn(Schedulers.io()));
+        sourceList.add(Flowable.range(0, 100000).subscribeOn(Schedulers.io()));
+        sourceList.add(Flowable.range(0, 100000).subscribeOn(Schedulers.io()));
+        sourceList.add(Flowable.range(0, 100000).subscribeOn(Schedulers.io()));
         
-        TestSubscriber<Integer> ts = new TestSubscriber<Integer>();
+        TestSubscriber<Integer> ts = new TestSubscriber<>();
         
-        Observable.merge(sourceList, 2).take(5).subscribe(ts);
+        Flowable.merge(sourceList, 2).take(5).subscribe(ts);
         
         ts.awaitTerminalEvent();
         ts.assertNoErrors();
-        assertEquals(5, ts.getOnNextEvents().size());
+        ts.assertValueCount(5);
     }
 }

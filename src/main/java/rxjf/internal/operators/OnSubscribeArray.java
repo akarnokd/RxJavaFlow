@@ -34,7 +34,7 @@ public final class OnSubscribeArray<T> implements OnSubscribe<T> {
     @Override
     public void accept(Subscriber<? super T> t) {
         if (array.length == 0) {
-            t.onSubscribe(AbstractSubscription.createEmpty(t));
+            AbstractSubscription.setEmptyOn(t);
             t.onComplete();
             return;
         }

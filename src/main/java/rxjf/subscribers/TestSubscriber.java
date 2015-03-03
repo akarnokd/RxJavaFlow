@@ -35,17 +35,42 @@ public class TestSubscriber<T> implements Subscriber<T> {
     final Subscriber<? super T> actual;
     final CountDownLatch latch = new CountDownLatch(1);
     final long initialRequest;
+    /**
+     * Constructs a new TestSubscriber with no underlying subscriber and
+     * an initial request amount of Long.MAX_VALUE.
+     */
     public TestSubscriber() {
         this(null, Long.MAX_VALUE);
     }
+    /**
+     * Constructs a new TestSubscriber with the given subscriber to forward
+     * events to and an initial request amount of Long.MAX_VALUE.
+     * @param actual the actual subscriber
+     */
     public TestSubscriber(Subscriber<? super T> actual) {
         this(actual, Long.MAX_VALUE);
     }
+    /**
+     * Constructs a new TestSubscriber with no underlying subscriber and
+     * an the given initial request amount.
+     * @param initialRequest the initial request amount, 0 means no initial request will
+     * be made and one must call requestMore to signal the first request.
+     */
     public TestSubscriber(long initialRequest) {
         this(null, initialRequest);
     }
+    /**
+     * Constructs a new TestSubscriber with the given subscriber to forward
+     * events to and the given initial request amount.
+     * @param actual the actual subscriber or null if none
+     * @param initialRequest the initial request amount, 0 means no initial request will
+     * be made and one must call requestMore to signal the first request.
+     */
     public TestSubscriber(Subscriber<? super T> actual, long initialRequest) {
         this.actual = actual;
+        if (initialRequest < 0) {
+            throw new IllegalArgumentException("initialRequest >= 0 required");
+        }
         this.initialRequest = initialRequest;
     }
     @Override
@@ -69,8 +94,9 @@ public class TestSubscriber<T> implements Subscriber<T> {
         s.request(n);
     }
     public final void cancel() {
-        Conformance.subscriptionNonNull(s);
-        s.cancel();
+        Subscription s2 = s;
+        Conformance.subscriptionNonNull(s2);
+        s2.cancel();
     }
     
     @Override
@@ -151,6 +177,11 @@ public class TestSubscriber<T> implements Subscriber<T> {
         }
     }
     
+    /**
+     * Assert if either a single onComplete or onError happened.
+     * @throws AssertionError if either no terminal events received, multiple errors
+     * or multiple completion events received
+     */
     public final void assertTerminalEvent() {
         if (errors.isEmpty() && complete == 0) {
             throw new AssertionError("No terminal event(s)");
@@ -261,15 +292,39 @@ public class TestSubscriber<T> implements Subscriber<T> {
             throw new RuntimeException(ex);
         }
     }
+    /**
+     * Awaits the terminal events and returns false if timeout happens.
+     * @param time
+     * @param unit
+     * @return false if timeout happened
+     */
+    public final boolean await(long time, TimeUnit unit) {
+        try {
+            return latch.await(time, unit);
+        } catch (InterruptedException ex) {
+            throw new RuntimeException(ex);
+        }
+    }
     public final List<Throwable> getErrors() {
         return errors;
     }
     public final List<T> getValues() {
         return nexts;
     }
+    public final int getCompletions() {
+        return complete;
+    }
+    /**
+     * @deprecated use {@link #getValues()} instead
+     */
+    @Deprecated
     public final List<T> getOnNextEvents() {
         return nexts;
     }
+    /**
+     * @deprecated use {@link #getErrors()} instead
+     */
+    @Deprecated
     public final List<Throwable> getOnErrorEvents() {
         return errors;
     }

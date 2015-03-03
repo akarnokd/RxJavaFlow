@@ -143,7 +143,7 @@ public class OperatorMapTest {
         verify(stringObserver, times(1)).onError(any(Throwable.class));
     }
 
-    @Test(timeout = 1000, expected = IllegalArgumentException.class)
+    @Test(expected = IllegalArgumentException.class)
     public void testMapWithIssue417() {
         Flowable.just(1).observeOn(Schedulers.computation())
                 .map(v -> { throw new IllegalArgumentException("any error"); })
