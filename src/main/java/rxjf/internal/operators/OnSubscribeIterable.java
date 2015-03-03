@@ -62,10 +62,11 @@ public final class OnSubscribeIterable<T> implements OnSubscribe<T> {
                 if (!it.hasNext()) {
                     t.onComplete();
                     break;
-                } else {
+                } else 
+                if (c > 0) {
                     r0 = s.produced(c);
                 }
-                if (r0 == 0) {
+                if (r0 <= 0) {
                     break;
                 }
             }

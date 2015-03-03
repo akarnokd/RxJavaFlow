@@ -15,31 +15,31 @@
  */
 package rx.internal.operators;
 
-import rx.Observable;
-import rx.Observable.OnSubscribe;
+import rx.Flowable;
+import rx.Flowable.OnSubscribe;
 import rx.Subscriber;
 import rx.functions.Func0;
 
 /**
- * Do not create the Observable until an Observer subscribes; create a fresh Observable on each
+ * Do not create the Flowable until an Observer subscribes; create a fresh Flowable on each
  * subscription.
  * <p>
  * <img width="640" src="https://github.com/ReactiveX/RxJava/wiki/images/rx-operators/defer.png" alt="">
  * <p>
- * Pass defer an Observable factory function (a function that generates Observables), and defer will
- * return an Observable that will call this function to generate its Observable sequence afresh
+ * Pass defer an Flowable factory function (a function that generates Flowables), and defer will
+ * return an Flowable that will call this function to generate its Flowable sequence afresh
  * each time a new Observer subscribes.
  */
 public final class OnSubscribeDefer<T> implements OnSubscribe<T> {
-    final Func0<? extends Observable<? extends T>> observableFactory;
+    final Func0<? extends Flowable<? extends T>> observableFactory;
 
-    public OnSubscribeDefer(Func0<? extends Observable<? extends T>> observableFactory) {
+    public OnSubscribeDefer(Func0<? extends Flowable<? extends T>> observableFactory) {
         this.observableFactory = observableFactory;
     }
 
     @Override
     public void call(Subscriber<? super T> s) {
-        Observable<? extends T> o;
+        Flowable<? extends T> o;
         try {
             o = observableFactory.call();
         } catch (Throwable t) {

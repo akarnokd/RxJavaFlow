@@ -18,8 +18,8 @@ package rx.internal.operators;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-import rx.Observable;
-import rx.Observable.Operator;
+import rx.Flowable;
+import rx.Flowable.Operator;
 import rx.Observer;
 import rx.Subscriber;
 import rx.functions.Func0;
@@ -33,17 +33,17 @@ import rx.observers.Subscribers;
  * @param <T> the value type
  * @param <U> the boundary value type
  */
-public final class OperatorWindowWithObservable<T, U> implements Operator<Observable<T>, T> {
-    final Func0<? extends Observable<? extends U>> otherFactory;
+public final class OperatorWindowWithFlowable<T, U> implements Operator<Flowable<T>, T> {
+    final Func0<? extends Flowable<? extends U>> otherFactory;
 
-    public OperatorWindowWithObservable(Func0<? extends Observable<? extends U>> otherFactory) {
+    public OperatorWindowWithFlowable(Func0<? extends Flowable<? extends U>> otherFactory) {
         this.otherFactory = otherFactory;
     }
-    public OperatorWindowWithObservable(final Observable<U> other) {
-        this.otherFactory = new Func0<Observable<U>>() {
+    public OperatorWindowWithFlowable(final Flowable<U> other) {
+        this.otherFactory = new Func0<Flowable<U>>() {
 
             @Override
-            public Observable<U> call() {
+            public Flowable<U> call() {
                 return other;
             }
             
@@ -51,9 +51,9 @@ public final class OperatorWindowWithObservable<T, U> implements Operator<Observ
     }
     
     @Override
-    public Subscriber<? super T> call(Subscriber<? super Observable<T>> child) {
+    public Subscriber<? super T> call(Subscriber<? super Flowable<T>> child) {
         
-        Observable<? extends U> other;
+        Flowable<? extends U> other;
         try {
             other = otherFactory.call();
         } catch (Throwable e) {
@@ -76,20 +76,20 @@ public final class OperatorWindowWithObservable<T, U> implements Operator<Observ
     static final NotificationLite<Object> nl = NotificationLite.instance();
     /** Observes the source. */
     static final class SourceSubscriber<T> extends Subscriber<T> {
-        final Subscriber<? super Observable<T>> child;
+        final Subscriber<? super Flowable<T>> child;
         final Object guard;
         /** Accessed from the serialized part. */
         Observer<T> consumer;
         /** Accessed from the serialized part. */
-        Observable<T> producer;
+        Flowable<T> producer;
         /** Guarded by guard. */
         boolean emitting;
         /** Guarded by guard. */
         List<Object> queue;
         
-        public SourceSubscriber(Subscriber<? super Observable<T>> child) {
+        public SourceSubscriber(Subscriber<? super Flowable<T>> child) {
             super(child);
-            this.child = new SerializedSubscriber<Observable<T>>(child);
+            this.child = new SerializedSubscriber<Flowable<T>>(child);
             this.guard = new Object();
         }
         
@@ -167,7 +167,7 @@ public final class OperatorWindowWithObservable<T, U> implements Operator<Observ
         void replaceSubject() {
             Observer<T> s = consumer;
             if (s != null) {
-                s.onCompleted();
+                s.onComplete();
             }
             createNewWindow();
             child.onNext(producer);
@@ -198,7 +198,7 @@ public final class OperatorWindowWithObservable<T, U> implements Operator<Observ
         }
 
         @Override
-        public void onCompleted() {
+        public void onComplete() {
             List<Object> localQueue;
             synchronized (guard) {
                 if (emitting) {
@@ -267,9 +267,9 @@ public final class OperatorWindowWithObservable<T, U> implements Operator<Observ
             producer = null;
             
             if (s != null) {
-                s.onCompleted();
+                s.onComplete();
             }
-            child.onCompleted();
+            child.onComplete();
             unsubscribe();
         }
         void error(Throwable e) {
@@ -308,8 +308,8 @@ public final class OperatorWindowWithObservable<T, U> implements Operator<Observ
         }
 
         @Override
-        public void onCompleted() {
-            sub.onCompleted();
+        public void onComplete() {
+            sub.onComplete();
         }
     }
 }

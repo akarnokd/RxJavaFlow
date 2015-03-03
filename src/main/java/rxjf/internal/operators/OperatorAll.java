@@ -15,20 +15,20 @@
  */
 package rx.internal.operators;
 
-import rx.Observable.Operator;
+import rx.Flowable.Operator;
 import rx.Subscriber;
-import rx.functions.Func1;
+import rx.functions.Function;
 
 /**
- * Returns an Observable that emits a Boolean that indicates whether all items emitted by an
- * Observable satisfy a condition.
+ * Returns an Flowable that emits a Boolean that indicates whether all items emitted by an
+ * Flowable satisfy a condition.
  * <p>
  * <img width="640" src="https://github.com/ReactiveX/RxJava/wiki/images/rx-operators/all.png" alt="">
  */
 public final class OperatorAll<T> implements Operator<Boolean, T> {
-    private final Func1<? super T, Boolean> predicate;
+    private final Function<? super T, Boolean> predicate;
 
-    public OperatorAll(Func1<? super T, Boolean> predicate) {
+    public OperatorAll(Function<? super T, Boolean> predicate) {
         this.predicate = predicate;
     }
 
@@ -43,7 +43,7 @@ public final class OperatorAll<T> implements Operator<Boolean, T> {
                 if (!result && !done) {
                     done = true;
                     child.onNext(false);
-                    child.onCompleted();
+                    child.onComplete();
                     unsubscribe();
                 } else {
                 	// if we drop values we must replace them upstream as downstream won't receive and request more
@@ -57,11 +57,11 @@ public final class OperatorAll<T> implements Operator<Boolean, T> {
             }
 
             @Override
-            public void onCompleted() {
+            public void onComplete() {
                 if (!done) {
                     done = true;
                     child.onNext(true);
-                    child.onCompleted();
+                    child.onComplete();
                 }
             }
         };

@@ -19,24 +19,24 @@ import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
-import rx.Observable;
-import rx.Observable.Operator;
+import rx.Flowable;
+import rx.Flowable.Operator;
 import rx.Observer;
 import rx.Subscriber;
-import rx.functions.Func1;
+import rx.functions.Function;
 import rx.observers.SerializedSubscriber;
 import rx.subscriptions.CompositeSubscription;
 
 /**
  * This operation takes
- * values from the specified {@link Observable} source and stores them in the currently active chunks.
+ * values from the specified {@link Flowable} source and stores them in the currently active chunks.
  * Initially there are no chunks active.
  * <p>
  * Chunks can be created by pushing a {@code TOpening} value to the "bufferOpenings"
- * {@link Observable}. This creates a new buffer which will then start recording values which are produced
- * by the "source" {@link Observable}. Additionally the "bufferClosingSelector" will be used to construct an
- * {@link Observable} which can produce values. When it does so it will close this (and only this) newly
- * created buffer. When the source {@link Observable} completes or produces an error, all chunks are
+ * {@link Flowable}. This creates a new buffer which will then start recording values which are produced
+ * by the "source" {@link Flowable}. Additionally the "bufferClosingSelector" will be used to construct an
+ * {@link Flowable} which can produce values. When it does so it will close this (and only this) newly
+ * created buffer. When the source {@link Flowable} completes or produces an error, all chunks are
  * emitted, and the event is propagated to all subscribed {@link Observer}s.
  * </p><p>
  * Note that when using this operation <strong>multiple overlapping chunks</strong> could be active at any
@@ -46,19 +46,19 @@ import rx.subscriptions.CompositeSubscription;
  * @param <T> the buffered value type
  */
 
-public final class OperatorBufferWithStartEndObservable<T, TOpening, TClosing> implements Operator<List<T>, T> {
-    final Observable<? extends TOpening> bufferOpening;
-    final Func1<? super TOpening, ? extends Observable<? extends TClosing>> bufferClosing;
+public final class OperatorBufferWithStartEndFlowable<T, TOpening, TClosing> implements Operator<List<T>, T> {
+    final Flowable<? extends TOpening> bufferOpening;
+    final Function<? super TOpening, ? extends Flowable<? extends TClosing>> bufferClosing;
 
     /**
      * @param bufferOpenings
-     *            an {@link Observable} which when it produces a {@code TOpening} value will create a
-     *            new buffer which instantly starts recording the "source" {@link Observable}
+     *            an {@link Flowable} which when it produces a {@code TOpening} value will create a
+     *            new buffer which instantly starts recording the "source" {@link Flowable}
      * @param bufferClosingSelector
-     *            a {@link Func1} object which produces {@link Observable}s. These {@link Observable}s determine
+     *            a {@link Function} object which produces {@link Flowable}s. These {@link Flowable}s determine
      *            when a buffer is emitted and replaced by simply producing an object.
      */
-    public OperatorBufferWithStartEndObservable(Observable<? extends TOpening> bufferOpenings, Func1<? super TOpening, ? extends Observable<? extends TClosing>> bufferClosingSelector) {
+    public OperatorBufferWithStartEndFlowable(Flowable<? extends TOpening> bufferOpenings, Function<? super TOpening, ? extends Flowable<? extends TClosing>> bufferClosingSelector) {
         this.bufferOpening = bufferOpenings;
         this.bufferClosing = bufferClosingSelector;
     }
@@ -81,8 +81,8 @@ public final class OperatorBufferWithStartEndObservable<T, TOpening, TClosing> i
             }
 
             @Override
-            public void onCompleted() {
-                bsub.onCompleted();
+            public void onComplete() {
+                bsub.onComplete();
             }
             
         };
@@ -130,7 +130,7 @@ public final class OperatorBufferWithStartEndObservable<T, TOpening, TClosing> i
         }
 
         @Override
-        public void onCompleted() {
+        public void onComplete() {
             try {
                 List<List<T>> toEmit;
                 synchronized (this) {
@@ -148,7 +148,7 @@ public final class OperatorBufferWithStartEndObservable<T, TOpening, TClosing> i
                 child.onError(t);
                 return;
             }
-            child.onCompleted();
+            child.onComplete();
             unsubscribe();
         }
         void startBuffer(TOpening v) {
@@ -159,7 +159,7 @@ public final class OperatorBufferWithStartEndObservable<T, TOpening, TClosing> i
                 }
                 chunks.add(chunk);
             }
-            Observable<? extends TClosing> cobs;
+            Flowable<? extends TClosing> cobs;
             try {
                 cobs = bufferClosing.call(v);
             } catch (Throwable t) {
@@ -180,7 +180,7 @@ public final class OperatorBufferWithStartEndObservable<T, TOpening, TClosing> i
                 }
 
                 @Override
-                public void onCompleted() {
+                public void onComplete() {
                     closingSubscriptions.remove(this);
                     endBuffer(chunk);
                 }

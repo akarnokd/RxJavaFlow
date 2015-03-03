@@ -26,17 +26,17 @@ import static org.mockito.Mockito.verify;
 import org.junit.Test;
 import org.mockito.InOrder;
 
-import rx.Observable;
+import rx.Flowable;
 import rx.Observer;
-import rx.functions.Func1;
-import rx.functions.Func2;
+import rx.functions.Function;
+import rx.functions.BiFunction;
 
 public class OperatorSkipWhileTest {
 
     @SuppressWarnings("unchecked")
     Observer<Integer> w = mock(Observer.class);
 
-    private static final Func1<Integer, Boolean> LESS_THAN_FIVE = new Func1<Integer, Boolean>() {
+    private static final Function<Integer, Boolean> LESS_THAN_FIVE = new Function<Integer, Boolean>() {
         @Override
         public Boolean call(Integer v) {
             if (v == 42)
@@ -45,7 +45,7 @@ public class OperatorSkipWhileTest {
         }
     };
 
-    private static final Func1<Integer, Boolean> INDEX_LESS_THAN_THREE = new Func1<Integer, Boolean>() {
+    private static final Function<Integer, Boolean> INDEX_LESS_THAN_THREE = new Function<Integer, Boolean>() {
         int index = 0;
         @Override
         public Boolean call(Integer value) {
@@ -55,50 +55,50 @@ public class OperatorSkipWhileTest {
 
     @Test
     public void testSkipWithIndex() {
-        Observable<Integer> src = Observable.just(1, 2, 3, 4, 5);
+        Flowable<Integer> src = Flowable.just(1, 2, 3, 4, 5);
         src.skipWhile(INDEX_LESS_THAN_THREE).subscribe(w);
 
         InOrder inOrder = inOrder(w);
         inOrder.verify(w, times(1)).onNext(4);
         inOrder.verify(w, times(1)).onNext(5);
-        inOrder.verify(w, times(1)).onCompleted();
+        inOrder.verify(w, times(1)).onComplete();
         inOrder.verify(w, never()).onError(any(Throwable.class));
     }
 
     @Test
     public void testSkipEmpty() {
-        Observable<Integer> src = Observable.empty();
+        Flowable<Integer> src = Flowable.empty();
         src.skipWhile(LESS_THAN_FIVE).subscribe(w);
         verify(w, never()).onNext(anyInt());
         verify(w, never()).onError(any(Throwable.class));
-        verify(w, times(1)).onCompleted();
+        verify(w, times(1)).onComplete();
     }
 
     @Test
     public void testSkipEverything() {
-        Observable<Integer> src = Observable.just(1, 2, 3, 4, 3, 2, 1);
+        Flowable<Integer> src = Flowable.just(1, 2, 3, 4, 3, 2, 1);
         src.skipWhile(LESS_THAN_FIVE).subscribe(w);
         verify(w, never()).onNext(anyInt());
         verify(w, never()).onError(any(Throwable.class));
-        verify(w, times(1)).onCompleted();
+        verify(w, times(1)).onComplete();
     }
 
     @Test
     public void testSkipNothing() {
-        Observable<Integer> src = Observable.just(5, 3, 1);
+        Flowable<Integer> src = Flowable.just(5, 3, 1);
         src.skipWhile(LESS_THAN_FIVE).subscribe(w);
 
         InOrder inOrder = inOrder(w);
         inOrder.verify(w, times(1)).onNext(5);
         inOrder.verify(w, times(1)).onNext(3);
         inOrder.verify(w, times(1)).onNext(1);
-        inOrder.verify(w, times(1)).onCompleted();
+        inOrder.verify(w, times(1)).onComplete();
         inOrder.verify(w, never()).onError(any(Throwable.class));
     }
 
     @Test
     public void testSkipSome() {
-        Observable<Integer> src = Observable.just(1, 2, 3, 4, 5, 3, 1, 5);
+        Flowable<Integer> src = Flowable.just(1, 2, 3, 4, 5, 3, 1, 5);
         src.skipWhile(LESS_THAN_FIVE).subscribe(w);
 
         InOrder inOrder = inOrder(w);
@@ -106,24 +106,24 @@ public class OperatorSkipWhileTest {
         inOrder.verify(w, times(1)).onNext(3);
         inOrder.verify(w, times(1)).onNext(1);
         inOrder.verify(w, times(1)).onNext(5);
-        inOrder.verify(w, times(1)).onCompleted();
+        inOrder.verify(w, times(1)).onComplete();
         inOrder.verify(w, never()).onError(any(Throwable.class));
     }
 
     @Test
     public void testSkipError() {
-        Observable<Integer> src = Observable.just(1, 2, 42, 5, 3, 1);
+        Flowable<Integer> src = Flowable.just(1, 2, 42, 5, 3, 1);
         src.skipWhile(LESS_THAN_FIVE).subscribe(w);
 
         InOrder inOrder = inOrder(w);
         inOrder.verify(w, never()).onNext(anyInt());
-        inOrder.verify(w, never()).onCompleted();
+        inOrder.verify(w, never()).onComplete();
         inOrder.verify(w, times(1)).onError(any(RuntimeException.class));
     }
     
     @Test
     public void testSkipManySubscribers() {
-        Observable<Integer> src = Observable.range(1, 10).skipWhile(LESS_THAN_FIVE);
+        Flowable<Integer> src = Flowable.range(1, 10).skipWhile(LESS_THAN_FIVE);
         int n = 5;
         for (int i = 0; i < n; i++) {
             @SuppressWarnings("unchecked")
@@ -135,7 +135,7 @@ public class OperatorSkipWhileTest {
             for (int j = 5; j < 10; j++) {
                 inOrder.verify(o).onNext(j);
             } 
-            inOrder.verify(o).onCompleted();
+            inOrder.verify(o).onComplete();
             verify(o, never()).onError(any(Throwable.class));
         }
     }

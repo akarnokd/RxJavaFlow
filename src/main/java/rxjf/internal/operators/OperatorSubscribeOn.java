@@ -47,7 +47,7 @@ public final class OperatorSubscribeOn<T> implements Operator<T, Flowable<T>> {
             
             @Override
             public void onComplete() {
-                // ignore because this is a nested Observable and we expect only 1 Observable<T> emitted to onNext
+                // ignore because this is a nested Flowable and we expect only 1 Flowable<T> emitted to onNext
             }
 
             @Override

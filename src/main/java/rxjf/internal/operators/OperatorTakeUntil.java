@@ -15,22 +15,22 @@
  */
 package rx.internal.operators;
 
-import rx.Observable;
-import rx.Observable.Operator;
+import rx.Flowable;
+import rx.Flowable.Operator;
 import rx.Subscriber;
 import rx.observers.SerializedSubscriber;
 
 /**
- * Returns an Observable that emits the items from the source Observable until another Observable
+ * Returns an Flowable that emits the items from the source Flowable until another Flowable
  * emits an item.
  * <p>
  * <img width="640" src="https://github.com/ReactiveX/RxJava/wiki/images/rx-operators/takeUntil.png" alt="">
  */
 public final class OperatorTakeUntil<T, E> implements Operator<T, T> {
 
-    private final Observable<? extends E> other;
+    private final Flowable<? extends E> other;
 
-    public OperatorTakeUntil(final Observable<? extends E> other) {
+    public OperatorTakeUntil(final Flowable<? extends E> other) {
         this.other = other;
     }
 
@@ -41,8 +41,8 @@ public final class OperatorTakeUntil<T, E> implements Operator<T, T> {
         other.unsafeSubscribe(new Subscriber<E>(child) {
 
             @Override
-            public void onCompleted() {
-                parent.onCompleted();
+            public void onComplete() {
+                parent.onComplete();
             }
 
             @Override
@@ -52,7 +52,7 @@ public final class OperatorTakeUntil<T, E> implements Operator<T, T> {
 
             @Override
             public void onNext(E t) {
-                parent.onCompleted();
+                parent.onComplete();
             }
 
         });

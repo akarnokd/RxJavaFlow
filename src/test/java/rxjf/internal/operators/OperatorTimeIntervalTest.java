@@ -26,7 +26,7 @@ import org.mockito.InOrder;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 
-import rx.Observable;
+import rx.Flowable;
 import rx.Observer;
 import rx.schedulers.TestScheduler;
 import rx.schedulers.TimeInterval;
@@ -41,7 +41,7 @@ public class OperatorTimeIntervalTest {
 
     private TestScheduler testScheduler;
     private PublishSubject<Integer> subject;
-    private Observable<TimeInterval<Integer>> observable;
+    private Flowable<TimeInterval<Integer>> observable;
 
     @Before
     public void setUp() {
@@ -62,7 +62,7 @@ public class OperatorTimeIntervalTest {
         subject.onNext(2);
         testScheduler.advanceTimeBy(3000, TIME_UNIT);
         subject.onNext(3);
-        subject.onCompleted();
+        subject.onComplete();
 
         inOrder.verify(observer, times(1)).onNext(
                 new TimeInterval<Integer>(1000, 1));
@@ -70,7 +70,7 @@ public class OperatorTimeIntervalTest {
                 new TimeInterval<Integer>(2000, 2));
         inOrder.verify(observer, times(1)).onNext(
                 new TimeInterval<Integer>(3000, 3));
-        inOrder.verify(observer, times(1)).onCompleted();
+        inOrder.verify(observer, times(1)).onComplete();
         inOrder.verifyNoMoreInteractions();
     }
 }

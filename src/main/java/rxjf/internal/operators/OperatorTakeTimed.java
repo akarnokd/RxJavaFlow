@@ -16,7 +16,7 @@
 package rx.internal.operators;
 
 import java.util.concurrent.TimeUnit;
-import rx.Observable.Operator;
+import rx.Flowable.Operator;
 import rx.Scheduler;
 import rx.Scheduler.Worker;
 import rx.Subscriber;
@@ -69,14 +69,14 @@ public final class OperatorTakeTimed<T> implements Operator<T, T> {
         }
 
         @Override
-        public void onCompleted() {
-            child.onCompleted();
+        public void onComplete() {
+            child.onComplete();
             unsubscribe();
         }
 
         @Override
         public void call() {
-            onCompleted();
+            onComplete();
         }
         
         

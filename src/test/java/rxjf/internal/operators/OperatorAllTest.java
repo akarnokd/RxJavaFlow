@@ -24,17 +24,17 @@ import java.util.concurrent.TimeUnit;
 import org.junit.Test;
 
 import rx.*;
-import rx.functions.Func1;
+import rx.functions.Function;
 
 public class OperatorAllTest {
 
     @Test
     @SuppressWarnings("unchecked")
     public void testAll() {
-        Observable<String> obs = Observable.just("one", "two", "six");
+        Flowable<String> obs = Flowable.just("one", "two", "six");
 
         Observer<Boolean> observer = mock(Observer.class);
-        obs.all(new Func1<String, Boolean>() {
+        obs.all(new Function<String, Boolean>() {
             @Override
             public Boolean call(String s) {
                 return s.length() == 3;
@@ -42,17 +42,17 @@ public class OperatorAllTest {
         }).subscribe(observer);
 
         verify(observer).onNext(true);
-        verify(observer).onCompleted();
+        verify(observer).onComplete();
         verifyNoMoreInteractions(observer);
     }
 
     @Test
     @SuppressWarnings("unchecked")
     public void testNotAll() {
-        Observable<String> obs = Observable.just("one", "two", "three", "six");
+        Flowable<String> obs = Flowable.just("one", "two", "three", "six");
 
         Observer<Boolean> observer = mock(Observer.class);
-        obs.all(new Func1<String, Boolean>() {
+        obs.all(new Function<String, Boolean>() {
             @Override
             public Boolean call(String s) {
                 return s.length() == 3;
@@ -60,17 +60,17 @@ public class OperatorAllTest {
         }).subscribe(observer);
 
         verify(observer).onNext(false);
-        verify(observer).onCompleted();
+        verify(observer).onComplete();
         verifyNoMoreInteractions(observer);
     }
 
     @Test
     @SuppressWarnings("unchecked")
     public void testEmpty() {
-        Observable<String> obs = Observable.empty();
+        Flowable<String> obs = Flowable.empty();
 
         Observer<Boolean> observer = mock(Observer.class);
-        obs.all(new Func1<String, Boolean>() {
+        obs.all(new Function<String, Boolean>() {
             @Override
             public Boolean call(String s) {
                 return s.length() == 3;
@@ -78,7 +78,7 @@ public class OperatorAllTest {
         }).subscribe(observer);
 
         verify(observer).onNext(true);
-        verify(observer).onCompleted();
+        verify(observer).onComplete();
         verifyNoMoreInteractions(observer);
     }
 
@@ -86,10 +86,10 @@ public class OperatorAllTest {
     @SuppressWarnings("unchecked")
     public void testError() {
         Throwable error = new Throwable();
-        Observable<String> obs = Observable.error(error);
+        Flowable<String> obs = Flowable.error(error);
 
         Observer<Boolean> observer = mock(Observer.class);
-        obs.all(new Func1<String, Boolean>() {
+        obs.all(new Function<String, Boolean>() {
             @Override
             public Boolean call(String s) {
                 return s.length() == 3;
@@ -102,8 +102,8 @@ public class OperatorAllTest {
 
     @Test
     public void testFollowingFirst() {
-        Observable<Integer> o = Observable.from(Arrays.asList(1, 3, 5, 6));
-        Observable<Boolean> allOdd = o.all(new Func1<Integer, Boolean>() {
+        Flowable<Integer> o = Flowable.from(Arrays.asList(1, 3, 5, 6));
+        Flowable<Boolean> allOdd = o.all(new Function<Integer, Boolean>() {
             @Override
             public Boolean call(Integer i) {
                 return i % 2 == 1;
@@ -113,17 +113,17 @@ public class OperatorAllTest {
     }
     @Test(timeout = 5000)
     public void testIssue1935NoUnsubscribeDownstream() {
-        Observable<Integer> source = Observable.just(1)
-            .all(new Func1<Object, Boolean>() {
+        Flowable<Integer> source = Flowable.just(1)
+            .all(new Function<Object, Boolean>() {
                 @Override
                 public Boolean call(Object t1) {
                     return false;
                 }
             })
-            .flatMap(new Func1<Boolean, Observable<Integer>>() {
+            .flatMap(new Function<Boolean, Flowable<Integer>>() {
                 @Override
-                public Observable<Integer> call(Boolean t1) {
-                    return Observable.just(2).delay(500, TimeUnit.MILLISECONDS);
+                public Flowable<Integer> call(Boolean t1) {
+                    return Flowable.just(2).delay(500, TimeUnit.MILLISECONDS);
                 }
         });
         assertEquals((Object)2, source.toBlocking().first());

@@ -15,12 +15,13 @@
  */
 package rxjf.internal.operators;
 
-import static org.mockito.Matchers.any;
+import static org.mockito.Matchers.*;
 import static org.mockito.Mockito.*;
 
 import java.util.*;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.*;
 
 import org.junit.*;
 
@@ -38,20 +39,9 @@ public class OperatorFlatMapTest {
 
         final List<Integer> list = Arrays.asList(1, 2, 3);
 
-        Func1<Integer, List<Integer>> func = new Func1<Integer, List<Integer>>() {
-            @Override
-            public List<Integer> call(Integer t1) {
-                return list;
-            }
-        };
-        Func2<Integer, Integer, Integer> resFunc = new Func2<Integer, Integer, Integer>() {
-
-            @Override
-            public Integer call(Integer t1, Integer t2) {
-                return t1 | t2;
-            }
-        };
-
+        Function<Integer, List<Integer>> func = t -> list;
+        BiFunction<Integer, Integer, Integer> resFunc = (t1, t2) -> t1 | t2;
+                ;
         List<Integer> source = Arrays.asList(16, 32, 64);
 
         Flowable.from(source).flatMapIterable(func, resFunc).subscribe(o);
@@ -61,7 +51,7 @@ public class OperatorFlatMapTest {
                 verify(o).onNext(s | v);
             }
         }
-        verify(o).onCompleted();
+        verify(o).onComplete();
         verify(o, never()).onError(any(Throwable.class));
     }
 
@@ -70,25 +60,14 @@ public class OperatorFlatMapTest {
         @SuppressWarnings("unchecked")
         Subscriber<Object> o = mock(Subscriber.class);
 
-        Func1<Integer, List<Integer>> func = new Func1<Integer, List<Integer>>() {
-            @Override
-            public List<Integer> call(Integer t1) {
-                throw new TestException();
-            }
-        };
-        Func2<Integer, Integer, Integer> resFunc = new Func2<Integer, Integer, Integer>() {
-
-            @Override
-            public Integer call(Integer t1, Integer t2) {
-                return t1 | t2;
-            }
-        };
+        Function<Integer, List<Integer>> func = t1 -> { throw new TestException(); };
+        BiFunction<Integer, Integer, Integer> resFunc = (t1, t2) -> t1 | t2;
 
         List<Integer> source = Arrays.asList(16, 32, 64);
 
         Flowable.from(source).flatMapIterable(func, resFunc).subscribe(o);
 
-        verify(o, never()).onCompleted();
+        verify(o, never()).onComplete();
         verify(o, never()).onNext(any());
         verify(o).onError(any(TestException.class));
     }
@@ -100,13 +79,13 @@ public class OperatorFlatMapTest {
 
         final List<Integer> list = Arrays.asList(1, 2, 3);
 
-        Func1<Integer, List<Integer>> func = new Func1<Integer, List<Integer>>() {
+        Function<Integer, List<Integer>> func = new Function<Integer, List<Integer>>() {
             @Override
             public List<Integer> call(Integer t1) {
                 return list;
             }
         };
-        Func2<Integer, Integer, Integer> resFunc = new Func2<Integer, Integer, Integer>() {
+        BiFunction<Integer, Integer, Integer> resFunc = new BiFunction<Integer, Integer, Integer>() {
 
             @Override
             public Integer call(Integer t1, Integer t2) {
@@ -118,7 +97,7 @@ public class OperatorFlatMapTest {
 
         Flowable.from(source).flatMapIterable(func, resFunc).subscribe(o);
 
-        verify(o, never()).onCompleted();
+        verify(o, never()).onComplete();
         verify(o, never()).onNext(any());
         verify(o).onError(any(TestException.class));
     }
@@ -128,13 +107,13 @@ public class OperatorFlatMapTest {
         @SuppressWarnings("unchecked")
         Subscriber<Object> o = mock(Subscriber.class);
 
-        Func1<Integer, Flowable<Integer>> func = new Func1<Integer, Flowable<Integer>>() {
+        Function<Integer, Flowable<Integer>> func = new Function<Integer, Flowable<Integer>>() {
             @Override
             public Flowable<Integer> call(Integer t1) {
                 return Flowable.error(new TestException());
             }
         };
-        Func2<Integer, Integer, Integer> resFunc = new Func2<Integer, Integer, Integer>() {
+        BiFunction<Integer, Integer, Integer> resFunc = new BiFunction<Integer, Integer, Integer>() {
 
             @Override
             public Integer call(Integer t1, Integer t2) {
@@ -146,13 +125,13 @@ public class OperatorFlatMapTest {
 
         Flowable.from(source).flatMap(func, resFunc).subscribe(o);
 
-        verify(o, never()).onCompleted();
+        verify(o, never()).onComplete();
         verify(o, never()).onNext(any());
         verify(o).onError(any(TestException.class));
     }
 
-    <T, R> Func1<T, R> just(final R value) {
-        return new Func1<T, R>() {
+    <T, R> Function<T, R> just(final R value) {
+        return new Function<T, R>() {
 
             @Override
             public R call(T t1) {
@@ -174,7 +153,7 @@ public class OperatorFlatMapTest {
     @Test
     public void testFlatMapTransformsNormal() {
         Flowable<Integer> onNext = Flowable.from(Arrays.asList(1, 2, 3));
-        Flowable<Integer> onCompleted = Flowable.from(Arrays.asList(4));
+        Flowable<Integer> onComplete() = Flowable.from(Arrays.asList(4));
         Flowable<Integer> onError = Flowable.from(Arrays.asList(5));
 
         Flowable<Integer> source = Flowable.from(Arrays.asList(10, 20, 30));
@@ -182,13 +161,13 @@ public class OperatorFlatMapTest {
         @SuppressWarnings("unchecked")
         Subscriber<Object> o = mock(Subscriber.class);
 
-        source.flatMap(just(onNext), just(onError), just0(onCompleted)).subscribe(o);
+        source.flatMap(just(onNext), just(onError), just0(onComplete())).subscribe(o);
 
         verify(o, times(3)).onNext(1);
         verify(o, times(3)).onNext(2);
         verify(o, times(3)).onNext(3);
         verify(o).onNext(4);
-        verify(o).onCompleted();
+        verify(o).onComplete();
 
         verify(o, never()).onNext(5);
         verify(o, never()).onError(any(Throwable.class));
@@ -197,7 +176,7 @@ public class OperatorFlatMapTest {
     @Test
     public void testFlatMapTransformsException() {
         Flowable<Integer> onNext = Flowable.from(Arrays.asList(1, 2, 3));
-        Flowable<Integer> onCompleted = Flowable.from(Arrays.asList(4));
+        Flowable<Integer> onComplete() = Flowable.from(Arrays.asList(4));
         Flowable<Integer> onError = Flowable.from(Arrays.asList(5));
 
         Flowable<Integer> source = Flowable.concat(
@@ -209,13 +188,13 @@ public class OperatorFlatMapTest {
         @SuppressWarnings("unchecked")
         Subscriber<Object> o = mock(Subscriber.class);
 
-        source.flatMap(just(onNext), just(onError), just0(onCompleted)).subscribe(o);
+        source.flatMap(just(onNext), just(onError), just0(onComplete())).subscribe(o);
 
         verify(o, times(3)).onNext(1);
         verify(o, times(3)).onNext(2);
         verify(o, times(3)).onNext(3);
         verify(o).onNext(5);
-        verify(o).onCompleted();
+        verify(o).onComplete();
         verify(o, never()).onNext(4);
 
         verify(o, never()).onError(any(Throwable.class));
@@ -230,8 +209,8 @@ public class OperatorFlatMapTest {
         };
     }
 
-    <T, R> Func1<T, R> funcThrow(T t, R r) {
-        return new Func1<T, R>() {
+    <T, R> Function<T, R> funcThrow(T t, R r) {
+        return new Function<T, R>() {
             @Override
             public R call(T t) {
                 throw new TestException();
@@ -241,7 +220,7 @@ public class OperatorFlatMapTest {
 
     @Test
     public void testFlatMapTransformsOnNextFuncThrows() {
-        Flowable<Integer> onCompleted = Flowable.from(Arrays.asList(4));
+        Flowable<Integer> onComplete() = Flowable.from(Arrays.asList(4));
         Flowable<Integer> onError = Flowable.from(Arrays.asList(5));
 
         Flowable<Integer> source = Flowable.from(Arrays.asList(10, 20, 30));
@@ -249,17 +228,17 @@ public class OperatorFlatMapTest {
         @SuppressWarnings("unchecked")
         Subscriber<Object> o = mock(Subscriber.class);
 
-        source.flatMap(funcThrow(1, onError), just(onError), just0(onCompleted)).subscribe(o);
+        source.flatMap(funcThrow(1, onError), just(onError), just0(onComplete())).subscribe(o);
 
         verify(o).onError(any(TestException.class));
         verify(o, never()).onNext(any());
-        verify(o, never()).onCompleted();
+        verify(o, never()).onComplete();
     }
 
     @Test
     public void testFlatMapTransformsOnErrorFuncThrows() {
         Flowable<Integer> onNext = Flowable.from(Arrays.asList(1, 2, 3));
-        Flowable<Integer> onCompleted = Flowable.from(Arrays.asList(4));
+        Flowable<Integer> onComplete() = Flowable.from(Arrays.asList(4));
         Flowable<Integer> onError = Flowable.from(Arrays.asList(5));
 
         Flowable<Integer> source = Flowable.error(new TestException());
@@ -267,17 +246,17 @@ public class OperatorFlatMapTest {
         @SuppressWarnings("unchecked")
         Subscriber<Object> o = mock(Subscriber.class);
 
-        source.flatMap(just(onNext), funcThrow((Throwable) null, onError), just0(onCompleted)).subscribe(o);
+        source.flatMap(just(onNext), funcThrow((Throwable) null, onError), just0(onComplete())).subscribe(o);
 
         verify(o).onError(any(TestException.class));
         verify(o, never()).onNext(any());
-        verify(o, never()).onCompleted();
+        verify(o, never()).onComplete();
     }
 
     @Test
-    public void testFlatMapTransformsOnCompletedFuncThrows() {
+    public void testFlatMapTransformsonComplete()FuncThrows() {
         Flowable<Integer> onNext = Flowable.from(Arrays.asList(1, 2, 3));
-        Flowable<Integer> onCompleted = Flowable.from(Arrays.asList(4));
+        Flowable<Integer> onComplete() = Flowable.from(Arrays.asList(4));
         Flowable<Integer> onError = Flowable.from(Arrays.asList(5));
 
         Flowable<Integer> source = Flowable.from(Arrays.<Integer> asList());
@@ -285,17 +264,17 @@ public class OperatorFlatMapTest {
         @SuppressWarnings("unchecked")
         Subscriber<Object> o = mock(Subscriber.class);
 
-        source.flatMap(just(onNext), just(onError), funcThrow0(onCompleted)).subscribe(o);
+        source.flatMap(just(onNext), just(onError), funcThrow0(onComplete())).subscribe(o);
 
         verify(o).onError(any(TestException.class));
         verify(o, never()).onNext(any());
-        verify(o, never()).onCompleted();
+        verify(o, never()).onComplete();
     }
 
     @Test
     public void testFlatMapTransformsMergeException() {
         Flowable<Integer> onNext = Flowable.error(new TestException());
-        Flowable<Integer> onCompleted = Flowable.from(Arrays.asList(4));
+        Flowable<Integer> onComplete() = Flowable.from(Arrays.asList(4));
         Flowable<Integer> onError = Flowable.from(Arrays.asList(5));
 
         Flowable<Integer> source = Flowable.from(Arrays.asList(10, 20, 30));
@@ -303,11 +282,11 @@ public class OperatorFlatMapTest {
         @SuppressWarnings("unchecked")
         Subscriber<Object> o = mock(Subscriber.class);
 
-        source.flatMap(just(onNext), just(onError), funcThrow0(onCompleted)).subscribe(o);
+        source.flatMap(just(onNext), just(onError), funcThrow0(onComplete())).subscribe(o);
 
         verify(o).onError(any(TestException.class));
         verify(o, never()).onNext(any());
-        verify(o, never()).onCompleted();
+        verify(o, never()).onComplete();
     }
 
     private static <T> Flowable<T> compose(Flowable<T> source, final AtomicInteger subscriptionCount, final int m) {
@@ -318,7 +297,7 @@ public class OperatorFlatMapTest {
                     Assert.fail("Too many subscriptions! " + subscriptionCount.get());
                 }
             }
-        }).doOnCompleted(new Action0() {
+        }).doonComplete()(new Action0() {
             @Override
             public void call() {
                 if (subscriptionCount.decrementAndGet() < 0) {
@@ -332,7 +311,7 @@ public class OperatorFlatMapTest {
     public void testFlatMapMaxConcurrent() {
         final int m = 4;
         final AtomicInteger subscriptionCount = new AtomicInteger();
-        Flowable<Integer> source = Flowable.range(1, 10).flatMap(new Func1<Integer, Flowable<Integer>>() {
+        Flowable<Integer> source = Flowable.range(1, 10).flatMap(new Function<Integer, Flowable<Integer>>() {
             @Override
             public Flowable<Integer> call(Integer t1) {
                 return compose(Flowable.range(t1 * 10, 2), subscriptionCount, m)
@@ -356,13 +335,13 @@ public class OperatorFlatMapTest {
     public void testFlatMapSelectorMaxConcurrent() {
         final int m = 4;
         final AtomicInteger subscriptionCount = new AtomicInteger();
-        Flowable<Integer> source = Flowable.range(1, 10).flatMap(new Func1<Integer, Flowable<Integer>>() {
+        Flowable<Integer> source = Flowable.range(1, 10).flatMap(new Function<Integer, Flowable<Integer>>() {
             @Override
             public Flowable<Integer> call(Integer t1) {
                 return compose(Flowable.range(t1 * 10, 2), subscriptionCount, m)
                         .subscribeOn(Schedulers.computation());
             }
-        }, new Func2<Integer, Integer, Integer>() {
+        }, new BiFunction<Integer, Integer, Integer>() {
             @Override
             public Integer call(Integer t1, Integer t2) {
                 return t1 * 1000 + t2;
@@ -390,7 +369,7 @@ public class OperatorFlatMapTest {
         Flowable<Integer> onNext = 
                 compose(Flowable.from(Arrays.asList(1, 2, 3)).observeOn(Schedulers.computation()), subscriptionCount, m)
                 .subscribeOn(Schedulers.computation());
-        Flowable<Integer> onCompleted = compose(Flowable.from(Arrays.asList(4)), subscriptionCount, m)
+        Flowable<Integer> onComplete() = compose(Flowable.from(Arrays.asList(4)), subscriptionCount, m)
                 .subscribeOn(Schedulers.computation());
         Flowable<Integer> onError = Flowable.from(Arrays.asList(5));
 
@@ -400,7 +379,7 @@ public class OperatorFlatMapTest {
         Subscriber<Object> o = mock(Subscriber.class);
         TestSubscriber<Object> ts = new TestSubscriber<Object>(o);
 
-        source.flatMap(just(onNext), just(onError), just0(onCompleted), m).subscribe(ts);
+        source.flatMap(just(onNext), just(onError), just0(onComplete()), m).subscribe(ts);
         
         ts.awaitTerminalEvent(1, TimeUnit.SECONDS);
         ts.assertNoErrors();
@@ -410,7 +389,7 @@ public class OperatorFlatMapTest {
         verify(o, times(3)).onNext(2);
         verify(o, times(3)).onNext(3);
         verify(o).onNext(4);
-        verify(o).onCompleted();
+        verify(o).onComplete();
 
         verify(o, never()).onNext(5);
         verify(o, never()).onError(any(Throwable.class));

@@ -29,10 +29,10 @@ import org.junit.Test;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 
-import rx.Observable;
+import rx.Flowable;
 import rx.Observer;
 import rx.functions.Func0;
-import rx.functions.Func1;
+import rx.functions.Function;
 import rx.internal.util.UtilityFunctions;
 
 public class OperatorToMapTest {
@@ -44,13 +44,13 @@ public class OperatorToMapTest {
         MockitoAnnotations.initMocks(this);
     }
 
-    Func1<String, Integer> lengthFunc = new Func1<String, Integer>() {
+    Function<String, Integer> lengthFunc = new Function<String, Integer>() {
         @Override
         public Integer call(String t1) {
             return t1.length();
         }
     };
-    Func1<String, String> duplicate = new Func1<String, String>() {
+    Function<String, String> duplicate = new Function<String, String>() {
         @Override
         public String call(String t1) {
             return t1 + t1;
@@ -59,9 +59,9 @@ public class OperatorToMapTest {
 
     @Test
     public void testToMap() {
-        Observable<String> source = Observable.just("a", "bb", "ccc", "dddd");
+        Flowable<String> source = Flowable.just("a", "bb", "ccc", "dddd");
 
-        Observable<Map<Integer, String>> mapped = source.toMap(lengthFunc);
+        Flowable<Map<Integer, String>> mapped = source.toMap(lengthFunc);
 
         Map<Integer, String> expected = new HashMap<Integer, String>();
         expected.put(1, "a");
@@ -73,14 +73,14 @@ public class OperatorToMapTest {
 
         verify(objectObserver, never()).onError(any(Throwable.class));
         verify(objectObserver, times(1)).onNext(expected);
-        verify(objectObserver, times(1)).onCompleted();
+        verify(objectObserver, times(1)).onComplete();
     }
 
     @Test
     public void testToMapWithValueSelector() {
-        Observable<String> source = Observable.just("a", "bb", "ccc", "dddd");
+        Flowable<String> source = Flowable.just("a", "bb", "ccc", "dddd");
 
-        Observable<Map<Integer, String>> mapped = source.toMap(lengthFunc, duplicate);
+        Flowable<Map<Integer, String>> mapped = source.toMap(lengthFunc, duplicate);
 
         Map<Integer, String> expected = new HashMap<Integer, String>();
         expected.put(1, "aa");
@@ -92,14 +92,14 @@ public class OperatorToMapTest {
 
         verify(objectObserver, never()).onError(any(Throwable.class));
         verify(objectObserver, times(1)).onNext(expected);
-        verify(objectObserver, times(1)).onCompleted();
+        verify(objectObserver, times(1)).onComplete();
     }
 
     @Test
     public void testToMapWithError() {
-        Observable<String> source = Observable.just("a", "bb", "ccc", "dddd");
+        Flowable<String> source = Flowable.just("a", "bb", "ccc", "dddd");
 
-        Func1<String, Integer> lengthFuncErr = new Func1<String, Integer>() {
+        Function<String, Integer> lengthFuncErr = new Function<String, Integer>() {
             @Override
             public Integer call(String t1) {
                 if ("bb".equals(t1)) {
@@ -108,7 +108,7 @@ public class OperatorToMapTest {
                 return t1.length();
             }
         };
-        Observable<Map<Integer, String>> mapped = source.toMap(lengthFuncErr);
+        Flowable<Map<Integer, String>> mapped = source.toMap(lengthFuncErr);
 
         Map<Integer, String> expected = new HashMap<Integer, String>();
         expected.put(1, "a");
@@ -119,16 +119,16 @@ public class OperatorToMapTest {
         mapped.subscribe(objectObserver);
 
         verify(objectObserver, never()).onNext(expected);
-        verify(objectObserver, never()).onCompleted();
+        verify(objectObserver, never()).onComplete();
         verify(objectObserver, times(1)).onError(any(Throwable.class));
 
     }
 
     @Test
     public void testToMapWithErrorInValueSelector() {
-        Observable<String> source = Observable.just("a", "bb", "ccc", "dddd");
+        Flowable<String> source = Flowable.just("a", "bb", "ccc", "dddd");
 
-        Func1<String, String> duplicateErr = new Func1<String, String>() {
+        Function<String, String> duplicateErr = new Function<String, String>() {
             @Override
             public String call(String t1) {
                 if ("bb".equals(t1)) {
@@ -138,7 +138,7 @@ public class OperatorToMapTest {
             }
         };
 
-        Observable<Map<Integer, String>> mapped = source.toMap(lengthFunc, duplicateErr);
+        Flowable<Map<Integer, String>> mapped = source.toMap(lengthFunc, duplicateErr);
 
         Map<Integer, String> expected = new HashMap<Integer, String>();
         expected.put(1, "aa");
@@ -149,14 +149,14 @@ public class OperatorToMapTest {
         mapped.subscribe(objectObserver);
 
         verify(objectObserver, never()).onNext(expected);
-        verify(objectObserver, never()).onCompleted();
+        verify(objectObserver, never()).onComplete();
         verify(objectObserver, times(1)).onError(any(Throwable.class));
 
     }
 
     @Test
     public void testToMapWithFactory() {
-        Observable<String> source = Observable.just("a", "bb", "ccc", "dddd");
+        Flowable<String> source = Flowable.just("a", "bb", "ccc", "dddd");
 
         Func0<Map<Integer, String>> mapFactory = new Func0<Map<Integer, String>>() {
             @Override
@@ -173,13 +173,13 @@ public class OperatorToMapTest {
             }
         };
 
-        Func1<String, Integer> lengthFunc = new Func1<String, Integer>() {
+        Function<String, Integer> lengthFunc = new Function<String, Integer>() {
             @Override
             public Integer call(String t1) {
                 return t1.length();
             }
         };
-        Observable<Map<Integer, String>> mapped = source.toMap(lengthFunc, UtilityFunctions.<String>identity(), mapFactory);
+        Flowable<Map<Integer, String>> mapped = source.toMap(lengthFunc, UtilityFunctions.<String>identity(), mapFactory);
 
         Map<Integer, String> expected = new LinkedHashMap<Integer, String>();
         expected.put(2, "bb");
@@ -190,12 +190,12 @@ public class OperatorToMapTest {
 
         verify(objectObserver, never()).onError(any(Throwable.class));
         verify(objectObserver, times(1)).onNext(expected);
-        verify(objectObserver, times(1)).onCompleted();
+        verify(objectObserver, times(1)).onComplete();
     }
 
     @Test
     public void testToMapWithErrorThrowingFactory() {
-        Observable<String> source = Observable.just("a", "bb", "ccc", "dddd");
+        Flowable<String> source = Flowable.just("a", "bb", "ccc", "dddd");
 
         Func0<Map<Integer, String>> mapFactory = new Func0<Map<Integer, String>>() {
             @Override
@@ -204,13 +204,13 @@ public class OperatorToMapTest {
             }
         };
 
-        Func1<String, Integer> lengthFunc = new Func1<String, Integer>() {
+        Function<String, Integer> lengthFunc = new Function<String, Integer>() {
             @Override
             public Integer call(String t1) {
                 return t1.length();
             }
         };
-        Observable<Map<Integer, String>> mapped = source.toMap(lengthFunc, UtilityFunctions.<String>identity(), mapFactory);
+        Flowable<Map<Integer, String>> mapped = source.toMap(lengthFunc, UtilityFunctions.<String>identity(), mapFactory);
 
         Map<Integer, String> expected = new LinkedHashMap<Integer, String>();
         expected.put(2, "bb");
@@ -220,7 +220,7 @@ public class OperatorToMapTest {
         mapped.subscribe(objectObserver);
 
         verify(objectObserver, never()).onNext(expected);
-        verify(objectObserver, never()).onCompleted();
+        verify(objectObserver, never()).onComplete();
         verify(objectObserver, times(1)).onError(any(Throwable.class));
     }
 

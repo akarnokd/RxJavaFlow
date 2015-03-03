@@ -27,7 +27,7 @@ import org.junit.Test;
 import org.junit.rules.ExpectedException;
 import org.mockito.InOrder;
 
-import rx.Observable;
+import rx.Flowable;
 import rx.Observer;
 import rx.subjects.PublishSubject;
 
@@ -38,7 +38,7 @@ public class TestSubscriberTest {
 
     @Test
     public void testAssert() {
-        Observable<Integer> oi = Observable.from(Arrays.asList(1, 2));
+        Flowable<Integer> oi = Flowable.from(Arrays.asList(1, 2));
         TestSubscriber<Integer> o = new TestSubscriber<Integer>();
         oi.subscribe(o);
 
@@ -49,7 +49,7 @@ public class TestSubscriberTest {
 
     @Test
     public void testAssertNotMatchCount() {
-        Observable<Integer> oi = Observable.from(Arrays.asList(1, 2));
+        Flowable<Integer> oi = Flowable.from(Arrays.asList(1, 2));
         TestSubscriber<Integer> o = new TestSubscriber<Integer>();
         oi.subscribe(o);
 
@@ -63,7 +63,7 @@ public class TestSubscriberTest {
 
     @Test
     public void testAssertNotMatchValue() {
-        Observable<Integer> oi = Observable.from(Arrays.asList(1, 2));
+        Flowable<Integer> oi = Flowable.from(Arrays.asList(1, 2));
         TestSubscriber<Integer> o = new TestSubscriber<Integer>();
         oi.subscribe(o);
 
@@ -95,7 +95,7 @@ public class TestSubscriberTest {
 
     @Test
     public void testWrappingMock() {
-        Observable<Integer> oi = Observable.from(Arrays.asList(1, 2));
+        Flowable<Integer> oi = Flowable.from(Arrays.asList(1, 2));
         @SuppressWarnings("unchecked")
         Observer<Integer> mockObserver = mock(Observer.class);
         oi.subscribe(new TestSubscriber<Integer>(mockObserver));
@@ -103,13 +103,13 @@ public class TestSubscriberTest {
         InOrder inOrder = inOrder(mockObserver);
         inOrder.verify(mockObserver, times(1)).onNext(1);
         inOrder.verify(mockObserver, times(1)).onNext(2);
-        inOrder.verify(mockObserver, times(1)).onCompleted();
+        inOrder.verify(mockObserver, times(1)).onComplete();
         inOrder.verifyNoMoreInteractions();
     }
 
     @Test
     public void testWrappingMockWhenUnsubscribeInvolved() {
-        Observable<Integer> oi = Observable.from(Arrays.asList(1, 2, 3, 4, 5, 6, 7, 8, 9)).take(2);
+        Flowable<Integer> oi = Flowable.from(Arrays.asList(1, 2, 3, 4, 5, 6, 7, 8, 9)).take(2);
         @SuppressWarnings("unchecked")
         Observer<Integer> mockObserver = mock(Observer.class);
         oi.subscribe(new TestSubscriber<Integer>(mockObserver));
@@ -117,7 +117,7 @@ public class TestSubscriberTest {
         InOrder inOrder = inOrder(mockObserver);
         inOrder.verify(mockObserver, times(1)).onNext(1);
         inOrder.verify(mockObserver, times(1)).onNext(2);
-        inOrder.verify(mockObserver, times(1)).onCompleted();
+        inOrder.verify(mockObserver, times(1)).onComplete();
         inOrder.verifyNoMoreInteractions();
     }
 

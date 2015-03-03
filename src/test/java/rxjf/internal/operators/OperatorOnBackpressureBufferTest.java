@@ -20,8 +20,8 @@ import java.util.concurrent.TimeUnit;
 
 import org.junit.Test;
 
-import rx.Observable;
-import rx.Observable.OnSubscribe;
+import rx.Flowable;
+import rx.Flowable.OnSubscribe;
 import rx.Observer;
 import rx.Subscriber;
 import rx.Subscription;
@@ -54,7 +54,7 @@ public class OperatorOnBackpressureBufferTest {
         TestSubscriber<Long> ts = new TestSubscriber<Long>(new Observer<Long>() {
 
             @Override
-            public void onCompleted() {
+            public void onComplete() {
             }
 
             @Override
@@ -88,12 +88,12 @@ public class OperatorOnBackpressureBufferTest {
 
     @Test(expected = IllegalArgumentException.class)
     public void testFixBackpressureBufferNegativeCapacity() throws InterruptedException {
-        Observable.empty().onBackpressureBuffer(-1);
+        Flowable.empty().onBackpressureBuffer(-1);
     }
 
     @Test(expected = IllegalArgumentException.class)
     public void testFixBackpressureBufferZeroCapacity() throws InterruptedException {
-        Observable.empty().onBackpressureBuffer(-1);
+        Flowable.empty().onBackpressureBuffer(-1);
     }
 
     @Test
@@ -103,7 +103,7 @@ public class OperatorOnBackpressureBufferTest {
         TestSubscriber<Long> ts = new TestSubscriber<Long>(new Observer<Long>() {
 
             @Override
-            public void onCompleted() { }
+            public void onComplete() { }
 
             @Override
             public void onError(Throwable e) { }
@@ -136,7 +136,7 @@ public class OperatorOnBackpressureBufferTest {
         assertTrue(s.isUnsubscribed());
     }
 
-    static final Observable<Long> infinite = Observable.create(new OnSubscribe<Long>() {
+    static final Flowable<Long> infinite = Flowable.create(new OnSubscribe<Long>() {
 
         @Override
         public void call(Subscriber<? super Long> s) {

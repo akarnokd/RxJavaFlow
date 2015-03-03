@@ -43,13 +43,13 @@ import org.junit.Test;
 import org.mockito.InOrder;
 
 import rx.Notification;
-import rx.Observable;
-import rx.Observable.OnSubscribe;
+import rx.Flowable;
+import rx.Flowable.OnSubscribe;
 import rx.Observer;
 import rx.Subscriber;
 import rx.Subscription;
 import rx.functions.Action1;
-import rx.functions.Func2;
+import rx.functions.BiFunction;
 import rx.functions.Func3;
 import rx.functions.FuncN;
 import rx.functions.Functions;
@@ -59,10 +59,10 @@ import rx.schedulers.Schedulers;
 import rx.subjects.PublishSubject;
 
 public class OperatorZipTest {
-    Func2<String, String, String> concat2Strings;
+    BiFunction<String, String, String> concat2Strings;
     PublishSubject<String> s1;
     PublishSubject<String> s2;
-    Observable<String> zipped;
+    Flowable<String> zipped;
 
     Observer<String> observer;
     InOrder inOrder;
@@ -70,7 +70,7 @@ public class OperatorZipTest {
     @Before
     @SuppressWarnings("unchecked")
     public void setUp() {
-        concat2Strings = new Func2<String, String, String>() {
+        concat2Strings = new BiFunction<String, String, String>() {
             @Override
             public String call(String t1, String t2) {
                 return t1 + "-" + t2;
@@ -79,7 +79,7 @@ public class OperatorZipTest {
 
         s1 = PublishSubject.create();
         s2 = PublishSubject.create();
-        zipped = Observable.zip(s1, s2, concat2Strings);
+        zipped = Flowable.zip(s1, s2, concat2Strings);
 
         observer = mock(Observer.class);
         inOrder = inOrder(observer);
@@ -97,60 +97,60 @@ public class OperatorZipTest {
         Observer<String> observer = mock(Observer.class);
 
         @SuppressWarnings("rawtypes")
-        Collection ws = java.util.Collections.singleton(Observable.just("one", "two"));
-        Observable<String> w = Observable.zip(ws, zipr);
+        Collection ws = java.util.Collections.singleton(Flowable.just("one", "two"));
+        Flowable<String> w = Flowable.zip(ws, zipr);
         w.subscribe(observer);
 
         verify(observer, times(1)).onError(any(Throwable.class));
-        verify(observer, never()).onCompleted();
+        verify(observer, never()).onComplete();
         verify(observer, never()).onNext(any(String.class));
     }
 
     @SuppressWarnings("unchecked")
     /* mock calls don't do generics */
     @Test
-    public void testStartpingDifferentLengthObservableSequences1() {
+    public void testStartpingDifferentLengthFlowableSequences1() {
         Observer<String> w = mock(Observer.class);
 
-        TestObservable w1 = new TestObservable();
-        TestObservable w2 = new TestObservable();
-        TestObservable w3 = new TestObservable();
+        TestFlowable w1 = new TestFlowable();
+        TestFlowable w2 = new TestFlowable();
+        TestFlowable w3 = new TestFlowable();
 
-        Observable<String> zipW = Observable.zip(Observable.create(w1), Observable.create(w2), Observable.create(w3), getConcat3StringsZipr());
+        Flowable<String> zipW = Flowable.zip(Flowable.create(w1), Flowable.create(w2), Flowable.create(w3), getConcat3StringsZipr());
         zipW.subscribe(w);
 
         /* simulate sending data */
         // once for w1
         w1.observer.onNext("1a");
-        w1.observer.onCompleted();
+        w1.observer.onComplete();
         // twice for w2
         w2.observer.onNext("2a");
         w2.observer.onNext("2b");
-        w2.observer.onCompleted();
+        w2.observer.onComplete();
         // 4 times for w3
         w3.observer.onNext("3a");
         w3.observer.onNext("3b");
         w3.observer.onNext("3c");
         w3.observer.onNext("3d");
-        w3.observer.onCompleted();
+        w3.observer.onComplete();
 
         /* we should have been called 1 time on the Observer */
         InOrder io = inOrder(w);
         io.verify(w).onNext("1a2a3a");
 
-        io.verify(w, times(1)).onCompleted();
+        io.verify(w, times(1)).onComplete();
     }
 
     @Test
-    public void testStartpingDifferentLengthObservableSequences2() {
+    public void testStartpingDifferentLengthFlowableSequences2() {
         @SuppressWarnings("unchecked")
         Observer<String> w = mock(Observer.class);
 
-        TestObservable w1 = new TestObservable();
-        TestObservable w2 = new TestObservable();
-        TestObservable w3 = new TestObservable();
+        TestFlowable w1 = new TestFlowable();
+        TestFlowable w2 = new TestFlowable();
+        TestFlowable w3 = new TestFlowable();
 
-        Observable<String> zipW = Observable.zip(Observable.create(w1), Observable.create(w2), Observable.create(w3), getConcat3StringsZipr());
+        Flowable<String> zipW = Flowable.zip(Flowable.create(w1), Flowable.create(w2), Flowable.create(w3), getConcat3StringsZipr());
         zipW.subscribe(w);
 
         /* simulate sending data */
@@ -159,24 +159,24 @@ public class OperatorZipTest {
         w1.observer.onNext("1b");
         w1.observer.onNext("1c");
         w1.observer.onNext("1d");
-        w1.observer.onCompleted();
+        w1.observer.onComplete();
         // twice for w2
         w2.observer.onNext("2a");
         w2.observer.onNext("2b");
-        w2.observer.onCompleted();
+        w2.observer.onComplete();
         // 1 times for w3
         w3.observer.onNext("3a");
-        w3.observer.onCompleted();
+        w3.observer.onComplete();
 
         /* we should have been called 1 time on the Observer */
         InOrder io = inOrder(w);
         io.verify(w).onNext("1a2a3a");
 
-        io.verify(w, times(1)).onCompleted();
+        io.verify(w, times(1)).onComplete();
 
     }
 
-    Func2<Object, Object, String> zipr2 = new Func2<Object, Object, String>() {
+    BiFunction<Object, Object, String> zipr2 = new BiFunction<Object, Object, String>() {
 
         @Override
         public String call(Object t1, Object t2) {
@@ -205,60 +205,60 @@ public class OperatorZipTest {
         /* define a Observer to receive aggregated events */
         Observer<String> observer = mock(Observer.class);
 
-        Observable.zip(r1, r2, zipr2).subscribe(observer);
+        Flowable.zip(r1, r2, zipr2).subscribe(observer);
 
-        /* simulate the Observables pushing data into the aggregator */
+        /* simulate the Flowables pushing data into the aggregator */
         r1.onNext("hello");
         r2.onNext("world");
 
         InOrder inOrder = inOrder(observer);
 
         verify(observer, never()).onError(any(Throwable.class));
-        verify(observer, never()).onCompleted();
+        verify(observer, never()).onComplete();
         inOrder.verify(observer, times(1)).onNext("helloworld");
 
         r1.onNext("hello ");
         r2.onNext("again");
 
         verify(observer, never()).onError(any(Throwable.class));
-        verify(observer, never()).onCompleted();
+        verify(observer, never()).onComplete();
         inOrder.verify(observer, times(1)).onNext("hello again");
 
-        r1.onCompleted();
-        r2.onCompleted();
+        r1.onComplete();
+        r2.onComplete();
 
         inOrder.verify(observer, never()).onNext(anyString());
-        verify(observer, times(1)).onCompleted();
+        verify(observer, times(1)).onComplete();
     }
 
     @SuppressWarnings("unchecked")
     /* mock calls don't do generics */
     @Test
     public void testAggregatorDifferentSizedResultsWithOnComplete() {
-        /* create the aggregator which will execute the zip function when all Observables provide values */
+        /* create the aggregator which will execute the zip function when all Flowables provide values */
         /* define a Observer to receive aggregated events */
         PublishSubject<String> r1 = PublishSubject.create();
         PublishSubject<String> r2 = PublishSubject.create();
         /* define a Observer to receive aggregated events */
         Observer<String> observer = mock(Observer.class);
-        Observable.zip(r1, r2, zipr2).subscribe(observer);
+        Flowable.zip(r1, r2, zipr2).subscribe(observer);
 
-        /* simulate the Observables pushing data into the aggregator */
+        /* simulate the Flowables pushing data into the aggregator */
         r1.onNext("hello");
         r2.onNext("world");
-        r2.onCompleted();
+        r2.onComplete();
 
         InOrder inOrder = inOrder(observer);
 
         inOrder.verify(observer, never()).onError(any(Throwable.class));
         inOrder.verify(observer, times(1)).onNext("helloworld");
-        inOrder.verify(observer, times(1)).onCompleted();
+        inOrder.verify(observer, times(1)).onComplete();
 
         r1.onNext("hi");
-        r1.onCompleted();
+        r1.onComplete();
 
         inOrder.verify(observer, never()).onError(any(Throwable.class));
-        inOrder.verify(observer, never()).onCompleted();
+        inOrder.verify(observer, never()).onComplete();
         inOrder.verify(observer, never()).onNext(anyString());
     }
 
@@ -271,24 +271,24 @@ public class OperatorZipTest {
         /* define a Observer to receive aggregated events */
         Observer<String> observer = mock(Observer.class);
 
-        Observable.zip(r1, r2, zipr2).subscribe(observer);
+        Flowable.zip(r1, r2, zipr2).subscribe(observer);
 
-        /* simulate the Observables pushing data into the aggregator */
+        /* simulate the Flowables pushing data into the aggregator */
         r1.onNext("hello");
         r2.onNext(1);
-        r2.onCompleted();
+        r2.onComplete();
 
         InOrder inOrder = inOrder(observer);
 
         inOrder.verify(observer, never()).onError(any(Throwable.class));
         inOrder.verify(observer, times(1)).onNext("hello1");
-        inOrder.verify(observer, times(1)).onCompleted();
+        inOrder.verify(observer, times(1)).onComplete();
 
         r1.onNext("hi");
-        r1.onCompleted();
+        r1.onComplete();
 
         inOrder.verify(observer, never()).onError(any(Throwable.class));
-        inOrder.verify(observer, never()).onCompleted();
+        inOrder.verify(observer, never()).onComplete();
         inOrder.verify(observer, never()).onNext(anyString());
     }
 
@@ -302,15 +302,15 @@ public class OperatorZipTest {
         /* define a Observer to receive aggregated events */
         Observer<String> observer = mock(Observer.class);
 
-        Observable.zip(r1, r2, r3, zipr3).subscribe(observer);
+        Flowable.zip(r1, r2, r3, zipr3).subscribe(observer);
 
-        /* simulate the Observables pushing data into the aggregator */
+        /* simulate the Flowables pushing data into the aggregator */
         r1.onNext("hello");
         r2.onNext(2);
         r3.onNext(Arrays.asList(5, 6, 7));
 
         verify(observer, never()).onError(any(Throwable.class));
-        verify(observer, never()).onCompleted();
+        verify(observer, never()).onComplete();
         verify(observer, times(1)).onNext("hello2[5, 6, 7]");
     }
 
@@ -323,20 +323,20 @@ public class OperatorZipTest {
         /* define a Observer to receive aggregated events */
         Observer<String> observer = mock(Observer.class);
 
-        Observable.zip(r1, r2, zipr2).subscribe(observer);
+        Flowable.zip(r1, r2, zipr2).subscribe(observer);
 
-        /* simulate the Observables pushing data into the aggregator */
+        /* simulate the Flowables pushing data into the aggregator */
         r1.onNext("one");
         r1.onNext("two");
         r1.onNext("three");
         r2.onNext("A");
 
         verify(observer, never()).onError(any(Throwable.class));
-        verify(observer, never()).onCompleted();
+        verify(observer, never()).onComplete();
         verify(observer, times(1)).onNext("oneA");
 
         r1.onNext("four");
-        r1.onCompleted();
+        r1.onComplete();
         r2.onNext("B");
         verify(observer, times(1)).onNext("twoB");
         r2.onNext("C");
@@ -345,10 +345,10 @@ public class OperatorZipTest {
         verify(observer, times(1)).onNext("fourD");
         r2.onNext("E");
         verify(observer, never()).onNext("E");
-        r2.onCompleted();
+        r2.onComplete();
 
         verify(observer, never()).onError(any(Throwable.class));
-        verify(observer, times(1)).onCompleted();
+        verify(observer, times(1)).onComplete();
     }
 
     @SuppressWarnings("unchecked")
@@ -360,14 +360,14 @@ public class OperatorZipTest {
         /* define a Observer to receive aggregated events */
         Observer<String> observer = mock(Observer.class);
 
-        Observable.zip(r1, r2, zipr2).subscribe(observer);
+        Flowable.zip(r1, r2, zipr2).subscribe(observer);
 
-        /* simulate the Observables pushing data into the aggregator */
+        /* simulate the Flowables pushing data into the aggregator */
         r1.onNext("hello");
         r2.onNext("world");
 
         verify(observer, never()).onError(any(Throwable.class));
-        verify(observer, never()).onCompleted();
+        verify(observer, never()).onComplete();
         verify(observer, times(1)).onNext("helloworld");
 
         r1.onError(new RuntimeException(""));
@@ -375,7 +375,7 @@ public class OperatorZipTest {
         r2.onNext("again");
 
         verify(observer, times(1)).onError(any(Throwable.class));
-        verify(observer, never()).onCompleted();
+        verify(observer, never()).onComplete();
         // we don't want to be called again after an error
         verify(observer, times(0)).onNext("helloagain");
     }
@@ -389,14 +389,14 @@ public class OperatorZipTest {
         /* define a Observer to receive aggregated events */
         Observer<String> observer = mock(Observer.class);
 
-        Subscription subscription = Observable.zip(r1, r2, zipr2).subscribe(observer);
+        Subscription subscription = Flowable.zip(r1, r2, zipr2).subscribe(observer);
 
-        /* simulate the Observables pushing data into the aggregator */
+        /* simulate the Flowables pushing data into the aggregator */
         r1.onNext("hello");
         r2.onNext("world");
 
         verify(observer, never()).onError(any(Throwable.class));
-        verify(observer, never()).onCompleted();
+        verify(observer, never()).onComplete();
         verify(observer, times(1)).onNext("helloworld");
 
         subscription.unsubscribe();
@@ -404,7 +404,7 @@ public class OperatorZipTest {
         r2.onNext("again");
 
         verify(observer, times(0)).onError(any(Throwable.class));
-        verify(observer, never()).onCompleted();
+        verify(observer, never()).onComplete();
         // we don't want to be called again after an error
         verify(observer, times(0)).onNext("helloagain");
     }
@@ -418,24 +418,24 @@ public class OperatorZipTest {
         /* define a Observer to receive aggregated events */
         Observer<String> observer = mock(Observer.class);
 
-        Observable.zip(r1, r2, zipr2).subscribe(observer);
+        Flowable.zip(r1, r2, zipr2).subscribe(observer);
 
-        /* simulate the Observables pushing data into the aggregator */
+        /* simulate the Flowables pushing data into the aggregator */
         r1.onNext("one");
         r1.onNext("two");
-        r1.onCompleted();
+        r1.onComplete();
         r2.onNext("A");
 
         InOrder inOrder = inOrder(observer);
 
         inOrder.verify(observer, never()).onError(any(Throwable.class));
-        inOrder.verify(observer, never()).onCompleted();
+        inOrder.verify(observer, never()).onComplete();
         inOrder.verify(observer, times(1)).onNext("oneA");
 
-        r2.onCompleted();
+        r2.onComplete();
 
         inOrder.verify(observer, never()).onError(any(Throwable.class));
-        inOrder.verify(observer, times(1)).onCompleted();
+        inOrder.verify(observer, times(1)).onComplete();
         inOrder.verify(observer, never()).onNext(anyString());
     }
 
@@ -443,16 +443,16 @@ public class OperatorZipTest {
     /* mock calls don't do generics */
     @Test
     public void testStart2Types() {
-        Func2<String, Integer, String> zipr = getConcatStringIntegerZipr();
+        BiFunction<String, Integer, String> zipr = getConcatStringIntegerZipr();
 
         /* define a Observer to receive aggregated events */
         Observer<String> observer = mock(Observer.class);
 
-        Observable<String> w = Observable.zip(Observable.just("one", "two"), Observable.just(2, 3, 4), zipr);
+        Flowable<String> w = Flowable.zip(Flowable.just("one", "two"), Flowable.just(2, 3, 4), zipr);
         w.subscribe(observer);
 
         verify(observer, never()).onError(any(Throwable.class));
-        verify(observer, times(1)).onCompleted();
+        verify(observer, times(1)).onComplete();
         verify(observer, times(1)).onNext("one2");
         verify(observer, times(1)).onNext("two3");
         verify(observer, never()).onNext("4");
@@ -467,23 +467,23 @@ public class OperatorZipTest {
         /* define a Observer to receive aggregated events */
         Observer<String> observer = mock(Observer.class);
 
-        Observable<String> w = Observable.zip(Observable.just("one", "two"), Observable.just(2), Observable.just(new int[] { 4, 5, 6 }), zipr);
+        Flowable<String> w = Flowable.zip(Flowable.just("one", "two"), Flowable.just(2), Flowable.just(new int[] { 4, 5, 6 }), zipr);
         w.subscribe(observer);
 
         verify(observer, never()).onError(any(Throwable.class));
-        verify(observer, times(1)).onCompleted();
+        verify(observer, times(1)).onComplete();
         verify(observer, times(1)).onNext("one2[4, 5, 6]");
         verify(observer, never()).onNext("two");
     }
 
     @Test
     public void testOnNextExceptionInvokesOnError() {
-        Func2<Integer, Integer, Integer> zipr = getDivideZipr();
+        BiFunction<Integer, Integer, Integer> zipr = getDivideZipr();
 
         @SuppressWarnings("unchecked")
         Observer<Integer> observer = mock(Observer.class);
 
-        Observable<Integer> w = Observable.zip(Observable.just(10, 20, 30), Observable.just(0, 1, 2), zipr);
+        Flowable<Integer> w = Flowable.zip(Flowable.just(10, 20, 30), Flowable.just(0, 1, 2), zipr);
         w.subscribe(observer);
 
         verify(observer, times(1)).onError(any(Throwable.class));
@@ -497,7 +497,7 @@ public class OperatorZipTest {
         @SuppressWarnings("unchecked")
         Observer<String> obs = mock(Observer.class);
 
-        Observable<String> o = Observable.zip(oA, oB, getConcat2Strings());
+        Flowable<String> o = Flowable.zip(oA, oB, getConcat2Strings());
         o.subscribe(obs);
 
         InOrder io = inOrder(obs);
@@ -514,7 +514,7 @@ public class OperatorZipTest {
         oA.onNext("a3");
         oA.onNext("a4");
         oA.onNext("a5");
-        oA.onCompleted();
+        oA.onComplete();
 
         // SHOULD ONCOMPLETE BE EMITTED HERE INSTEAD OF WAITING
         // FOR B3, B4, B5 TO BE EMITTED?
@@ -528,7 +528,7 @@ public class OperatorZipTest {
         io.verify(obs, times(1)).onNext("a5-b5");
 
         // WE RECEIVE THE ONCOMPLETE HERE
-        io.verify(obs, times(1)).onCompleted();
+        io.verify(obs, times(1)).onComplete();
 
         oB.onNext("b6");
         oB.onNext("b7");
@@ -548,7 +548,7 @@ public class OperatorZipTest {
         @SuppressWarnings("unchecked")
         Observer<String> obs = mock(Observer.class);
 
-        Observable<String> o = Observable.zip(oA, oB, getConcat2Strings());
+        Flowable<String> o = Flowable.zip(oA, oB, getConcat2Strings());
         o.subscribe(obs);
 
         InOrder io = inOrder(obs);
@@ -583,8 +583,8 @@ public class OperatorZipTest {
         io.verifyNoMoreInteractions();
     }
 
-    private Func2<String, String, String> getConcat2Strings() {
-        return new Func2<String, String, String>() {
+    private BiFunction<String, String, String> getConcat2Strings() {
+        return new BiFunction<String, String, String>() {
 
             @Override
             public String call(String t1, String t2) {
@@ -593,8 +593,8 @@ public class OperatorZipTest {
         };
     }
 
-    private Func2<Integer, Integer, Integer> getDivideZipr() {
-        Func2<Integer, Integer, Integer> zipr = new Func2<Integer, Integer, Integer>() {
+    private BiFunction<Integer, Integer, Integer> getDivideZipr() {
+        BiFunction<Integer, Integer, Integer> zipr = new BiFunction<Integer, Integer, Integer>() {
 
             @Override
             public Integer call(Integer i1, Integer i2) {
@@ -626,8 +626,8 @@ public class OperatorZipTest {
         return zipr;
     }
 
-    private Func2<String, Integer, String> getConcatStringIntegerZipr() {
-        Func2<String, Integer, String> zipr = new Func2<String, Integer, String>() {
+    private BiFunction<String, Integer, String> getConcatStringIntegerZipr() {
+        BiFunction<String, Integer, String> zipr = new BiFunction<String, Integer, String>() {
 
             @Override
             public String call(String s, Integer i) {
@@ -662,7 +662,7 @@ public class OperatorZipTest {
         }
     }
 
-    private static class TestObservable implements Observable.OnSubscribe<String> {
+    private static class TestFlowable implements Flowable.OnSubscribe<String> {
 
         Observer<? super String> observer;
 
@@ -678,12 +678,12 @@ public class OperatorZipTest {
     public void testFirstCompletesThenSecondInfinite() {
         s1.onNext("a");
         s1.onNext("b");
-        s1.onCompleted();
+        s1.onComplete();
         s2.onNext("1");
         inOrder.verify(observer, times(1)).onNext("a-1");
         s2.onNext("2");
         inOrder.verify(observer, times(1)).onNext("b-2");
-        inOrder.verify(observer, times(1)).onCompleted();
+        inOrder.verify(observer, times(1)).onComplete();
         inOrder.verifyNoMoreInteractions();
     }
 
@@ -695,8 +695,8 @@ public class OperatorZipTest {
         inOrder.verify(observer, times(1)).onNext("a-1");
         s1.onNext("b");
         inOrder.verify(observer, times(1)).onNext("b-2");
-        s1.onCompleted();
-        inOrder.verify(observer, times(1)).onCompleted();
+        s1.onComplete();
+        inOrder.verify(observer, times(1)).onComplete();
         inOrder.verifyNoMoreInteractions();
     }
 
@@ -704,12 +704,12 @@ public class OperatorZipTest {
     public void testSecondCompletesThenFirstInfinite() {
         s2.onNext("1");
         s2.onNext("2");
-        s2.onCompleted();
+        s2.onComplete();
         s1.onNext("a");
         inOrder.verify(observer, times(1)).onNext("a-1");
         s1.onNext("b");
         inOrder.verify(observer, times(1)).onNext("b-2");
-        inOrder.verify(observer, times(1)).onCompleted();
+        inOrder.verify(observer, times(1)).onComplete();
         inOrder.verifyNoMoreInteractions();
     }
 
@@ -721,8 +721,8 @@ public class OperatorZipTest {
         inOrder.verify(observer, times(1)).onNext("a-1");
         s2.onNext("2");
         inOrder.verify(observer, times(1)).onNext("b-2");
-        s2.onCompleted();
-        inOrder.verify(observer, times(1)).onCompleted();
+        s2.onComplete();
+        inOrder.verify(observer, times(1)).onComplete();
         inOrder.verifyNoMoreInteractions();
     }
 
@@ -737,7 +737,7 @@ public class OperatorZipTest {
         s1.onNext("1");
         s1.onNext("2");
 
-        inOrder.verify(observer, never()).onCompleted();
+        inOrder.verify(observer, never()).onComplete();
         inOrder.verify(observer, never()).onNext(any(String.class));
         inOrder.verifyNoMoreInteractions();
     }
@@ -753,17 +753,17 @@ public class OperatorZipTest {
         s2.onNext("1");
         s2.onNext("2");
 
-        inOrder.verify(observer, never()).onCompleted();
+        inOrder.verify(observer, never()).onComplete();
         inOrder.verify(observer, never()).onNext(any(String.class));
         inOrder.verifyNoMoreInteractions();
     }
 
     @Test
-    public void testStartWithOnCompletedTwice() {
+    public void testStartWithonComplete()Twice() {
         // issue: https://groups.google.com/forum/#!topic/rxjava/79cWTv3TFp0
         // The problem is the original "zip" implementation does not wrap
         // an internal observer with a SafeObserver. However, in the "zip",
-        // it may calls "onCompleted" twice. That breaks the Rx contract.
+        // it may calls "onComplete()" twice. That breaks the Rx contract.
 
         // This test tries to emulate this case.
         // As "mock(Observer.class)" will create an instance in the package "rx",
@@ -772,8 +772,8 @@ public class OperatorZipTest {
         @SuppressWarnings("unchecked")
         final Observer<Integer> observer = mock(Observer.class);
 
-        Observable.zip(Observable.just(1),
-                Observable.just(1), new Func2<Integer, Integer, Integer>() {
+        Flowable.zip(Flowable.just(1),
+                Flowable.just(1), new BiFunction<Integer, Integer, Integer>() {
                     @Override
                     public Integer call(Integer a, Integer b) {
                         return a + b;
@@ -781,8 +781,8 @@ public class OperatorZipTest {
                 }).subscribe(new Observer<Integer>() {
 
             @Override
-            public void onCompleted() {
-                observer.onCompleted();
+            public void onComplete() {
+                observer.onComplete();
             }
 
             @Override
@@ -799,14 +799,14 @@ public class OperatorZipTest {
 
         InOrder inOrder = inOrder(observer);
         inOrder.verify(observer, times(1)).onNext(2);
-        inOrder.verify(observer, times(1)).onCompleted();
+        inOrder.verify(observer, times(1)).onComplete();
         inOrder.verifyNoMoreInteractions();
     }
 
     @Test
     public void testStart() {
-        Observable<String> os = OBSERVABLE_OF_5_INTEGERS
-                .zipWith(OBSERVABLE_OF_5_INTEGERS, new Func2<Integer, Integer, String>() {
+        Flowable<String> os = OBSERVABLE_OF_5_INTEGERS
+                .zipWith(OBSERVABLE_OF_5_INTEGERS, new BiFunction<Integer, Integer, String>() {
 
                     @Override
                     public String call(Integer a, Integer b) {
@@ -832,8 +832,8 @@ public class OperatorZipTest {
 
     @Test
     public void testStartAsync() throws InterruptedException {
-        Observable<String> os = ASYNC_OBSERVABLE_OF_INFINITE_INTEGERS(new CountDownLatch(1)).onBackpressureBuffer()
-                .zipWith(ASYNC_OBSERVABLE_OF_INFINITE_INTEGERS(new CountDownLatch(1)).onBackpressureBuffer(), new Func2<Integer, Integer, String>() {
+        Flowable<String> os = ASYNC_OBSERVABLE_OF_INFINITE_INTEGERS(new CountDownLatch(1)).onBackpressureBuffer()
+                .zipWith(ASYNC_OBSERVABLE_OF_INFINITE_INTEGERS(new CountDownLatch(1)).onBackpressureBuffer(), new BiFunction<Integer, Integer, String>() {
 
                     @Override
                     public String call(Integer a, Integer b) {
@@ -856,9 +856,9 @@ public class OperatorZipTest {
     @Test
     public void testStartInfiniteAndFinite() throws InterruptedException {
         final CountDownLatch latch = new CountDownLatch(1);
-        final CountDownLatch infiniteObservable = new CountDownLatch(1);
-        Observable<String> os = OBSERVABLE_OF_5_INTEGERS
-                .zipWith(ASYNC_OBSERVABLE_OF_INFINITE_INTEGERS(infiniteObservable), new Func2<Integer, Integer, String>() {
+        final CountDownLatch infiniteFlowable = new CountDownLatch(1);
+        Flowable<String> os = OBSERVABLE_OF_5_INTEGERS
+                .zipWith(ASYNC_OBSERVABLE_OF_INFINITE_INTEGERS(infiniteFlowable), new BiFunction<Integer, Integer, String>() {
 
                     @Override
                     public String call(Integer a, Integer b) {
@@ -870,7 +870,7 @@ public class OperatorZipTest {
         os.subscribe(new Observer<String>() {
 
             @Override
-            public void onCompleted() {
+            public void onComplete() {
                 latch.countDown();
             }
 
@@ -888,7 +888,7 @@ public class OperatorZipTest {
         });
 
         latch.await(1000, TimeUnit.MILLISECONDS);
-        if (!infiniteObservable.await(2000, TimeUnit.MILLISECONDS)) {
+        if (!infiniteFlowable.await(2000, TimeUnit.MILLISECONDS)) {
             throw new RuntimeException("didn't unsubscribe");
         }
 
@@ -900,9 +900,9 @@ public class OperatorZipTest {
 
     @Test
     public void testEmitNull() {
-        Observable<Integer> oi = Observable.just(1, null, 3);
-        Observable<String> os = Observable.just("a", "b", null);
-        Observable<String> o = Observable.zip(oi, os, new Func2<Integer, String, String>() {
+        Flowable<Integer> oi = Flowable.just(1, null, 3);
+        Flowable<String> os = Flowable.just("a", "b", null);
+        Flowable<String> o = Flowable.zip(oi, os, new BiFunction<Integer, String, String>() {
 
             @Override
             public String call(Integer t1, String t2) {
@@ -929,9 +929,9 @@ public class OperatorZipTest {
 
     @Test
     public void testEmitMaterializedNotifications() {
-        Observable<Notification<Integer>> oi = Observable.just(1, 2, 3).materialize();
-        Observable<Notification<String>> os = Observable.just("a", "b", "c").materialize();
-        Observable<String> o = Observable.zip(oi, os, new Func2<Notification<Integer>, Notification<String>, String>() {
+        Flowable<Notification<Integer>> oi = Flowable.just(1, 2, 3).materialize();
+        Flowable<Notification<String>> os = Flowable.just("a", "b", "c").materialize();
+        Flowable<String> o = Flowable.zip(oi, os, new BiFunction<Notification<Integer>, Notification<String>, String>() {
 
             @Override
             public String call(Notification<Integer> t1, Notification<String> t2) {
@@ -954,13 +954,13 @@ public class OperatorZipTest {
         assertEquals("OnNext_1-OnNext_a", list.get(0));
         assertEquals("OnNext_2-OnNext_b", list.get(1));
         assertEquals("OnNext_3-OnNext_c", list.get(2));
-        assertEquals("OnCompleted_null-OnCompleted_null", list.get(3));
+        assertEquals("onComplete()_null-onComplete()_null", list.get(3));
     }
 
     @Test
-    public void testStartEmptyObservables() {
+    public void testStartEmptyFlowables() {
 
-        Observable<String> o = Observable.zip(Observable.<Integer> empty(), Observable.<String> empty(), new Func2<Integer, String, String>() {
+        Flowable<String> o = Flowable.zip(Flowable.<Integer> empty(), Flowable.<String> empty(), new BiFunction<Integer, String, String>() {
 
             @Override
             public String call(Integer t1, String t2) {
@@ -986,9 +986,9 @@ public class OperatorZipTest {
     public void testStartEmptyList() {
 
         final Object invoked = new Object();
-        Collection<Observable<Object>> observables = Collections.emptyList();
+        Collection<Flowable<Object>> observables = Collections.emptyList();
 
-        Observable<Object> o = Observable.zip(observables, new FuncN<Object>() {
+        Flowable<Object> o = Flowable.zip(observables, new FuncN<Object>() {
             @Override
             public Object call(final Object... args) {
                 assertEquals("No argument should have been passed", 0, args.length);
@@ -1003,16 +1003,16 @@ public class OperatorZipTest {
     }
 
     /**
-     * Expect NoSuchElementException instead of blocking forever as zip should emit onCompleted and no onNext
+     * Expect NoSuchElementException instead of blocking forever as zip should emit onComplete() and no onNext
      * and last() expects at least a single response.
      */
     @Test(expected = NoSuchElementException.class)
     public void testStartEmptyListBlocking() {
 
         final Object invoked = new Object();
-        Collection<Observable<Object>> observables = Collections.emptyList();
+        Collection<Flowable<Object>> observables = Collections.emptyList();
 
-        Observable<Object> o = Observable.zip(observables, new FuncN<Object>() {
+        Flowable<Object> o = Flowable.zip(observables, new FuncN<Object>() {
             @Override
             public Object call(final Object... args) {
                 assertEquals("No argument should have been passed", 0, args.length);
@@ -1027,11 +1027,11 @@ public class OperatorZipTest {
     public void testBackpressureSync() {
         AtomicInteger generatedA = new AtomicInteger();
         AtomicInteger generatedB = new AtomicInteger();
-        Observable<Integer> o1 = createInfiniteObservable(generatedA);
-        Observable<Integer> o2 = createInfiniteObservable(generatedB);
+        Flowable<Integer> o1 = createInfiniteFlowable(generatedA);
+        Flowable<Integer> o2 = createInfiniteFlowable(generatedB);
 
         TestSubscriber<String> ts = new TestSubscriber<String>();
-        Observable.zip(o1, o2, new Func2<Integer, Integer, String>() {
+        Flowable.zip(o1, o2, new BiFunction<Integer, Integer, String>() {
 
             @Override
             public String call(Integer t1, Integer t2) {
@@ -1051,11 +1051,11 @@ public class OperatorZipTest {
     public void testBackpressureAsync() {
         AtomicInteger generatedA = new AtomicInteger();
         AtomicInteger generatedB = new AtomicInteger();
-        Observable<Integer> o1 = createInfiniteObservable(generatedA).subscribeOn(Schedulers.computation());
-        Observable<Integer> o2 = createInfiniteObservable(generatedB).subscribeOn(Schedulers.computation());
+        Flowable<Integer> o1 = createInfiniteFlowable(generatedA).subscribeOn(Schedulers.computation());
+        Flowable<Integer> o2 = createInfiniteFlowable(generatedB).subscribeOn(Schedulers.computation());
 
         TestSubscriber<String> ts = new TestSubscriber<String>();
-        Observable.zip(o1, o2, new Func2<Integer, Integer, String>() {
+        Flowable.zip(o1, o2, new BiFunction<Integer, Integer, String>() {
 
             @Override
             public String call(Integer t1, Integer t2) {
@@ -1072,14 +1072,14 @@ public class OperatorZipTest {
     }
 
     @Test
-    public void testDownstreamBackpressureRequestsWithFiniteSyncObservables() {
+    public void testDownstreamBackpressureRequestsWithFiniteSyncFlowables() {
         AtomicInteger generatedA = new AtomicInteger();
         AtomicInteger generatedB = new AtomicInteger();
-        Observable<Integer> o1 = createInfiniteObservable(generatedA).take(RxRingBuffer.SIZE * 2);
-        Observable<Integer> o2 = createInfiniteObservable(generatedB).take(RxRingBuffer.SIZE * 2);
+        Flowable<Integer> o1 = createInfiniteFlowable(generatedA).take(RxRingBuffer.SIZE * 2);
+        Flowable<Integer> o2 = createInfiniteFlowable(generatedB).take(RxRingBuffer.SIZE * 2);
 
         TestSubscriber<String> ts = new TestSubscriber<String>();
-        Observable.zip(o1, o2, new Func2<Integer, Integer, String>() {
+        Flowable.zip(o1, o2, new BiFunction<Integer, Integer, String>() {
 
             @Override
             public String call(Integer t1, Integer t2) {
@@ -1097,14 +1097,14 @@ public class OperatorZipTest {
     }
 
     @Test
-    public void testDownstreamBackpressureRequestsWithInfiniteAsyncObservables() {
+    public void testDownstreamBackpressureRequestsWithInfiniteAsyncFlowables() {
         AtomicInteger generatedA = new AtomicInteger();
         AtomicInteger generatedB = new AtomicInteger();
-        Observable<Integer> o1 = createInfiniteObservable(generatedA).subscribeOn(Schedulers.computation());
-        Observable<Integer> o2 = createInfiniteObservable(generatedB).subscribeOn(Schedulers.computation());
+        Flowable<Integer> o1 = createInfiniteFlowable(generatedA).subscribeOn(Schedulers.computation());
+        Flowable<Integer> o2 = createInfiniteFlowable(generatedB).subscribeOn(Schedulers.computation());
 
         TestSubscriber<String> ts = new TestSubscriber<String>();
-        Observable.zip(o1, o2, new Func2<Integer, Integer, String>() {
+        Flowable.zip(o1, o2, new BiFunction<Integer, Integer, String>() {
 
             @Override
             public String call(Integer t1, Integer t2) {
@@ -1122,14 +1122,14 @@ public class OperatorZipTest {
     }
 
     @Test
-    public void testDownstreamBackpressureRequestsWithInfiniteSyncObservables() {
+    public void testDownstreamBackpressureRequestsWithInfiniteSyncFlowables() {
         AtomicInteger generatedA = new AtomicInteger();
         AtomicInteger generatedB = new AtomicInteger();
-        Observable<Integer> o1 = createInfiniteObservable(generatedA);
-        Observable<Integer> o2 = createInfiniteObservable(generatedB);
+        Flowable<Integer> o1 = createInfiniteFlowable(generatedA);
+        Flowable<Integer> o2 = createInfiniteFlowable(generatedB);
 
         TestSubscriber<String> ts = new TestSubscriber<String>();
-        Observable.zip(o1, o2, new Func2<Integer, Integer, String>() {
+        Flowable.zip(o1, o2, new BiFunction<Integer, Integer, String>() {
 
             @Override
             public String call(Integer t1, Integer t2) {
@@ -1146,8 +1146,8 @@ public class OperatorZipTest {
         assertTrue(generatedB.get() < (RxRingBuffer.SIZE * 4));
     }
 
-    private Observable<Integer> createInfiniteObservable(final AtomicInteger generated) {
-        Observable<Integer> observable = Observable.from(new Iterable<Integer>() {
+    private Flowable<Integer> createInfiniteFlowable(final AtomicInteger generated) {
+        Flowable<Integer> observable = Flowable.from(new Iterable<Integer>() {
             @Override
             public Iterator<Integer> iterator() {
                 return new Iterator<Integer>() {
@@ -1171,10 +1171,10 @@ public class OperatorZipTest {
         return observable;
     }
 
-    Observable<Integer> OBSERVABLE_OF_5_INTEGERS = OBSERVABLE_OF_5_INTEGERS(new AtomicInteger());
+    Flowable<Integer> OBSERVABLE_OF_5_INTEGERS = OBSERVABLE_OF_5_INTEGERS(new AtomicInteger());
 
-    Observable<Integer> OBSERVABLE_OF_5_INTEGERS(final AtomicInteger numEmitted) {
-        return Observable.create(new OnSubscribe<Integer>() {
+    Flowable<Integer> OBSERVABLE_OF_5_INTEGERS(final AtomicInteger numEmitted) {
+        return Flowable.create(new OnSubscribe<Integer>() {
 
             @Override
             public void call(final Subscriber<? super Integer> o) {
@@ -1186,14 +1186,14 @@ public class OperatorZipTest {
                     o.onNext(i);
                     Thread.yield();
                 }
-                o.onCompleted();
+                o.onComplete();
             }
 
         });
     }
 
-    Observable<Integer> ASYNC_OBSERVABLE_OF_INFINITE_INTEGERS(final CountDownLatch latch) {
-        return Observable.create(new OnSubscribe<Integer>() {
+    Flowable<Integer> ASYNC_OBSERVABLE_OF_INFINITE_INTEGERS(final CountDownLatch latch) {
+        return Flowable.create(new OnSubscribe<Integer>() {
 
             @Override
             public void call(final Subscriber<? super Integer> o) {
@@ -1208,7 +1208,7 @@ public class OperatorZipTest {
                             o.onNext(i++);
                             Thread.yield();
                         }
-                        o.onCompleted();
+                        o.onComplete();
                         latch.countDown();
                         System.out.println("Ending thread: " + Thread.currentThread());
                     }
@@ -1223,16 +1223,16 @@ public class OperatorZipTest {
     @Test(timeout = 30000)
     public void testIssue1812() {
         // https://github.com/ReactiveX/RxJava/issues/1812
-        Observable<Integer> zip1 = Observable.zip(Observable.range(0, 1026), Observable.range(0, 1026),
-                new Func2<Integer, Integer, Integer>() {
+        Flowable<Integer> zip1 = Flowable.zip(Flowable.range(0, 1026), Flowable.range(0, 1026),
+                new BiFunction<Integer, Integer, Integer>() {
 
                     @Override
                     public Integer call(Integer i1, Integer i2) {
                         return i1 + i2;
                     }
                 });
-        Observable<Integer> zip2 = Observable.zip(zip1, Observable.range(0, 1026),
-                new Func2<Integer, Integer, Integer>() {
+        Flowable<Integer> zip2 = Flowable.zip(zip1, Flowable.range(0, 1026),
+                new BiFunction<Integer, Integer, Integer>() {
 
                     @Override
                     public Integer call(Integer i1, Integer i2) {
@@ -1247,7 +1247,7 @@ public class OperatorZipTest {
     }
     @Test
     public void testUnboundedDownstreamOverrequesting() {
-        Observable<Integer> source = Observable.range(1, 2).zipWith(Observable.range(1, 2), new Func2<Integer, Integer, Integer>() {
+        Flowable<Integer> source = Flowable.range(1, 2).zipWith(Flowable.range(1, 2), new BiFunction<Integer, Integer, Integer>() {
             @Override
             public Integer call(Integer t1, Integer t2) {
                 return t1 + 10 * t2;
@@ -1270,9 +1270,9 @@ public class OperatorZipTest {
     }
     @Test(timeout = 10000)
     public void testZipRace() {
-        Observable<Integer> src = Observable.just(1).subscribeOn(Schedulers.computation());
+        Flowable<Integer> src = Flowable.just(1).subscribeOn(Schedulers.computation());
         for (int i = 0; i < 100000; i++) {
-            int value = Observable.zip(src, src, new Func2<Integer, Integer, Integer>() {
+            int value = Flowable.zip(src, src, new BiFunction<Integer, Integer, Integer>() {
                 @Override
                 public Integer call(Integer t1, Integer t2) {
                     return t1 + t2 * 10;
@@ -1284,11 +1284,11 @@ public class OperatorZipTest {
     }
     /** 
      * Request only a single value and don't wait for another request just
-     * to emit an onCompleted.
+     * to emit an onComplete().
      */
     @Test
     public void testZipRequest1() {
-        Observable<Integer> src = Observable.just(1).subscribeOn(Schedulers.computation());
+        Flowable<Integer> src = Flowable.just(1).subscribeOn(Schedulers.computation());
         TestSubscriber<Integer> ts = new TestSubscriber<Integer>() {
             @Override
             public void onStart() {
@@ -1296,7 +1296,7 @@ public class OperatorZipTest {
             }
         };
         
-        Observable.zip(src, src, new Func2<Integer, Integer, Integer>() {
+        Flowable.zip(src, src, new BiFunction<Integer, Integer, Integer>() {
             @Override
             public Integer call(Integer t1, Integer t2) {
                 return t1 + t2 * 10;

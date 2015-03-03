@@ -26,7 +26,7 @@ import java.util.concurrent.TimeUnit;
 import org.junit.Test;
 import org.mockito.InOrder;
 
-import rx.Observable;
+import rx.Flowable;
 import rx.Observer;
 import rx.exceptions.TestException;
 import rx.schedulers.TestScheduler;
@@ -40,7 +40,7 @@ public class OperatorSkipLastTimedTest {
 
         PublishSubject<Integer> source = PublishSubject.create();
 
-        Observable<Integer> result = source.skipLast(1, TimeUnit.SECONDS, scheduler);
+        Flowable<Integer> result = source.skipLast(1, TimeUnit.SECONDS, scheduler);
 
         @SuppressWarnings("unchecked")
         Observer<Object> o = mock(Observer.class);
@@ -58,7 +58,7 @@ public class OperatorSkipLastTimedTest {
         source.onNext(6);
 
         scheduler.advanceTimeBy(950, TimeUnit.MILLISECONDS);
-        source.onCompleted();
+        source.onComplete();
 
         InOrder inOrder = inOrder(o);
         inOrder.verify(o).onNext(1);
@@ -67,7 +67,7 @@ public class OperatorSkipLastTimedTest {
         inOrder.verify(o, never()).onNext(4);
         inOrder.verify(o, never()).onNext(5);
         inOrder.verify(o, never()).onNext(6);
-        inOrder.verify(o).onCompleted();
+        inOrder.verify(o).onComplete();
         inOrder.verifyNoMoreInteractions();
 
         verify(o, never()).onError(any(Throwable.class));
@@ -79,7 +79,7 @@ public class OperatorSkipLastTimedTest {
 
         PublishSubject<Integer> source = PublishSubject.create();
 
-        Observable<Integer> result = source.skipLast(1, TimeUnit.SECONDS, scheduler);
+        Flowable<Integer> result = source.skipLast(1, TimeUnit.SECONDS, scheduler);
 
         @SuppressWarnings("unchecked")
         Observer<Object> o = mock(Observer.class);
@@ -95,7 +95,7 @@ public class OperatorSkipLastTimedTest {
 
         verify(o).onError(any(TestException.class));
 
-        verify(o, never()).onCompleted();
+        verify(o, never()).onComplete();
         verify(o, never()).onNext(any());
     }
 
@@ -105,7 +105,7 @@ public class OperatorSkipLastTimedTest {
 
         PublishSubject<Integer> source = PublishSubject.create();
 
-        Observable<Integer> result = source.skipLast(1, TimeUnit.SECONDS, scheduler);
+        Flowable<Integer> result = source.skipLast(1, TimeUnit.SECONDS, scheduler);
 
         @SuppressWarnings("unchecked")
         Observer<Object> o = mock(Observer.class);
@@ -118,10 +118,10 @@ public class OperatorSkipLastTimedTest {
 
         scheduler.advanceTimeBy(500, TimeUnit.MILLISECONDS);
 
-        source.onCompleted();
+        source.onComplete();
 
         InOrder inOrder = inOrder(o);
-        inOrder.verify(o).onCompleted();
+        inOrder.verify(o).onComplete();
         inOrder.verifyNoMoreInteractions();
 
         verify(o, never()).onNext(any());
@@ -134,7 +134,7 @@ public class OperatorSkipLastTimedTest {
 
         PublishSubject<Integer> source = PublishSubject.create();
 
-        Observable<Integer> result = source.skipLast(1, TimeUnit.MILLISECONDS, scheduler);
+        Flowable<Integer> result = source.skipLast(1, TimeUnit.MILLISECONDS, scheduler);
 
         @SuppressWarnings("unchecked")
         Observer<Object> o = mock(Observer.class);
@@ -147,13 +147,13 @@ public class OperatorSkipLastTimedTest {
 
         scheduler.advanceTimeBy(500, TimeUnit.MILLISECONDS);
 
-        source.onCompleted();
+        source.onComplete();
 
         InOrder inOrder = inOrder(o);
         inOrder.verify(o).onNext(1);
         inOrder.verify(o).onNext(2);
         inOrder.verify(o).onNext(3);
-        inOrder.verify(o).onCompleted();
+        inOrder.verify(o).onComplete();
         inOrder.verifyNoMoreInteractions();
     }
 }

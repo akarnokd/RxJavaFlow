@@ -15,21 +15,21 @@
  */
 package rx.internal.operators;
 
-import rx.Observable.Operator;
+import rx.Flowable.Operator;
 import rx.Subscriber;
 import rx.functions.Action0;
 import rx.subscriptions.Subscriptions;
 
 /**
- * This operator modifies an {@link rx.Observable} so a given action is invoked when the {@link rx.Observable} is unsubscribed.
- * @param <T> The type of the elements in the {@link rx.Observable} that this operator modifies
+ * This operator modifies an {@link rx.Flowable} so a given action is invoked when the {@link rx.Flowable} is unsubscribed.
+ * @param <T> The type of the elements in the {@link rx.Flowable} that this operator modifies
  */
 public class OperatorDoOnUnsubscribe<T> implements Operator<T, T> {
     private final Action0 unsubscribe;
 
     /**
-     * Constructs an instance of the operator with the callback that gets invoked when the modified Observable is unsubscribed
-     * @param unsubscribe The action that gets invoked when the modified {@link rx.Observable} is unsubscribed
+     * Constructs an instance of the operator with the callback that gets invoked when the modified Flowable is unsubscribed
+     * @param unsubscribe The action that gets invoked when the modified {@link rx.Flowable} is unsubscribed
      */
     public OperatorDoOnUnsubscribe(Action0 unsubscribe) {
         this.unsubscribe = unsubscribe;

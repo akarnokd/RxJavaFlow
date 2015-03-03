@@ -23,7 +23,7 @@ import rxjf.internal.subscriptions.*;
 import rxjf.subscribers.AbstractSubscriber;
 
 /**
- * Returns an Observable that emits the last <code>count</code> items emitted by the source Observable.
+ * Returns an Flowable that emits the last <code>count</code> items emitted by the source Flowable.
  * <p>
  * <img width="640" src="https://github.com/ReactiveX/RxJava/wiki/images/rx-operators/last.png" alt="">
  */

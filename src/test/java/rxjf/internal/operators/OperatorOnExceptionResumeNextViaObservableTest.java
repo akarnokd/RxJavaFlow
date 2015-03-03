@@ -26,22 +26,22 @@ import static org.mockito.Mockito.verifyNoMoreInteractions;
 import org.junit.Test;
 import org.mockito.Mockito;
 
-import rx.Observable;
+import rx.Flowable;
 import rx.Observer;
 import rx.Subscriber;
-import rx.functions.Func1;
+import rx.functions.Function;
 import rx.observers.TestSubscriber;
 import rx.schedulers.Schedulers;
 
-public class OperatorOnExceptionResumeNextViaObservableTest {
+public class OperatorOnExceptionResumeNextViaFlowableTest {
 
     @Test
     public void testResumeNextWithException() {
         // Trigger failure on second element
-        TestObservable f = new TestObservable("one", "EXCEPTION", "two", "three");
-        Observable<String> w = Observable.create(f);
-        Observable<String> resume = Observable.just("twoResume", "threeResume");
-        Observable<String> observable = w.onExceptionResumeNext(resume);
+        TestFlowable f = new TestFlowable("one", "EXCEPTION", "two", "three");
+        Flowable<String> w = Flowable.create(f);
+        Flowable<String> resume = Flowable.just("twoResume", "threeResume");
+        Flowable<String> observable = w.onExceptionResumeNext(resume);
 
         @SuppressWarnings("unchecked")
         Observer<String> observer = mock(Observer.class);
@@ -59,17 +59,17 @@ public class OperatorOnExceptionResumeNextViaObservableTest {
         verify(observer, times(1)).onNext("twoResume");
         verify(observer, times(1)).onNext("threeResume");
         verify(observer, Mockito.never()).onError(any(Throwable.class));
-        verify(observer, times(1)).onCompleted();
+        verify(observer, times(1)).onComplete();
         verifyNoMoreInteractions(observer);
     }
 
     @Test
     public void testResumeNextWithRuntimeException() {
         // Trigger failure on second element
-        TestObservable f = new TestObservable("one", "RUNTIMEEXCEPTION", "two", "three");
-        Observable<String> w = Observable.create(f);
-        Observable<String> resume = Observable.just("twoResume", "threeResume");
-        Observable<String> observable = w.onExceptionResumeNext(resume);
+        TestFlowable f = new TestFlowable("one", "RUNTIMEEXCEPTION", "two", "three");
+        Flowable<String> w = Flowable.create(f);
+        Flowable<String> resume = Flowable.just("twoResume", "threeResume");
+        Flowable<String> observable = w.onExceptionResumeNext(resume);
 
         @SuppressWarnings("unchecked")
         Observer<String> observer = mock(Observer.class);
@@ -87,17 +87,17 @@ public class OperatorOnExceptionResumeNextViaObservableTest {
         verify(observer, times(1)).onNext("twoResume");
         verify(observer, times(1)).onNext("threeResume");
         verify(observer, Mockito.never()).onError(any(Throwable.class));
-        verify(observer, times(1)).onCompleted();
+        verify(observer, times(1)).onComplete();
         verifyNoMoreInteractions(observer);
     }
 
     @Test
     public void testThrowablePassesThru() {
         // Trigger failure on second element
-        TestObservable f = new TestObservable("one", "THROWABLE", "two", "three");
-        Observable<String> w = Observable.create(f);
-        Observable<String> resume = Observable.just("twoResume", "threeResume");
-        Observable<String> observable = w.onExceptionResumeNext(resume);
+        TestFlowable f = new TestFlowable("one", "THROWABLE", "two", "three");
+        Flowable<String> w = Flowable.create(f);
+        Flowable<String> resume = Flowable.just("twoResume", "threeResume");
+        Flowable<String> observable = w.onExceptionResumeNext(resume);
 
         @SuppressWarnings("unchecked")
         Observer<String> observer = mock(Observer.class);
@@ -115,17 +115,17 @@ public class OperatorOnExceptionResumeNextViaObservableTest {
         verify(observer, never()).onNext("twoResume");
         verify(observer, never()).onNext("threeResume");
         verify(observer, times(1)).onError(any(Throwable.class));
-        verify(observer, never()).onCompleted();
+        verify(observer, never()).onComplete();
         verifyNoMoreInteractions(observer);
     }
 
     @Test
     public void testErrorPassesThru() {
         // Trigger failure on second element
-        TestObservable f = new TestObservable("one", "ERROR", "two", "three");
-        Observable<String> w = Observable.create(f);
-        Observable<String> resume = Observable.just("twoResume", "threeResume");
-        Observable<String> observable = w.onExceptionResumeNext(resume);
+        TestFlowable f = new TestFlowable("one", "ERROR", "two", "three");
+        Flowable<String> w = Flowable.create(f);
+        Flowable<String> resume = Flowable.just("twoResume", "threeResume");
+        Flowable<String> observable = w.onExceptionResumeNext(resume);
 
         @SuppressWarnings("unchecked")
         Observer<String> observer = mock(Observer.class);
@@ -143,21 +143,21 @@ public class OperatorOnExceptionResumeNextViaObservableTest {
         verify(observer, never()).onNext("twoResume");
         verify(observer, never()).onNext("threeResume");
         verify(observer, times(1)).onError(any(Throwable.class));
-        verify(observer, never()).onCompleted();
+        verify(observer, never()).onComplete();
         verifyNoMoreInteractions(observer);
     }
 
     @Test
     public void testMapResumeAsyncNext() {
         // Trigger multiple failures
-        Observable<String> w = Observable.just("one", "fail", "two", "three", "fail");
-        // Resume Observable is async
-        TestObservable f = new TestObservable("twoResume", "threeResume");
-        Observable<String> resume = Observable.create(f);
+        Flowable<String> w = Flowable.just("one", "fail", "two", "three", "fail");
+        // Resume Flowable is async
+        TestFlowable f = new TestFlowable("twoResume", "threeResume");
+        Flowable<String> resume = Flowable.create(f);
 
         // Introduce map function that fails intermittently (Map does not prevent this when the observer is a
-        //  rx.operator incl onErrorResumeNextViaObservable)
-        w = w.map(new Func1<String, String>() {
+        //  rx.operator incl onErrorResumeNextViaFlowable)
+        w = w.map(new Function<String, String>() {
             @Override
             public String call(String s) {
                 if ("fail".equals(s))
@@ -167,7 +167,7 @@ public class OperatorOnExceptionResumeNextViaObservableTest {
             }
         });
 
-        Observable<String> observable = w.onExceptionResumeNext(resume);
+        Flowable<String> observable = w.onExceptionResumeNext(resume);
 
         @SuppressWarnings("unchecked")
         Observer<String> observer = mock(Observer.class);
@@ -188,17 +188,17 @@ public class OperatorOnExceptionResumeNextViaObservableTest {
         verify(observer, times(1)).onNext("twoResume");
         verify(observer, times(1)).onNext("threeResume");
         verify(observer, Mockito.never()).onError(any(Throwable.class));
-        verify(observer, times(1)).onCompleted();
+        verify(observer, times(1)).onComplete();
     }
     
     
     @Test
     public void testBackpressure() {
         TestSubscriber<Integer> ts = new TestSubscriber<Integer>();
-        Observable.range(0, 100000)
-                .onExceptionResumeNext(Observable.just(1))
+        Flowable.range(0, 100000)
+                .onExceptionResumeNext(Flowable.just(1))
                 .observeOn(Schedulers.computation())
-                .map(new Func1<Integer, Integer>() {
+                .map(new Function<Integer, Integer>() {
                     int c = 0;
 
                     @Override
@@ -221,24 +221,24 @@ public class OperatorOnExceptionResumeNextViaObservableTest {
     }
 
 
-    private static class TestObservable implements Observable.OnSubscribe<String> {
+    private static class TestFlowable implements Flowable.OnSubscribe<String> {
 
         final String[] values;
         Thread t = null;
 
-        public TestObservable(String... values) {
+        public TestFlowable(String... values) {
             this.values = values;
         }
 
         @Override
         public void call(final Subscriber<? super String> observer) {
-            System.out.println("TestObservable subscribed to ...");
+            System.out.println("TestFlowable subscribed to ...");
             t = new Thread(new Runnable() {
 
                 @Override
                 public void run() {
                     try {
-                        System.out.println("running TestObservable thread");
+                        System.out.println("running TestFlowable thread");
                         for (String s : values) {
                             if ("EXCEPTION".equals(s))
                                 throw new Exception("Forced Exception");
@@ -248,21 +248,21 @@ public class OperatorOnExceptionResumeNextViaObservableTest {
                                 throw new Error("Forced Error");
                             else if ("THROWABLE".equals(s))
                                 throw new Throwable("Forced Throwable");
-                            System.out.println("TestObservable onNext: " + s);
+                            System.out.println("TestFlowable onNext: " + s);
                             observer.onNext(s);
                         }
-                        System.out.println("TestObservable onCompleted");
-                        observer.onCompleted();
+                        System.out.println("TestFlowable onComplete()");
+                        observer.onComplete();
                     } catch (Throwable e) {
-                        System.out.println("TestObservable onError: " + e);
+                        System.out.println("TestFlowable onError: " + e);
                         observer.onError(e);
                     }
                 }
 
             });
-            System.out.println("starting TestObservable thread");
+            System.out.println("starting TestFlowable thread");
             t.start();
-            System.out.println("done starting TestObservable thread");
+            System.out.println("done starting TestFlowable thread");
         }
     }
 }

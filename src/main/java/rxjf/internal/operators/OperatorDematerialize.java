@@ -16,12 +16,12 @@
 package rx.internal.operators;
 
 import rx.Notification;
-import rx.Observable.Operator;
+import rx.Flowable.Operator;
 import rx.Subscriber;
 
 /**
  * Reverses the effect of {@link OperatorMaterialize} by transforming the Notification objects
- * emitted by a source Observable into the items or notifications they represent.
+ * emitted by a source Flowable into the items or notifications they represent.
  * <p>
  * <img width="640" src="https://github.com/ReactiveX/RxJava/wiki/images/rx-operators/dematerialize.png" alt="">
  * <p>
@@ -46,7 +46,7 @@ public final class OperatorDematerialize<T> implements Operator<T, Notification<
     @Override
     public Subscriber<? super Notification<T>> call(final Subscriber<? super T> child) {
         return new Subscriber<Notification<T>>(child) {
-            /** Do not send two onCompleted events. */
+            /** Do not send two onComplete() events. */
             boolean terminated;
             @Override
             public void onNext(Notification<T> t) {
@@ -59,8 +59,8 @@ public final class OperatorDematerialize<T> implements Operator<T, Notification<
                 case OnError:
                     onError(t.getThrowable());
                     break;
-                case OnCompleted:
-                    onCompleted();
+                case onComplete():
+                    onComplete();
                     break;
                 }
             }
@@ -74,10 +74,10 @@ public final class OperatorDematerialize<T> implements Operator<T, Notification<
             }
 
             @Override
-            public void onCompleted() {
+            public void onComplete() {
                 if (!terminated) {
                     terminated = true;
-                    child.onCompleted();
+                    child.onComplete();
                 }
             }
             

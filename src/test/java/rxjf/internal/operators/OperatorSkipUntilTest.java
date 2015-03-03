@@ -25,7 +25,7 @@ import org.junit.Test;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 
-import rx.Observable;
+import rx.Flowable;
 import rx.Observer;
 import rx.subjects.PublishSubject;
 
@@ -43,7 +43,7 @@ public class OperatorSkipUntilTest {
         PublishSubject<Integer> source = PublishSubject.create();
         PublishSubject<Integer> other = PublishSubject.create();
 
-        Observable<Integer> m = source.skipUntil(other);
+        Flowable<Integer> m = source.skipUntil(other);
         m.subscribe(observer);
 
         source.onNext(0);
@@ -54,20 +54,20 @@ public class OperatorSkipUntilTest {
         source.onNext(2);
         source.onNext(3);
         source.onNext(4);
-        source.onCompleted();
+        source.onComplete();
 
         verify(observer, never()).onError(any(Throwable.class));
         verify(observer, times(1)).onNext(2);
         verify(observer, times(1)).onNext(3);
         verify(observer, times(1)).onNext(4);
-        verify(observer, times(1)).onCompleted();
+        verify(observer, times(1)).onComplete();
     }
 
     @Test
     public void otherNeverFires() {
         PublishSubject<Integer> source = PublishSubject.create();
 
-        Observable<Integer> m = source.skipUntil(Observable.never());
+        Flowable<Integer> m = source.skipUntil(Flowable.never());
 
         m.subscribe(observer);
 
@@ -76,24 +76,24 @@ public class OperatorSkipUntilTest {
         source.onNext(2);
         source.onNext(3);
         source.onNext(4);
-        source.onCompleted();
+        source.onComplete();
 
         verify(observer, never()).onError(any(Throwable.class));
         verify(observer, never()).onNext(any());
-        verify(observer, times(1)).onCompleted();
+        verify(observer, times(1)).onComplete();
     }
 
     @Test
     public void otherEmpty() {
         PublishSubject<Integer> source = PublishSubject.create();
 
-        Observable<Integer> m = source.skipUntil(Observable.empty());
+        Flowable<Integer> m = source.skipUntil(Flowable.empty());
 
         m.subscribe(observer);
 
         verify(observer, never()).onError(any(Throwable.class));
         verify(observer, never()).onNext(any());
-        verify(observer, never()).onCompleted();
+        verify(observer, never()).onComplete();
     }
 
     @Test
@@ -101,25 +101,25 @@ public class OperatorSkipUntilTest {
         PublishSubject<Integer> source = PublishSubject.create();
         PublishSubject<Integer> other = PublishSubject.create();
 
-        Observable<Integer> m = source.skipUntil(other);
+        Flowable<Integer> m = source.skipUntil(other);
         m.subscribe(observer);
 
         source.onNext(0);
         source.onNext(1);
 
         other.onNext(100);
-        other.onCompleted();
+        other.onComplete();
 
         source.onNext(2);
         source.onNext(3);
         source.onNext(4);
-        source.onCompleted();
+        source.onComplete();
 
         verify(observer, never()).onError(any(Throwable.class));
         verify(observer, times(1)).onNext(2);
         verify(observer, times(1)).onNext(3);
         verify(observer, times(1)).onNext(4);
-        verify(observer, times(1)).onCompleted();
+        verify(observer, times(1)).onComplete();
     }
 
     @Test
@@ -127,21 +127,21 @@ public class OperatorSkipUntilTest {
         PublishSubject<Integer> source = PublishSubject.create();
         PublishSubject<Integer> other = PublishSubject.create();
 
-        Observable<Integer> m = source.skipUntil(other);
+        Flowable<Integer> m = source.skipUntil(other);
         m.subscribe(observer);
 
         source.onNext(0);
         source.onNext(1);
 
         other.onNext(100);
-        other.onCompleted();
+        other.onComplete();
 
         source.onNext(2);
         source.onError(new RuntimeException("Forced failure"));
 
         verify(observer, times(1)).onNext(2);
         verify(observer, times(1)).onError(any(Throwable.class));
-        verify(observer, never()).onCompleted();
+        verify(observer, never()).onComplete();
     }
 
     @Test
@@ -149,7 +149,7 @@ public class OperatorSkipUntilTest {
         PublishSubject<Integer> source = PublishSubject.create();
         PublishSubject<Integer> other = PublishSubject.create();
 
-        Observable<Integer> m = source.skipUntil(other);
+        Flowable<Integer> m = source.skipUntil(other);
         m.subscribe(observer);
 
         source.onNext(0);
@@ -159,6 +159,6 @@ public class OperatorSkipUntilTest {
 
         verify(observer, never()).onNext(any());
         verify(observer, times(1)).onError(any(Throwable.class));
-        verify(observer, never()).onCompleted();
+        verify(observer, never()).onComplete();
     }
 }

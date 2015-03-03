@@ -19,36 +19,36 @@ import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
-import rx.Observable;
-import rx.Observable.Operator;
+import rx.Flowable;
+import rx.Flowable.Operator;
 import rx.Observer;
 import rx.Subscriber;
-import rx.functions.Func1;
+import rx.functions.Function;
 import rx.observers.SerializedObserver;
 import rx.observers.SerializedSubscriber;
 import rx.subscriptions.CompositeSubscription;
 
 /**
  * Creates potentially overlapping windows of the source items where each window is
- * started by a value emitted by an observable and closed when an associated Observable emits 
+ * started by a value emitted by an observable and closed when an associated Flowable emits 
  * a value or completes.
  * 
  * @param <T> the value type
  * @param <U> the type of the window opening event
  * @param <V> the type of the window closing event
  */
-public final class OperatorWindowWithStartEndObservable<T, U, V> implements Operator<Observable<T>, T> {
-    final Observable<? extends U> windowOpenings;
-    final Func1<? super U, ? extends Observable<? extends V>> windowClosingSelector;
+public final class OperatorWindowWithStartEndFlowable<T, U, V> implements Operator<Flowable<T>, T> {
+    final Flowable<? extends U> windowOpenings;
+    final Function<? super U, ? extends Flowable<? extends V>> windowClosingSelector;
 
-    public OperatorWindowWithStartEndObservable(Observable<? extends U> windowOpenings, 
-            Func1<? super U, ? extends Observable<? extends V>> windowClosingSelector) {
+    public OperatorWindowWithStartEndFlowable(Flowable<? extends U> windowOpenings, 
+            Function<? super U, ? extends Flowable<? extends V>> windowClosingSelector) {
         this.windowOpenings = windowOpenings;
         this.windowClosingSelector = windowClosingSelector;
     }
     
     @Override
-    public Subscriber<? super T> call(Subscriber<? super Observable<T>> child) {
+    public Subscriber<? super T> call(Subscriber<? super Flowable<T>> child) {
         final SourceSubscriber sub = new SourceSubscriber(child);
         
         Subscriber<U> open = new Subscriber<U>(child) {
@@ -69,8 +69,8 @@ public final class OperatorWindowWithStartEndObservable<T, U, V> implements Oper
             }
 
             @Override
-            public void onCompleted() {
-                sub.onCompleted();
+            public void onComplete() {
+                sub.onComplete();
             }
         };
            
@@ -81,25 +81,25 @@ public final class OperatorWindowWithStartEndObservable<T, U, V> implements Oper
     /** Serialized access to the subject. */
     static final class SerializedSubject<T> {
         final Observer<T> consumer;
-        final Observable<T> producer;
+        final Flowable<T> producer;
 
-        public SerializedSubject(Observer<T> consumer, Observable<T> producer) {
+        public SerializedSubject(Observer<T> consumer, Flowable<T> producer) {
             this.consumer = new SerializedObserver<T>(consumer);
             this.producer = producer;
         }
         
     }
     final class SourceSubscriber extends Subscriber<T> {
-        final Subscriber<? super Observable<T>> child;
+        final Subscriber<? super Flowable<T>> child;
         final CompositeSubscription csub;
         final Object guard;
         /** Guarded by guard. */
         final List<SerializedSubject<T>> chunks;
         /** Guarded by guard. */
         boolean done;
-        public SourceSubscriber(Subscriber<? super Observable<T>> child) {
+        public SourceSubscriber(Subscriber<? super Flowable<T>> child) {
             super(child);
-            this.child = new SerializedSubscriber<Observable<T>>(child);
+            this.child = new SerializedSubscriber<Flowable<T>>(child);
             this.guard = new Object();
             this.chunks = new LinkedList<SerializedSubject<T>>();
             this.csub = new CompositeSubscription();
@@ -143,7 +143,7 @@ public final class OperatorWindowWithStartEndObservable<T, U, V> implements Oper
         }
 
         @Override
-        public void onCompleted() {
+        public void onComplete() {
             List<SerializedSubject<T>> list;
             synchronized (guard) {
                 if (done) {
@@ -154,9 +154,9 @@ public final class OperatorWindowWithStartEndObservable<T, U, V> implements Oper
                 chunks.clear();
             }
             for (SerializedSubject<T> cs : list) {
-                cs.consumer.onCompleted();
+                cs.consumer.onComplete();
             }
-            child.onCompleted();
+            child.onComplete();
         }
         
         void beginWindow(U token) {
@@ -169,7 +169,7 @@ public final class OperatorWindowWithStartEndObservable<T, U, V> implements Oper
             }
             child.onNext(s.producer);
             
-            Observable<? extends V> end;
+            Flowable<? extends V> end;
             try {
                 end = windowClosingSelector.call(token);
             } catch (Throwable e) {
@@ -181,7 +181,7 @@ public final class OperatorWindowWithStartEndObservable<T, U, V> implements Oper
                 boolean once = true;
                 @Override
                 public void onNext(V t) {
-                    onCompleted();
+                    onComplete();
                 }
 
                 @Override
@@ -190,7 +190,7 @@ public final class OperatorWindowWithStartEndObservable<T, U, V> implements Oper
                 }
 
                 @Override
-                public void onCompleted() {
+                public void onComplete() {
                     if (once) {
                         once = false;
                         endWindow(s);
@@ -220,7 +220,7 @@ public final class OperatorWindowWithStartEndObservable<T, U, V> implements Oper
                 }
             }
             if (terminate) {
-                window.consumer.onCompleted();
+                window.consumer.onComplete();
             }
         }
         SerializedSubject<T> createSerializedSubject() {

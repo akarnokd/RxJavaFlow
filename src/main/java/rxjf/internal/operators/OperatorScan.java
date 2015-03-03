@@ -25,16 +25,16 @@ import rxjf.exceptions.OnErrorThrowable;
 import rxjf.subscribers.AbstractSubscriber;
 
 /**
- * Returns an Observable that applies a function to the first item emitted by a source Observable, then feeds
- * the result of that function along with the second item emitted by an Observable into the same function, and
- * so on until all items have been emitted by the source Observable, emitting the result of each of these
+ * Returns an Flowable that applies a function to the first item emitted by a source Flowable, then feeds
+ * the result of that function along with the second item emitted by an Flowable into the same function, and
+ * so on until all items have been emitted by the source Flowable, emitting the result of each of these
  * iterations.
  * <p>
  * <img width="640" src="https://github.com/ReactiveX/RxJava/wiki/images/rx-operators/scan.png" alt="">
  * <p>
  * This sort of function is sometimes called an accumulator.
  * <p>
- * Note that when you pass a seed to {@code scan} the resulting Observable will emit that seed as its
+ * Note that when you pass a seed to {@code scan} the resulting Flowable will emit that seed as its
  * first emitted item.
  */
 public final class OperatorScan<R, T> implements Operator<R, T> {
@@ -52,7 +52,7 @@ public final class OperatorScan<R, T> implements Operator<R, T> {
      *            the initial (seed) accumulator value
      * @param accumulator
      *            an accumulator function to be invoked on each element from the sequence
-     * @see <a href="http://msdn.microsoft.com/en-us/library/hh212007.aspx">Observable.Scan(TSource, TAccumulate) Method (IObservable(TSource), TAccumulate, Func(TAccumulate, TSource,
+     * @see <a href="http://msdn.microsoft.com/en-us/library/hh212007.aspx">Flowable.Scan(TSource, TAccumulate) Method (IFlowable(TSource), TAccumulate, Func(TAccumulate, TSource,
      *      TAccumulate))</a>
      */
     public OperatorScan(final R initialValue, BiFunction<R, ? super T, R> accumulator) {
@@ -70,7 +70,7 @@ public final class OperatorScan<R, T> implements Operator<R, T> {
      * 
      * @param accumulator
      *            an accumulator function to be invoked on each element from the sequence
-     * @see <a href="http://msdn.microsoft.com/en-us/library/hh211665.aspx">Observable.Scan(TSource) Method (IObservable(TSource), Func(TSource, TSource, TSource))</a>
+     * @see <a href="http://msdn.microsoft.com/en-us/library/hh211665.aspx">Flowable.Scan(TSource) Method (IFlowable(TSource), Func(TSource, TSource, TSource))</a>
      */
     @SuppressWarnings("unchecked")
     public OperatorScan(final BiFunction<R, ? super T, R> accumulator) {

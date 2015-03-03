@@ -17,7 +17,7 @@ package rx.internal.operators;
 
 import java.util.concurrent.atomic.AtomicLong;
 
-import rx.Observable.Operator;
+import rx.Flowable.Operator;
 import rx.Producer;
 import rx.Subscriber;
 
@@ -54,8 +54,8 @@ public class OperatorOnBackpressureDrop<T> implements Operator<T, T> {
             }
 
             @Override
-            public void onCompleted() {
-                child.onCompleted();
+            public void onComplete() {
+                child.onComplete();
             }
 
             @Override

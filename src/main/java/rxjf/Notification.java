@@ -26,7 +26,7 @@ public final class Notification<T> {
     private final Throwable throwable;
     private final T value;
 
-    private static final Notification<Void> ON_COMPLETED = new Notification<>(Kind.OnCompleted, null, null);
+    private static final Notification<Void> ON_COMPLETED = new Notification<>(Kind.OnComplete, null, null);
 
     /**
      * Creates and returns a {@code Notification} of variety {@code Kind.OnNext}, and assigns it a value.
@@ -51,24 +51,24 @@ public final class Notification<T> {
     }
 
     /**
-     * Creates and returns a {@code Notification} of variety {@code Kind.OnCompleted}.
+     * Creates and returns a {@code Notification} of variety {@code Kind.OnComplete}.
      *
-     * @return an {@code OnCompleted} variety of {@code Notification}
+     * @return an {@code onComplete()} variety of {@code Notification}
      */
     @SuppressWarnings("unchecked")
-    public static <T> Notification<T> createOnCompleted() {
+    public static <T> Notification<T> createOnComplete() {
         return (Notification<T>) ON_COMPLETED;
     }
 
     /**
-     * Creates and returns a {@code Notification} of variety {@code Kind.OnCompleted}.
+     * Creates and returns a {@code Notification} of variety {@code Kind.OnComplete}.
      *
      * @warn param "type" undescribed
      * @param type
-     * @return an {@code OnCompleted} variety of {@code Notification}
+     * @return an {@code onComplete()} variety of {@code Notification}
      */
     @SuppressWarnings("unchecked")
-    public static <T> Notification<T> createOnCompleted(Class<T> type) {
+    public static <T> Notification<T> createOnComplete(Class<T> type) {
         return (Notification<T>) ON_COMPLETED;
     }
 
@@ -116,9 +116,9 @@ public final class Notification<T> {
     }
 
     /**
-     * Retrieves the kind of this notification: {@code OnNext}, {@code OnError}, or {@code OnCompleted}
+     * Retrieves the kind of this notification: {@code OnNext}, {@code OnError}, or {@code onComplete()}
      * 
-     * @return the kind of the notification: {@code OnNext}, {@code OnError}, or {@code OnCompleted}
+     * @return the kind of the notification: {@code OnNext}, {@code OnError}, or {@code onComplete()}
      */
     public Kind getKind() {
         return kind;
@@ -134,12 +134,12 @@ public final class Notification<T> {
     }
 
     /**
-     * Indicates whether this notification represents an {@code onCompleted} event.
+     * Indicates whether this notification represents an {@code onComplete()} event.
      * 
-     * @return a boolean indicating whether this notification represents an {@code onCompleted} event
+     * @return a boolean indicating whether this notification represents an {@code onComplete()} event
      */
-    public boolean isOnCompleted() {
-        return getKind() == Kind.OnCompleted;
+    public boolean isOnComplete() {
+        return getKind() == Kind.OnComplete;
     }
 
     /**
@@ -157,7 +157,7 @@ public final class Notification<T> {
     public void accept(Subscriber<? super T> subscriber) {
         if (isOnNext()) {
             subscriber.onNext(getValue());
-        } else if (isOnCompleted()) {
+        } else if (isOnComplete()) {
             subscriber.onComplete();
         } else if (isOnError()) {
             subscriber.onError(getThrowable());
@@ -165,7 +165,7 @@ public final class Notification<T> {
     }
 
     public static enum Kind {
-        OnNext, OnError, OnCompleted
+        OnNext, OnError, OnComplete
     }
 
     @Override

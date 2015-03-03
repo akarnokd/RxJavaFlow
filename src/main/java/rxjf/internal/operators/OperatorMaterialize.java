@@ -16,12 +16,12 @@
 package rx.internal.operators;
 
 import rx.Notification;
-import rx.Observable.Operator;
+import rx.Flowable.Operator;
 import rx.Subscriber;
 import rx.plugins.RxJavaPlugins;
 
 /**
- * Turns all of the notifications from an Observable into {@code onNext} emissions, and marks
+ * Turns all of the notifications from an Flowable into {@code onNext} emissions, and marks
  * them with their original notification types within {@link Notification} objects.
  * <p>
  * <img width="640" src="https://github.com/ReactiveX/RxJava/wiki/images/rx-operators/materialize.png" alt="">
@@ -47,16 +47,16 @@ public final class OperatorMaterialize<T> implements Operator<Notification<T>, T
         return new Subscriber<T>(child) {
 
             @Override
-            public void onCompleted() {
-                child.onNext(Notification.<T> createOnCompleted());
-                child.onCompleted();
+            public void onComplete() {
+                child.onNext(Notification.<T> createonComplete());
+                child.onComplete();
             }
 
             @Override
             public void onError(Throwable e) {
                 RxJavaPlugins.getInstance().getErrorHandler().handleError(e);
                 child.onNext(Notification.<T> createOnError(e));
-                child.onCompleted();
+                child.onComplete();
             }
 
             @Override

@@ -29,13 +29,13 @@ import org.junit.Before;
 import org.junit.Test;
 import org.mockito.InOrder;
 
-import rx.Observable;
+import rx.Flowable;
 import rx.Observer;
 import rx.Scheduler;
 import rx.Subscriber;
 import rx.exceptions.TestException;
 import rx.functions.Action0;
-import rx.functions.Func1;
+import rx.functions.Function;
 import rx.schedulers.TestScheduler;
 import rx.subjects.PublishSubject;
 
@@ -55,17 +55,17 @@ public class OperatorDebounceTest {
 
     @Test
     public void testDebounceWithCompleted() {
-        Observable<String> source = Observable.create(new Observable.OnSubscribe<String>() {
+        Flowable<String> source = Flowable.create(new Flowable.OnSubscribe<String>() {
             @Override
             public void call(Subscriber<? super String> observer) {
                 publishNext(observer, 100, "one");    // Should be skipped since "two" will arrive before the timeout expires.
                 publishNext(observer, 400, "two");    // Should be published since "three" will arrive after the timeout expires.
-                publishNext(observer, 900, "three");   // Should be skipped since onCompleted will arrive before the timeout expires.
+                publishNext(observer, 900, "three");   // Should be skipped since onComplete() will arrive before the timeout expires.
                 publishCompleted(observer, 1000);     // Should be published as soon as the timeout expires.
             }
         });
 
-        Observable<String> sampled = source.debounce(400, TimeUnit.MILLISECONDS, scheduler);
+        Flowable<String> sampled = source.debounce(400, TimeUnit.MILLISECONDS, scheduler);
         sampled.subscribe(observer);
 
         scheduler.advanceTimeTo(0, TimeUnit.MILLISECONDS);
@@ -74,13 +74,13 @@ public class OperatorDebounceTest {
         scheduler.advanceTimeTo(800, TimeUnit.MILLISECONDS);
         inOrder.verify(observer, times(1)).onNext("two");
         scheduler.advanceTimeTo(1000, TimeUnit.MILLISECONDS);
-        inOrder.verify(observer, times(1)).onCompleted();
+        inOrder.verify(observer, times(1)).onComplete();
         inOrder.verifyNoMoreInteractions();
     }
 
     @Test
     public void testDebounceNeverEmits() {
-        Observable<String> source = Observable.create(new Observable.OnSubscribe<String>() {
+        Flowable<String> source = Flowable.create(new Flowable.OnSubscribe<String>() {
             @Override
             public void call(Subscriber<? super String> observer) {
                 // all should be skipped since they are happening faster than the 200ms timeout
@@ -96,20 +96,20 @@ public class OperatorDebounceTest {
             }
         });
 
-        Observable<String> sampled = source.debounce(200, TimeUnit.MILLISECONDS, scheduler);
+        Flowable<String> sampled = source.debounce(200, TimeUnit.MILLISECONDS, scheduler);
         sampled.subscribe(observer);
 
         scheduler.advanceTimeTo(0, TimeUnit.MILLISECONDS);
         InOrder inOrder = inOrder(observer);
         inOrder.verify(observer, times(0)).onNext(anyString());
         scheduler.advanceTimeTo(1000, TimeUnit.MILLISECONDS);
-        inOrder.verify(observer, times(1)).onCompleted();
+        inOrder.verify(observer, times(1)).onComplete();
         inOrder.verifyNoMoreInteractions();
     }
 
     @Test
     public void testDebounceWithError() {
-        Observable<String> source = Observable.create(new Observable.OnSubscribe<String>() {
+        Flowable<String> source = Flowable.create(new Flowable.OnSubscribe<String>() {
             @Override
             public void call(Subscriber<? super String> observer) {
                 Exception error = new TestException();
@@ -119,7 +119,7 @@ public class OperatorDebounceTest {
             }
         });
 
-        Observable<String> sampled = source.debounce(400, TimeUnit.MILLISECONDS, scheduler);
+        Flowable<String> sampled = source.debounce(400, TimeUnit.MILLISECONDS, scheduler);
         sampled.subscribe(observer);
 
         scheduler.advanceTimeTo(0, TimeUnit.MILLISECONDS);
@@ -136,7 +136,7 @@ public class OperatorDebounceTest {
         innerScheduler.schedule(new Action0() {
             @Override
             public void call() {
-                observer.onCompleted();
+                observer.onComplete();
             }
         }, delay, TimeUnit.MILLISECONDS);
     }
@@ -163,10 +163,10 @@ public class OperatorDebounceTest {
     public void debounceSelectorNormal1() {
         PublishSubject<Integer> source = PublishSubject.create();
         final PublishSubject<Integer> debouncer = PublishSubject.create();
-        Func1<Integer, Observable<Integer>> debounceSel = new Func1<Integer, Observable<Integer>>() {
+        Function<Integer, Flowable<Integer>> debounceSel = new Function<Integer, Flowable<Integer>>() {
 
             @Override
-            public Observable<Integer> call(Integer t1) {
+            public Flowable<Integer> call(Integer t1) {
                 return debouncer;
             }
         };
@@ -187,12 +187,12 @@ public class OperatorDebounceTest {
         debouncer.onNext(2);
 
         source.onNext(5);
-        source.onCompleted();
+        source.onComplete();
 
         inOrder.verify(o).onNext(1);
         inOrder.verify(o).onNext(4);
         inOrder.verify(o).onNext(5);
-        inOrder.verify(o).onCompleted();
+        inOrder.verify(o).onComplete();
 
         verify(o, never()).onError(any(Throwable.class));
     }
@@ -200,10 +200,10 @@ public class OperatorDebounceTest {
     @Test
     public void debounceSelectorFuncThrows() {
         PublishSubject<Integer> source = PublishSubject.create();
-        Func1<Integer, Observable<Integer>> debounceSel = new Func1<Integer, Observable<Integer>>() {
+        Function<Integer, Flowable<Integer>> debounceSel = new Function<Integer, Flowable<Integer>>() {
 
             @Override
-            public Observable<Integer> call(Integer t1) {
+            public Flowable<Integer> call(Integer t1) {
                 throw new TestException();
             }
         };
@@ -216,18 +216,18 @@ public class OperatorDebounceTest {
         source.onNext(1);
 
         verify(o, never()).onNext(any());
-        verify(o, never()).onCompleted();
+        verify(o, never()).onComplete();
         verify(o).onError(any(TestException.class));
     }
 
     @Test
-    public void debounceSelectorObservableThrows() {
+    public void debounceSelectorFlowableThrows() {
         PublishSubject<Integer> source = PublishSubject.create();
-        Func1<Integer, Observable<Integer>> debounceSel = new Func1<Integer, Observable<Integer>>() {
+        Function<Integer, Flowable<Integer>> debounceSel = new Function<Integer, Flowable<Integer>>() {
 
             @Override
-            public Observable<Integer> call(Integer t1) {
-                return Observable.error(new TestException());
+            public Flowable<Integer> call(Integer t1) {
+                return Flowable.error(new TestException());
             }
         };
 
@@ -239,7 +239,7 @@ public class OperatorDebounceTest {
         source.onNext(1);
 
         verify(o, never()).onNext(any());
-        verify(o, never()).onCompleted();
+        verify(o, never()).onComplete();
         verify(o).onError(any(TestException.class));
     }
     @Test
@@ -252,12 +252,12 @@ public class OperatorDebounceTest {
         source.debounce(100, TimeUnit.MILLISECONDS, scheduler).subscribe(o);
         
         source.onNext(1);
-        source.onCompleted();
+        source.onComplete();
         
         scheduler.advanceTimeBy(1, TimeUnit.SECONDS);
         
         verify(o).onNext(1);
-        verify(o).onCompleted();
+        verify(o).onComplete();
         verify(o, never()).onError(any(Throwable.class));
     }
     @Test
@@ -265,10 +265,10 @@ public class OperatorDebounceTest {
         PublishSubject<Integer> source = PublishSubject.create();
         final PublishSubject<Integer> debouncer = PublishSubject.create();
 
-        Func1<Integer, Observable<Integer>> debounceSel = new Func1<Integer, Observable<Integer>>() {
+        Function<Integer, Flowable<Integer>> debounceSel = new Function<Integer, Flowable<Integer>>() {
 
             @Override
-            public Observable<Integer> call(Integer t1) {
+            public Flowable<Integer> call(Integer t1) {
                 return debouncer;
             }
         };
@@ -279,12 +279,12 @@ public class OperatorDebounceTest {
         source.debounce(debounceSel).subscribe(o);
         
         source.onNext(1);
-        source.onCompleted();
+        source.onComplete();
 
-        debouncer.onCompleted();
+        debouncer.onComplete();
 
         verify(o).onNext(1);
-        verify(o).onCompleted();
+        verify(o).onComplete();
         verify(o, never()).onError(any(Throwable.class));
     }
 }

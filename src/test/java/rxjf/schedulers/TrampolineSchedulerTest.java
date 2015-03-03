@@ -25,7 +25,7 @@ import org.junit.Test;
 import rx.*;
 import rx.Observer;
 import rx.Scheduler.Worker;
-import rx.Observable;
+import rx.Flowable;
 import rx.functions.*;
 import rx.observers.Observers;
 import rx.observers.TestSubscriber;
@@ -43,9 +43,9 @@ public class TrampolineSchedulerTest extends AbstractSchedulerTests {
 
         final String currentThreadName = Thread.currentThread().getName();
 
-        Observable<Integer> o1 = Observable.<Integer> just(1, 2, 3, 4, 5);
-        Observable<Integer> o2 = Observable.<Integer> just(6, 7, 8, 9, 10);
-        Observable<String> o = Observable.<Integer> merge(o1, o2).subscribeOn(Schedulers.trampoline()).map(new Func1<Integer, String>() {
+        Flowable<Integer> o1 = Flowable.<Integer> just(1, 2, 3, 4, 5);
+        Flowable<Integer> o2 = Flowable.<Integer> just(6, 7, 8, 9, 10);
+        Flowable<String> o = Flowable.<Integer> merge(o1, o2).subscribeOn(Schedulers.trampoline()).map(new Function<Integer, String>() {
 
             @Override
             public String call(Integer t) {
@@ -112,13 +112,13 @@ public class TrampolineSchedulerTest extends AbstractSchedulerTests {
         final TestSubscriber<Subscription> ts = new TestSubscriber<Subscription>(observer);
 
         // Spam the trampoline with actions.
-        Observable.range(0, 50)
-                .flatMap(new Func1<Integer, Observable<Subscription>>() {
+        Flowable.range(0, 50)
+                .flatMap(new Function<Integer, Flowable<Subscription>>() {
 
                     @Override
-                    public Observable<Subscription> call(Integer count) {
-                        return Observable.interval(1, TimeUnit.MICROSECONDS).map(
-                                new Func1<Long, Subscription>() {
+                    public Flowable<Subscription> call(Integer count) {
+                        return Flowable.interval(1, TimeUnit.MICROSECONDS).map(
+                                new Function<Long, Subscription>() {
 
                                      @Override
                                      public Subscription call(Long count) {

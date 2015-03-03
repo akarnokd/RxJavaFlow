@@ -17,7 +17,7 @@ package rx.internal.operators;
 
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReferenceFieldUpdater;
-import rx.Observable.Operator;
+import rx.Flowable.Operator;
 import rx.Scheduler;
 import rx.Scheduler.Worker;
 import rx.Subscriber;
@@ -25,8 +25,8 @@ import rx.functions.Action0;
 import rx.observers.SerializedSubscriber;
 
 /**
- * Returns an Observable that emits the results of sampling the items emitted by the source
- * Observable at a specified time interval.
+ * Returns an Flowable that emits the results of sampling the items emitted by the source
+ * Flowable at a specified time interval.
  * <p>
  * <img width="640" src="https://github.com/ReactiveX/RxJava/wiki/images/rx-operators/sample.png" alt="">
  * 
@@ -89,8 +89,8 @@ public final class OperatorSampleWithTime<T> implements Operator<T, T> {
         }
 
         @Override
-        public void onCompleted() {
-            subscriber.onCompleted();
+        public void onComplete() {
+            subscriber.onComplete();
             unsubscribe();
         }
 

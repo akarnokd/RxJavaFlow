@@ -23,8 +23,8 @@ import junit.framework.Assert;
 
 import org.junit.Test;
 
-import rx.Observable;
-import rx.observables.BlockingObservable;
+import rx.Flowable;
+import rx.observables.BlockingFlowable;
 import rx.schedulers.TestScheduler;
 import rx.subjects.PublishSubject;
 
@@ -33,14 +33,14 @@ public class BlockingOperatorLatestTest {
     public void testSimple() {
         TestScheduler scheduler = new TestScheduler();
 
-        BlockingObservable<Long> source = Observable.interval(1, TimeUnit.SECONDS, scheduler).take(10).toBlocking();
+        BlockingFlowable<Long> source = Flowable.interval(1, TimeUnit.SECONDS, scheduler).take(10).toBlocking();
 
         Iterable<Long> iter = source.latest();
 
         Iterator<Long> it = iter.iterator();
 
-        // only 9 because take(10) will immediately call onCompleted when receiving the 10th item
-        // which onCompleted will overwrite the previous value
+        // only 9 because take(10) will immediately call onComplete() when receiving the 10th item
+        // which onComplete() will overwrite the previous value
         for (int i = 0; i < 9; i++) {
             scheduler.advanceTimeBy(1, TimeUnit.SECONDS);
 
@@ -57,15 +57,15 @@ public class BlockingOperatorLatestTest {
     public void testSameSourceMultipleIterators() {
         TestScheduler scheduler = new TestScheduler();
 
-        BlockingObservable<Long> source = Observable.interval(1, TimeUnit.SECONDS, scheduler).take(10).toBlocking();
+        BlockingFlowable<Long> source = Flowable.interval(1, TimeUnit.SECONDS, scheduler).take(10).toBlocking();
 
         Iterable<Long> iter = source.latest();
 
         for (int j = 0; j < 3; j++) {
             Iterator<Long> it = iter.iterator();
 
-            // only 9 because take(10) will immediately call onCompleted when receiving the 10th item
-            // which onCompleted will overwrite the previous value
+            // only 9 because take(10) will immediately call onComplete() when receiving the 10th item
+            // which onComplete() will overwrite the previous value
             for (int i = 0; i < 9; i++) {
                 scheduler.advanceTimeBy(1, TimeUnit.SECONDS);
 
@@ -81,7 +81,7 @@ public class BlockingOperatorLatestTest {
 
     @Test(timeout = 1000, expected = NoSuchElementException.class)
     public void testEmpty() {
-        BlockingObservable<Long> source = Observable.<Long> empty().toBlocking();
+        BlockingFlowable<Long> source = Flowable.<Long> empty().toBlocking();
 
         Iterable<Long> iter = source.latest();
 
@@ -96,14 +96,14 @@ public class BlockingOperatorLatestTest {
     public void testSimpleJustNext() {
         TestScheduler scheduler = new TestScheduler();
 
-        BlockingObservable<Long> source = Observable.interval(1, TimeUnit.SECONDS, scheduler).take(10).toBlocking();
+        BlockingFlowable<Long> source = Flowable.interval(1, TimeUnit.SECONDS, scheduler).take(10).toBlocking();
 
         Iterable<Long> iter = source.latest();
 
         Iterator<Long> it = iter.iterator();
 
-        // only 9 because take(10) will immediately call onCompleted when receiving the 10th item
-        // which onCompleted will overwrite the previous value
+        // only 9 because take(10) will immediately call onComplete() when receiving the 10th item
+        // which onComplete() will overwrite the previous value
         for (int i = 0; i < 10; i++) {
             scheduler.advanceTimeBy(1, TimeUnit.SECONDS);
 
@@ -115,7 +115,7 @@ public class BlockingOperatorLatestTest {
     public void testHasNextThrows() {
         TestScheduler scheduler = new TestScheduler();
 
-        BlockingObservable<Long> source = Observable.<Long> error(new RuntimeException("Forced failure!")).subscribeOn(scheduler).toBlocking();
+        BlockingFlowable<Long> source = Flowable.<Long> error(new RuntimeException("Forced failure!")).subscribeOn(scheduler).toBlocking();
 
         Iterable<Long> iter = source.latest();
 
@@ -130,7 +130,7 @@ public class BlockingOperatorLatestTest {
     public void testNextThrows() {
         TestScheduler scheduler = new TestScheduler();
 
-        BlockingObservable<Long> source = Observable.<Long> error(new RuntimeException("Forced failure!")).subscribeOn(scheduler).toBlocking();
+        BlockingFlowable<Long> source = Flowable.<Long> error(new RuntimeException("Forced failure!")).subscribeOn(scheduler).toBlocking();
 
         Iterable<Long> iter = source.latest();
         Iterator<Long> it = iter.iterator();
@@ -143,7 +143,7 @@ public class BlockingOperatorLatestTest {
     @Test(timeout = 1000)
     public void testFasterSource() {
         PublishSubject<Integer> source = PublishSubject.create();
-        BlockingObservable<Integer> blocker = source.toBlocking();
+        BlockingFlowable<Integer> blocker = source.toBlocking();
 
         Iterable<Integer> iter = blocker.latest();
         Iterator<Integer> it = iter.iterator();
@@ -164,7 +164,7 @@ public class BlockingOperatorLatestTest {
         Assert.assertEquals(Integer.valueOf(6), it.next());
 
         source.onNext(7);
-        source.onCompleted();
+        source.onComplete();
 
         Assert.assertEquals(false, it.hasNext());
     }

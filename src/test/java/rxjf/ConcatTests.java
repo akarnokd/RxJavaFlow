@@ -25,16 +25,16 @@ import org.junit.Test;
 import rx.CovarianceTest.HorrorMovie;
 import rx.CovarianceTest.Media;
 import rx.CovarianceTest.Movie;
-import rx.Observable.OnSubscribe;
+import rx.Flowable.OnSubscribe;
 
 public class ConcatTests {
 
     @Test
     public void testConcatSimple() {
-        Observable<String> o1 = Observable.just("one", "two");
-        Observable<String> o2 = Observable.just("three", "four");
+        Flowable<String> o1 = Flowable.just("one", "two");
+        Flowable<String> o2 = Flowable.just("three", "four");
 
-        List<String> values = Observable.concat(o1, o2).toList().toBlocking().single();
+        List<String> values = Flowable.concat(o1, o2).toList().toBlocking().single();
 
         assertEquals("one", values.get(0));
         assertEquals("two", values.get(1));
@@ -43,14 +43,14 @@ public class ConcatTests {
     }
 
     @Test
-    public void testConcatWithObservableOfObservable() {
-        Observable<String> o1 = Observable.just("one", "two");
-        Observable<String> o2 = Observable.just("three", "four");
-        Observable<String> o3 = Observable.just("five", "six");
+    public void testConcatWithFlowableOfFlowable() {
+        Flowable<String> o1 = Flowable.just("one", "two");
+        Flowable<String> o2 = Flowable.just("three", "four");
+        Flowable<String> o3 = Flowable.just("five", "six");
 
-        Observable<Observable<String>> os = Observable.just(o1, o2, o3);
+        Flowable<Flowable<String>> os = Flowable.just(o1, o2, o3);
 
-        List<String> values = Observable.concat(os).toList().toBlocking().single();
+        List<String> values = Flowable.concat(os).toList().toBlocking().single();
 
         assertEquals("one", values.get(0));
         assertEquals("two", values.get(1));
@@ -61,15 +61,15 @@ public class ConcatTests {
     }
 
     @Test
-    public void testConcatWithIterableOfObservable() {
-        Observable<String> o1 = Observable.just("one", "two");
-        Observable<String> o2 = Observable.just("three", "four");
-        Observable<String> o3 = Observable.just("five", "six");
+    public void testConcatWithIterableOfFlowable() {
+        Flowable<String> o1 = Flowable.just("one", "two");
+        Flowable<String> o2 = Flowable.just("three", "four");
+        Flowable<String> o3 = Flowable.just("five", "six");
 
         @SuppressWarnings("unchecked")
-        Iterable<Observable<String>> is = Arrays.asList(o1, o2, o3);
+        Iterable<Flowable<String>> is = Arrays.asList(o1, o2, o3);
 
-        List<String> values = Observable.concat(Observable.from(is)).toList().toBlocking().single();
+        List<String> values = Flowable.concat(Flowable.from(is)).toList().toBlocking().single();
 
         assertEquals("one", values.get(0));
         assertEquals("two", values.get(1));
@@ -86,12 +86,12 @@ public class ConcatTests {
     	Media media = new Media();
     	HorrorMovie horrorMovie2 = new HorrorMovie();
     	
-        Observable<Media> o1 = Observable.<Media> just(horrorMovie1, movie);
-        Observable<Media> o2 = Observable.just(media, horrorMovie2);
+        Flowable<Media> o1 = Flowable.<Media> just(horrorMovie1, movie);
+        Flowable<Media> o2 = Flowable.just(media, horrorMovie2);
 
-        Observable<Observable<Media>> os = Observable.just(o1, o2);
+        Flowable<Flowable<Media>> os = Flowable.just(o1, o2);
 
-        List<Media> values = Observable.concat(os).toList().toBlocking().single();
+        List<Media> values = Flowable.concat(os).toList().toBlocking().single();
         
         assertEquals(horrorMovie1, values.get(0));
         assertEquals(movie, values.get(1));
@@ -108,12 +108,12 @@ public class ConcatTests {
     	Media media2 = new Media();
     	HorrorMovie horrorMovie2 = new HorrorMovie();
     	
-        Observable<Media> o1 = Observable.just(horrorMovie1, movie, media1);
-        Observable<Media> o2 = Observable.just(media2, horrorMovie2);
+        Flowable<Media> o1 = Flowable.just(horrorMovie1, movie, media1);
+        Flowable<Media> o2 = Flowable.just(media2, horrorMovie2);
 
-        Observable<Observable<Media>> os = Observable.just(o1, o2);
+        Flowable<Flowable<Media>> os = Flowable.just(o1, o2);
 
-        List<Media> values = Observable.concat(os).toList().toBlocking().single();
+        List<Media> values = Flowable.concat(os).toList().toBlocking().single();
 
         assertEquals(horrorMovie1, values.get(0));
         assertEquals(movie, values.get(1));
@@ -130,10 +130,10 @@ public class ConcatTests {
     	Media media = new Media();
     	HorrorMovie horrorMovie2 = new HorrorMovie();
     	
-        Observable<Movie> o1 = Observable.just(horrorMovie1, movie);
-        Observable<Media> o2 = Observable.just(media, horrorMovie2);
+        Flowable<Movie> o1 = Flowable.just(horrorMovie1, movie);
+        Flowable<Media> o2 = Flowable.just(media, horrorMovie2);
 
-        List<Media> values = Observable.concat(o1, o2).toList().toBlocking().single();
+        List<Media> values = Flowable.concat(o1, o2).toList().toBlocking().single();
 
         assertEquals(horrorMovie1, values.get(0));
         assertEquals(movie, values.get(1));
@@ -149,20 +149,20 @@ public class ConcatTests {
     	Media media = new Media();
     	HorrorMovie horrorMovie2 = new HorrorMovie();
     	
-        Observable<Movie> o1 = Observable.create(new OnSubscribe<Movie>() {
+        Flowable<Movie> o1 = Flowable.create(new OnSubscribe<Movie>() {
 
             @Override
             public void call(Subscriber<? super Movie> o) {
                 o.onNext(horrorMovie1);
                 o.onNext(movie);
                 //                o.onNext(new Media()); // correctly doesn't compile
-                o.onCompleted();
+                o.onComplete();
             }
         });
 
-        Observable<Media> o2 = Observable.just(media, horrorMovie2);
+        Flowable<Media> o2 = Flowable.just(media, horrorMovie2);
 
-        List<Media> values = Observable.concat(o1, o2).toList().toBlocking().single();
+        List<Media> values = Flowable.concat(o1, o2).toList().toBlocking().single();
 
         assertEquals(horrorMovie1, values.get(0));
         assertEquals(movie, values.get(1));

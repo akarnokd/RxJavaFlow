@@ -16,25 +16,25 @@
 package rx.internal.operators;
 
 import java.util.concurrent.atomic.AtomicReference;
-import rx.Observable;
-import rx.Observable.Operator;
+import rx.Flowable;
+import rx.Flowable.Operator;
 import rx.Subscriber;
 import rx.observers.SerializedSubscriber;
 
 /**
  * Sample with the help of another observable.
  * 
- * @see <a href='http://msdn.microsoft.com/en-us/library/hh229742.aspx'>MSDN: Observable.Sample</a>
+ * @see <a href='http://msdn.microsoft.com/en-us/library/hh229742.aspx'>MSDN: Flowable.Sample</a>
  * 
  * @param <T> the source and result value type
- * @param <U> the element type of the sampler Observable
+ * @param <U> the element type of the sampler Flowable
  */
-public final class OperatorSampleWithObservable<T, U> implements Operator<T, T> {
-    final Observable<U> sampler;
+public final class OperatorSampleWithFlowable<T, U> implements Operator<T, T> {
+    final Flowable<U> sampler;
     /** Indicates that no value is available. */
     static final Object EMPTY_TOKEN = new Object();
 
-    public OperatorSampleWithObservable(Observable<U> sampler) {
+    public OperatorSampleWithFlowable(Flowable<U> sampler) {
         this.sampler = sampler;
     }
 
@@ -62,8 +62,8 @@ public final class OperatorSampleWithObservable<T, U> implements Operator<T, T> 
             }
 
             @Override
-            public void onCompleted() {
-                s.onCompleted();
+            public void onComplete() {
+                s.onComplete();
                 unsubscribe();
             }
             
@@ -82,8 +82,8 @@ public final class OperatorSampleWithObservable<T, U> implements Operator<T, T> 
             }
 
             @Override
-            public void onCompleted() {
-                s.onCompleted();
+            public void onComplete() {
+                s.onComplete();
                 unsubscribe();
             }
         };

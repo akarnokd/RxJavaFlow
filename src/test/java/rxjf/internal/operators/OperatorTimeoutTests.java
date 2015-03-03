@@ -33,8 +33,8 @@ import org.junit.Test;
 import org.mockito.InOrder;
 import org.mockito.MockitoAnnotations;
 
-import rx.Observable;
-import rx.Observable.OnSubscribe;
+import rx.Flowable;
+import rx.Flowable.OnSubscribe;
 import rx.Observer;
 import rx.Subscriber;
 import rx.Subscription;
@@ -44,7 +44,7 @@ import rx.subjects.PublishSubject;
 public class OperatorTimeoutTests {
     private PublishSubject<String> underlyingSubject;
     private TestScheduler testScheduler;
-    private Observable<String> withTimeout;
+    private Flowable<String> withTimeout;
     private static final long TIMEOUT = 3;
     private static final TimeUnit TIME_UNIT = TimeUnit.SECONDS;
 
@@ -114,9 +114,9 @@ public class OperatorTimeoutTests {
         Observer<String> observer = mock(Observer.class);
         Subscription subscription = withTimeout.subscribe(observer);
         testScheduler.advanceTimeBy(2, TimeUnit.SECONDS);
-        underlyingSubject.onCompleted();
+        underlyingSubject.onComplete();
         testScheduler.advanceTimeBy(2, TimeUnit.SECONDS);
-        verify(observer).onCompleted();
+        verify(observer).onComplete();
         verify(observer, never()).onError(any(Throwable.class));
         subscription.unsubscribe();
     }
@@ -135,8 +135,8 @@ public class OperatorTimeoutTests {
 
     @Test
     public void shouldSwitchToOtherIfOnNextNotWithinTimeout() {
-        Observable<String> other = Observable.just("a", "b", "c");
-        Observable<String> source = underlyingSubject.timeout(TIMEOUT, TIME_UNIT, other, testScheduler);
+        Flowable<String> other = Flowable.just("a", "b", "c");
+        Flowable<String> source = underlyingSubject.timeout(TIMEOUT, TIME_UNIT, other, testScheduler);
 
         @SuppressWarnings("unchecked")
         Observer<String> observer = mock(Observer.class);
@@ -151,15 +151,15 @@ public class OperatorTimeoutTests {
         inOrder.verify(observer, times(1)).onNext("a");
         inOrder.verify(observer, times(1)).onNext("b");
         inOrder.verify(observer, times(1)).onNext("c");
-        inOrder.verify(observer, times(1)).onCompleted();
+        inOrder.verify(observer, times(1)).onComplete();
         inOrder.verifyNoMoreInteractions();
         subscription.unsubscribe();
     }
 
     @Test
     public void shouldSwitchToOtherIfOnErrorNotWithinTimeout() {
-        Observable<String> other = Observable.just("a", "b", "c");
-        Observable<String> source = underlyingSubject.timeout(TIMEOUT, TIME_UNIT, other, testScheduler);
+        Flowable<String> other = Flowable.just("a", "b", "c");
+        Flowable<String> source = underlyingSubject.timeout(TIMEOUT, TIME_UNIT, other, testScheduler);
 
         @SuppressWarnings("unchecked")
         Observer<String> observer = mock(Observer.class);
@@ -174,15 +174,15 @@ public class OperatorTimeoutTests {
         inOrder.verify(observer, times(1)).onNext("a");
         inOrder.verify(observer, times(1)).onNext("b");
         inOrder.verify(observer, times(1)).onNext("c");
-        inOrder.verify(observer, times(1)).onCompleted();
+        inOrder.verify(observer, times(1)).onComplete();
         inOrder.verifyNoMoreInteractions();
         subscription.unsubscribe();
     }
 
     @Test
-    public void shouldSwitchToOtherIfOnCompletedNotWithinTimeout() {
-        Observable<String> other = Observable.just("a", "b", "c");
-        Observable<String> source = underlyingSubject.timeout(TIMEOUT, TIME_UNIT, other, testScheduler);
+    public void shouldSwitchToOtherIfonComplete()NotWithinTimeout() {
+        Flowable<String> other = Flowable.just("a", "b", "c");
+        Flowable<String> source = underlyingSubject.timeout(TIMEOUT, TIME_UNIT, other, testScheduler);
 
         @SuppressWarnings("unchecked")
         Observer<String> observer = mock(Observer.class);
@@ -191,13 +191,13 @@ public class OperatorTimeoutTests {
         testScheduler.advanceTimeBy(2, TimeUnit.SECONDS);
         underlyingSubject.onNext("One");
         testScheduler.advanceTimeBy(4, TimeUnit.SECONDS);
-        underlyingSubject.onCompleted();
+        underlyingSubject.onComplete();
         InOrder inOrder = inOrder(observer);
         inOrder.verify(observer, times(1)).onNext("One");
         inOrder.verify(observer, times(1)).onNext("a");
         inOrder.verify(observer, times(1)).onNext("b");
         inOrder.verify(observer, times(1)).onNext("c");
-        inOrder.verify(observer, times(1)).onCompleted();
+        inOrder.verify(observer, times(1)).onComplete();
         inOrder.verifyNoMoreInteractions();
         subscription.unsubscribe();
     }
@@ -205,7 +205,7 @@ public class OperatorTimeoutTests {
     @Test
     public void shouldSwitchToOtherAndCanBeUnsubscribedIfOnNextNotWithinTimeout() {
         PublishSubject<String> other = PublishSubject.create();
-        Observable<String> source = underlyingSubject.timeout(TIMEOUT, TIME_UNIT, other, testScheduler);
+        Flowable<String> source = underlyingSubject.timeout(TIMEOUT, TIME_UNIT, other, testScheduler);
 
         @SuppressWarnings("unchecked")
         Observer<String> observer = mock(Observer.class);
@@ -223,7 +223,7 @@ public class OperatorTimeoutTests {
         // The following messages should not be delivered.
         other.onNext("c");
         other.onNext("d");
-        other.onCompleted();
+        other.onComplete();
 
         InOrder inOrder = inOrder(observer);
         inOrder.verify(observer, times(1)).onNext("One");
@@ -233,7 +233,7 @@ public class OperatorTimeoutTests {
     }
 
     @Test
-    public void shouldTimeoutIfSynchronizedObservableEmitFirstOnNextNotWithinTimeout()
+    public void shouldTimeoutIfSynchronizedFlowableEmitFirstOnNextNotWithinTimeout()
             throws InterruptedException {
         final CountDownLatch exit = new CountDownLatch(1);
         final CountDownLatch timeoutSetuped = new CountDownLatch(1);
@@ -244,7 +244,7 @@ public class OperatorTimeoutTests {
 
             @Override
             public void run() {
-                Observable.create(new OnSubscribe<String>() {
+                Flowable.create(new OnSubscribe<String>() {
 
                     @Override
                     public void call(Subscriber<? super String> subscriber) {
@@ -255,7 +255,7 @@ public class OperatorTimeoutTests {
                             e.printStackTrace();
                         }
                         subscriber.onNext("a");
-                        subscriber.onCompleted();
+                        subscriber.onComplete();
                     }
 
                 }).timeout(1, TimeUnit.SECONDS, testScheduler)
@@ -278,7 +278,7 @@ public class OperatorTimeoutTests {
         // From https://github.com/ReactiveX/RxJava/pull/951
         final Subscription s = mock(Subscription.class);
 
-        Observable<String> never = Observable.create(new OnSubscribe<String>() {
+        Flowable<String> never = Flowable.create(new OnSubscribe<String>() {
             @Override
             public void call(Subscriber<? super String> subscriber) {
                 subscriber.add(s);
@@ -286,7 +286,7 @@ public class OperatorTimeoutTests {
         });
 
         TestScheduler testScheduler = new TestScheduler();
-        Observable<String> observableWithTimeout = never.timeout(1000, TimeUnit.MILLISECONDS, testScheduler);
+        Flowable<String> observableWithTimeout = never.timeout(1000, TimeUnit.MILLISECONDS, testScheduler);
 
         @SuppressWarnings("unchecked")
         Observer<String> observer = mock(Observer.class);
@@ -306,16 +306,16 @@ public class OperatorTimeoutTests {
         // From https://github.com/ReactiveX/RxJava/pull/951
         final Subscription s = mock(Subscription.class);
 
-        Observable<String> immediatelyComplete = Observable.create(new OnSubscribe<String>() {
+        Flowable<String> immediatelyComplete = Flowable.create(new OnSubscribe<String>() {
             @Override
             public void call(Subscriber<? super String> subscriber) {
                 subscriber.add(s);
-                subscriber.onCompleted();
+                subscriber.onComplete();
             }
         });
 
         TestScheduler testScheduler = new TestScheduler();
-        Observable<String> observableWithTimeout = immediatelyComplete.timeout(1000, TimeUnit.MILLISECONDS,
+        Flowable<String> observableWithTimeout = immediatelyComplete.timeout(1000, TimeUnit.MILLISECONDS,
                 testScheduler);
 
         @SuppressWarnings("unchecked")
@@ -325,7 +325,7 @@ public class OperatorTimeoutTests {
         testScheduler.advanceTimeBy(2000, TimeUnit.MILLISECONDS);
 
         InOrder inOrder = inOrder(observer);
-        inOrder.verify(observer).onCompleted();
+        inOrder.verify(observer).onComplete();
         inOrder.verifyNoMoreInteractions();
 
         verify(s, times(1)).unsubscribe();
@@ -336,7 +336,7 @@ public class OperatorTimeoutTests {
         // From https://github.com/ReactiveX/RxJava/pull/951
         final Subscription s = mock(Subscription.class);
 
-        Observable<String> immediatelyError = Observable.create(new OnSubscribe<String>() {
+        Flowable<String> immediatelyError = Flowable.create(new OnSubscribe<String>() {
             @Override
             public void call(Subscriber<? super String> subscriber) {
                 subscriber.add(s);
@@ -345,7 +345,7 @@ public class OperatorTimeoutTests {
         });
 
         TestScheduler testScheduler = new TestScheduler();
-        Observable<String> observableWithTimeout = immediatelyError.timeout(1000, TimeUnit.MILLISECONDS,
+        Flowable<String> observableWithTimeout = immediatelyError.timeout(1000, TimeUnit.MILLISECONDS,
                 testScheduler);
 
         @SuppressWarnings("unchecked")

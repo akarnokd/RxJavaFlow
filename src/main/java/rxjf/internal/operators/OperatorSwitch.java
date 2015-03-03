@@ -18,22 +18,22 @@ package rx.internal.operators;
 import java.util.ArrayList;
 import java.util.List;
 
-import rx.Observable;
-import rx.Observable.Operator;
+import rx.Flowable;
+import rx.Flowable.Operator;
 import rx.Producer;
 import rx.Subscriber;
 import rx.observers.SerializedSubscriber;
 import rx.subscriptions.SerialSubscription;
 
 /**
- * Transforms an Observable that emits Observables into a single Observable that
- * emits the items emitted by the most recently published of those Observables.
+ * Transforms an Flowable that emits Flowables into a single Flowable that
+ * emits the items emitted by the most recently published of those Flowables.
  * <p>
  * <img width="640" src="https://github.com/ReactiveX/RxJava/wiki/images/rx-operators/switchDo.png" alt="">
  * 
  * @param <T> the value type
  */
-public final class OperatorSwitch<T> implements Operator<T, Observable<? extends T>> {
+public final class OperatorSwitch<T> implements Operator<T, Flowable<? extends T>> {
     /** Lazy initialization via inner-class holder. */
     private static final class Holder {
         /** A singleton instance. */
@@ -48,13 +48,13 @@ public final class OperatorSwitch<T> implements Operator<T, Observable<? extends
     }
     private OperatorSwitch() { }
     @Override
-    public Subscriber<? super Observable<? extends T>> call(final Subscriber<? super T> child) {
+    public Subscriber<? super Flowable<? extends T>> call(final Subscriber<? super T> child) {
         SwitchSubscriber<T> sws = new SwitchSubscriber<T>(child);
         child.add(sws);
         return sws;
     }
 
-    private static final class SwitchSubscriber<T> extends Subscriber<Observable<? extends T>> {
+    private static final class SwitchSubscriber<T> extends Subscriber<Flowable<? extends T>> {
         final SerializedSubscriber<T> s;
         final SerialSubscription ssub;
         final Object guard = new Object();
@@ -109,7 +109,7 @@ public final class OperatorSwitch<T> implements Operator<T, Observable<? extends
         }
 
         @Override
-        public void onNext(Observable<? extends T> t) {
+        public void onNext(Flowable<? extends T> t) {
             final int id;
             long remainingRequest;
             synchronized (guard) {
@@ -135,7 +135,7 @@ public final class OperatorSwitch<T> implements Operator<T, Observable<? extends
         }
 
         @Override
-        public void onCompleted() {
+        public void onComplete() {
             List<Object> localQueue;
             synchronized (guard) {
                 mainDone = true;
@@ -154,7 +154,7 @@ public final class OperatorSwitch<T> implements Operator<T, Observable<? extends
                 emitting = true;
             }
             drain(localQueue);
-            s.onCompleted();
+            s.onComplete();
             unsubscribe();
         }
         void emit(T value, int id, InnerSubscriber innerSubscriber) {
@@ -211,7 +211,7 @@ public final class OperatorSwitch<T> implements Operator<T, Observable<? extends
             }
             for (Object o : localQueue) {
                 if (nl.isCompleted(o)) {
-                    s.onCompleted();
+                    s.onComplete();
                     break;
                 } else
                 if (nl.isError(o)) {
@@ -272,7 +272,7 @@ public final class OperatorSwitch<T> implements Operator<T, Observable<? extends
             }
 
             drain(localQueue);
-            s.onCompleted();
+            s.onComplete();
             unsubscribe();
         }
 
@@ -314,7 +314,7 @@ public final class OperatorSwitch<T> implements Operator<T, Observable<? extends
             }
 
             @Override
-            public void onCompleted() {
+            public void onComplete() {
                 complete(id);
             }
         }

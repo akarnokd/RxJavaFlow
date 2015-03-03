@@ -28,7 +28,7 @@ import java.util.Arrays;
 import org.junit.Test;
 import org.mockito.InOrder;
 
-import rx.Observable;
+import rx.Flowable;
 import rx.Observer;
 import rx.internal.util.RxRingBuffer;
 import rx.observers.TestSubscriber;
@@ -38,19 +38,19 @@ public class OperatorSkipLastTest {
 
     @Test
     public void testSkipLastEmpty() {
-        Observable<String> observable = Observable.<String> empty().skipLast(2);
+        Flowable<String> observable = Flowable.<String> empty().skipLast(2);
 
         @SuppressWarnings("unchecked")
         Observer<String> observer = mock(Observer.class);
         observable.subscribe(observer);
         verify(observer, never()).onNext(any(String.class));
         verify(observer, never()).onError(any(Throwable.class));
-        verify(observer, times(1)).onCompleted();
+        verify(observer, times(1)).onComplete();
     }
 
     @Test
     public void testSkipLast1() {
-        Observable<String> observable = Observable.from(Arrays.asList("one", "two", "three")).skipLast(2);
+        Flowable<String> observable = Flowable.from(Arrays.asList("one", "two", "three")).skipLast(2);
 
         @SuppressWarnings("unchecked")
         Observer<String> observer = mock(Observer.class);
@@ -60,25 +60,25 @@ public class OperatorSkipLastTest {
         inOrder.verify(observer, never()).onNext("three");
         verify(observer, times(1)).onNext("one");
         verify(observer, never()).onError(any(Throwable.class));
-        verify(observer, times(1)).onCompleted();
+        verify(observer, times(1)).onComplete();
     }
 
     @Test
     public void testSkipLast2() {
-        Observable<String> observable = Observable.from(Arrays.asList("one", "two")).skipLast(2);
+        Flowable<String> observable = Flowable.from(Arrays.asList("one", "two")).skipLast(2);
 
         @SuppressWarnings("unchecked")
         Observer<String> observer = mock(Observer.class);
         observable.subscribe(observer);
         verify(observer, never()).onNext(any(String.class));
         verify(observer, never()).onError(any(Throwable.class));
-        verify(observer, times(1)).onCompleted();
+        verify(observer, times(1)).onComplete();
     }
 
     @Test
     public void testSkipLastWithZeroCount() {
-        Observable<String> w = Observable.just("one", "two");
-        Observable<String> observable = w.skipLast(0);
+        Flowable<String> w = Flowable.just("one", "two");
+        Flowable<String> observable = w.skipLast(0);
 
         @SuppressWarnings("unchecked")
         Observer<String> observer = mock(Observer.class);
@@ -86,12 +86,12 @@ public class OperatorSkipLastTest {
         verify(observer, times(1)).onNext("one");
         verify(observer, times(1)).onNext("two");
         verify(observer, never()).onError(any(Throwable.class));
-        verify(observer, times(1)).onCompleted();
+        verify(observer, times(1)).onComplete();
     }
 
     @Test
     public void testSkipLastWithNull() {
-        Observable<String> observable = Observable.from(Arrays.asList("one", null, "two")).skipLast(1);
+        Flowable<String> observable = Flowable.from(Arrays.asList("one", null, "two")).skipLast(1);
 
         @SuppressWarnings("unchecked")
         Observer<String> observer = mock(Observer.class);
@@ -100,12 +100,12 @@ public class OperatorSkipLastTest {
         verify(observer, times(1)).onNext(null);
         verify(observer, never()).onNext("two");
         verify(observer, never()).onError(any(Throwable.class));
-        verify(observer, times(1)).onCompleted();
+        verify(observer, times(1)).onComplete();
     }
 
     @Test
     public void testSkipLastWithBackpressure() {
-        Observable<Integer> o = Observable.range(0, RxRingBuffer.SIZE * 2).skipLast(RxRingBuffer.SIZE + 10);
+        Flowable<Integer> o = Flowable.range(0, RxRingBuffer.SIZE * 2).skipLast(RxRingBuffer.SIZE + 10);
         TestSubscriber<Integer> ts = new TestSubscriber<Integer>();
         o.observeOn(Schedulers.computation()).subscribe(ts);
         ts.awaitTerminalEvent();
@@ -116,7 +116,7 @@ public class OperatorSkipLastTest {
 
     @Test(expected = IndexOutOfBoundsException.class)
     public void testSkipLastWithNegativeCount() {
-        Observable.just("one").skipLast(-1);
+        Flowable.just("one").skipLast(-1);
     }
 
 }

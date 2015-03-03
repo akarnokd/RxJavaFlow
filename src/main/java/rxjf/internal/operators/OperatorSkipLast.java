@@ -18,7 +18,7 @@ package rx.internal.operators;
 import java.util.ArrayDeque;
 import java.util.Deque;
 
-import rx.Observable.Operator;
+import rx.Flowable.Operator;
 import rx.Subscriber;
 
 /**
@@ -47,8 +47,8 @@ public class OperatorSkipLast<T> implements Operator<T, T> {
             private final Deque<Object> deque = new ArrayDeque<Object>();
 
             @Override
-            public void onCompleted() {
-                subscriber.onCompleted();
+            public void onComplete() {
+                subscriber.onComplete();
             }
 
             @Override

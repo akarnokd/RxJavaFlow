@@ -17,27 +17,27 @@ package rx.util;
 
 import org.junit.Test;
 
-import rx.Observable;
+import rx.Flowable;
 
-public class AssertObservableTest {
+public class AssertFlowableTest {
 
     @Test
     public void testPassNotNull() {
-        AssertObservable.assertObservableEqualsBlocking("foo", Observable.just(1, 2), Observable.just(1, 2));
+        AssertFlowable.assertFlowableEqualsBlocking("foo", Flowable.just(1, 2), Flowable.just(1, 2));
     }
 
     @Test
     public void testPassNull() {
-        AssertObservable.assertObservableEqualsBlocking("foo", null, null);
+        AssertFlowable.assertFlowableEqualsBlocking("foo", null, null);
     }
 
     @Test(expected = RuntimeException.class)
     public void testFailNotNull() {
-        AssertObservable.assertObservableEqualsBlocking("foo", Observable.just(1, 2), Observable.just(1));
+        AssertFlowable.assertFlowableEqualsBlocking("foo", Flowable.just(1, 2), Flowable.just(1));
     }
 
     @Test(expected = RuntimeException.class)
     public void testFailNull() {
-        AssertObservable.assertObservableEqualsBlocking("foo", Observable.just(1, 2), null);
+        AssertFlowable.assertFlowableEqualsBlocking("foo", Flowable.just(1, 2), null);
     }
 }

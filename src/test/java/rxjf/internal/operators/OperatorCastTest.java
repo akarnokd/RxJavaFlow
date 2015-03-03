@@ -22,15 +22,15 @@ import static org.mockito.Mockito.verify;
 
 import org.junit.Test;
 
-import rx.Observable;
+import rx.Flowable;
 import rx.Observer;
 
 public class OperatorCastTest {
 
     @Test
     public void testCast() {
-        Observable<?> source = Observable.just(1, 2);
-        Observable<Integer> observable = source.cast(Integer.class);
+        Flowable<?> source = Flowable.just(1, 2);
+        Flowable<Integer> observable = source.cast(Integer.class);
 
         @SuppressWarnings("unchecked")
         Observer<Integer> observer = mock(Observer.class);
@@ -39,13 +39,13 @@ public class OperatorCastTest {
         verify(observer, times(1)).onNext(1);
         verify(observer, never()).onError(
                 org.mockito.Matchers.any(Throwable.class));
-        verify(observer, times(1)).onCompleted();
+        verify(observer, times(1)).onComplete();
     }
 
     @Test
     public void testCastWithWrongType() {
-        Observable<?> source = Observable.just(1, 2);
-        Observable<Boolean> observable = source.cast(Boolean.class);
+        Flowable<?> source = Flowable.just(1, 2);
+        Flowable<Boolean> observable = source.cast(Boolean.class);
 
         @SuppressWarnings("unchecked")
         Observer<Boolean> observer = mock(Observer.class);

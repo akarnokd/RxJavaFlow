@@ -105,7 +105,7 @@ public final class BlockingOperatorNext {
                 // If an observable is completed or fails,
                 // hasNext() always return false.
                 hasNext = false;
-                if (nextNotification.isOnCompleted()) {
+                if (nextNotification.isOnComplete()) {
                     return false;
                 }
                 if (nextNotification.isOnError()) {

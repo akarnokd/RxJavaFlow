@@ -26,8 +26,8 @@ import java.util.Collections;
 
 import org.junit.Test;
 
-import rx.Observable;
-import rx.Observable.OnSubscribe;
+import rx.Flowable;
+import rx.Flowable.OnSubscribe;
 import rx.Observer;
 import rx.Subscriber;
 import rx.exceptions.MissingBackpressureException;
@@ -46,7 +46,7 @@ public class OnBackpressureBlockTest {
     
     @Test(timeout = 1000)
     public void testSimpleBelowCapacity() {
-        Observable<Integer> source = Observable.just(1).onBackpressureBlock(10);
+        Flowable<Integer> source = Flowable.just(1).onBackpressureBlock(10);
         
         TestObserver<Integer> o = new TestObserver<Integer>();
         source.subscribe(o);
@@ -57,7 +57,7 @@ public class OnBackpressureBlockTest {
     }
     @Test(timeout = 10000)
     public void testSimpleAboveCapacity() throws InterruptedException {
-        Observable<Integer> source = Observable.range(1, 11).subscribeOn(Schedulers.newThread())
+        Flowable<Integer> source = Flowable.range(1, 11).subscribeOn(Schedulers.newThread())
                 .onBackpressureBlock(10);
         
         TestSubscriber<Integer> o = new TestSubscriber<Integer>() {
@@ -86,13 +86,13 @@ public class OnBackpressureBlockTest {
     @Test(timeout = 3000)
     public void testNoMissingBackpressureException() {
         final int NUM_VALUES = RxRingBuffer.SIZE * 3;
-        Observable<Integer> source = Observable.create(new OnSubscribe<Integer>() {
+        Flowable<Integer> source = Flowable.create(new OnSubscribe<Integer>() {
             @Override
             public void call(Subscriber<? super Integer> t1) {
                 for (int i = 0; i < NUM_VALUES; i++) {
                     t1.onNext(i);
                 }
-                t1.onCompleted();
+                t1.onComplete();
             }
         }).subscribeOn(Schedulers.newThread());
         
@@ -109,11 +109,11 @@ public class OnBackpressureBlockTest {
         
         s.assertNoErrors();
         verify(o, times(NUM_VALUES)).onNext(any(Integer.class));
-        verify(o).onCompleted();
+        verify(o).onComplete();
     }
     @Test(timeout = 10000)
     public void testBlockedProducerCanBeUnsubscribed() throws InterruptedException {
-        Observable<Integer> source = Observable.range(1, 11).subscribeOn(Schedulers.newThread())
+        Flowable<Integer> source = Flowable.range(1, 11).subscribeOn(Schedulers.newThread())
                 .onBackpressureBlock(5);
         
         TestSubscriber<Integer> o = new TestSubscriber<Integer>() {
@@ -134,12 +134,12 @@ public class OnBackpressureBlockTest {
 
         o.assertReceivedOnNext(Arrays.asList(1, 2, 3, 4, 5));
         o.assertNoErrors();
-        assertTrue(o.getOnCompletedEvents().isEmpty());
+        assertTrue(o.getonComplete()Events().isEmpty());
     }
     @Test(timeout = 10000)
     public void testExceptionIsDelivered() throws InterruptedException {
-        Observable<Integer> source = Observable.range(1, 10)
-                .concatWith(Observable.<Integer>error(new TestException("Forced failure")))
+        Flowable<Integer> source = Flowable.range(1, 10)
+                .concatWith(Flowable.<Integer>error(new TestException("Forced failure")))
                 .subscribeOn(Schedulers.newThread())
                 .onBackpressureBlock(5);
         
@@ -157,7 +157,7 @@ public class OnBackpressureBlockTest {
         
         o.assertReceivedOnNext(Arrays.asList(1, 2, 3, 4, 5, 6, 7));
         o.assertNoErrors();
-        assertTrue(o.getOnCompletedEvents().isEmpty());
+        assertTrue(o.getonComplete()Events().isEmpty());
 
         o.requestMore(3);
         
@@ -179,8 +179,8 @@ public class OnBackpressureBlockTest {
     }
     @Test(timeout = 10000)
     public void testExceptionIsDeliveredAfterValues() throws InterruptedException {
-        Observable<Integer> source = Observable.range(1, 10)
-                .concatWith(Observable.<Integer>error(new TestException("Forced failure")))
+        Flowable<Integer> source = Flowable.range(1, 10)
+                .concatWith(Flowable.<Integer>error(new TestException("Forced failure")))
                 .subscribeOn(Schedulers.newThread())
                 .onBackpressureBlock(5);
         
@@ -198,7 +198,7 @@ public class OnBackpressureBlockTest {
         
         o.assertReceivedOnNext(Arrays.asList(1, 2, 3, 4, 5, 6, 7));
         o.assertNoErrors();
-        assertTrue(o.getOnCompletedEvents().isEmpty());
+        assertTrue(o.getonComplete()Events().isEmpty());
 
         o.requestMore(7);
         
@@ -207,12 +207,12 @@ public class OnBackpressureBlockTest {
         o.assertReceivedOnNext(Arrays.asList(1, 2, 3, 4, 5, 6, 7, 8, 9, 10));
         assertEquals(1, o.getOnErrorEvents().size());
         assertTrue(o.getOnErrorEvents().get(0) instanceof TestException);
-        assertTrue(o.getOnCompletedEvents().isEmpty());
+        assertTrue(o.getonComplete()Events().isEmpty());
     }
     @Test(timeout = 10000)
     public void testTakeWorksWithSubscriberRequesting() {
-        Observable<Integer> source = Observable.range(1, 10)
-                .concatWith(Observable.<Integer>error(new TestException("Forced failure")))
+        Flowable<Integer> source = Flowable.range(1, 10)
+                .concatWith(Flowable.<Integer>error(new TestException("Forced failure")))
                 .subscribeOn(Schedulers.newThread())
                 .onBackpressureBlock(5).take(7);
         
@@ -234,8 +234,8 @@ public class OnBackpressureBlockTest {
     }
     @Test(timeout = 10000)
     public void testTakeWorksSubscriberRequestUnlimited() {
-        Observable<Integer> source = Observable.range(1, 10)
-                .concatWith(Observable.<Integer>error(new TestException("Forced failure")))
+        Flowable<Integer> source = Flowable.range(1, 10)
+                .concatWith(Flowable.<Integer>error(new TestException("Forced failure")))
                 .subscribeOn(Schedulers.newThread())
                 .onBackpressureBlock(5).take(7);
         
@@ -250,8 +250,8 @@ public class OnBackpressureBlockTest {
     }
     @Test(timeout = 10000)
     public void testTakeWorksSubscriberRequestUnlimitedBufferedException() {
-        Observable<Integer> source = Observable.range(1, 10)
-                .concatWith(Observable.<Integer>error(new TestException("Forced failure")))
+        Flowable<Integer> source = Flowable.range(1, 10)
+                .concatWith(Flowable.<Integer>error(new TestException("Forced failure")))
                 .subscribeOn(Schedulers.newThread())
                 .onBackpressureBlock(11).take(7);
         
@@ -265,7 +265,7 @@ public class OnBackpressureBlockTest {
         o.assertTerminalEvent();
     }
     @Test(timeout = 10000)
-    public void testOnCompletedDoesntWaitIfNoEvents() {
+    public void testonComplete()DoesntWaitIfNoEvents() {
         
         TestSubscriber<Integer> o = new TestSubscriber<Integer>() {
             @Override
@@ -273,14 +273,14 @@ public class OnBackpressureBlockTest {
                 request(0); // make sure it doesn't start in unlimited mode
             }
         };
-        Observable.<Integer>empty().onBackpressureBlock(2).subscribe(o);
+        Flowable.<Integer>empty().onBackpressureBlock(2).subscribe(o);
         
         o.assertNoErrors();
         o.assertTerminalEvent();
         o.assertReceivedOnNext(Collections.<Integer>emptyList());
     }
     @Test(timeout = 10000)
-    public void testOnCompletedDoesWaitIfEvents() {
+    public void testonComplete()DoesWaitIfEvents() {
         
         TestSubscriber<Integer> o = new TestSubscriber<Integer>() {
             @Override
@@ -288,14 +288,14 @@ public class OnBackpressureBlockTest {
                 request(0); // make sure it doesn't start in unlimited mode
             }
         };
-        Observable.just(1).onBackpressureBlock(2).subscribe(o);
+        Flowable.just(1).onBackpressureBlock(2).subscribe(o);
         
         o.assertReceivedOnNext(Collections.<Integer>emptyList());
         assertTrue(o.getOnErrorEvents().isEmpty());
-        assertTrue(o.getOnCompletedEvents().isEmpty());
+        assertTrue(o.getonComplete()Events().isEmpty());
     }
     @Test(timeout = 10000)
-    public void testOnCompletedDoesntWaitIfNoEvents2() {
+    public void testonComplete()DoesntWaitIfNoEvents2() {
         final PublishSubject<Integer> ps = PublishSubject.create();
         TestSubscriber<Integer> o = new TestSubscriber<Integer>() {
             @Override
@@ -305,7 +305,7 @@ public class OnBackpressureBlockTest {
             @Override
             public void onNext(Integer t) {
                 super.onNext(t);
-                ps.onCompleted(); // as if an async completion arrived while in the loop
+                ps.onComplete(); // as if an async completion arrived while in the loop
             }
         };
         ps.onBackpressureBlock(2).unsafeSubscribe(o);
@@ -317,7 +317,7 @@ public class OnBackpressureBlockTest {
         o.assertReceivedOnNext(Arrays.asList(1));
     }
     @Test(timeout = 10000)
-    public void testOnCompletedDoesntWaitIfNoEvents3() {
+    public void testonComplete()DoesntWaitIfNoEvents3() {
         final PublishSubject<Integer> ps = PublishSubject.create();
         TestSubscriber<Integer> o = new TestSubscriber<Integer>() {
             boolean once = true;
@@ -331,7 +331,7 @@ public class OnBackpressureBlockTest {
                 if (once) {
                     once = false;
                     ps.onNext(2);
-                    ps.onCompleted(); // as if an async completion arrived while in the loop
+                    ps.onComplete(); // as if an async completion arrived while in the loop
                     requestMore(1);
                 }
             }

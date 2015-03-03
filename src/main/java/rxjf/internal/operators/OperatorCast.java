@@ -15,7 +15,7 @@
  */
 package rx.internal.operators;
 
-import rx.Observable.Operator;
+import rx.Flowable.Operator;
 import rx.Subscriber;
 import rx.exceptions.OnErrorThrowable;
 
@@ -35,8 +35,8 @@ public class OperatorCast<T, R> implements Operator<R, T> {
         return new Subscriber<T>(o) {
 
             @Override
-            public void onCompleted() {
-                o.onCompleted();
+            public void onComplete() {
+                o.onComplete();
             }
 
             @Override

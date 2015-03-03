@@ -25,7 +25,7 @@ import rxjf.subscribers.AbstractDisposableSubscriber;
 
 /**
  * Wait for and iterate over the latest values of the source observable. If the source works faster than the
- * iterator, values may be skipped, but not the {@code onError} or {@code onCompleted} events.
+ * iterator, values may be skipped, but not the {@code onError} or {@code onComplete()} events.
  */
 public final class BlockingOperatorLatest {
     /** Utility class. */
@@ -89,7 +89,7 @@ public final class BlockingOperatorLatest {
             if (iNotif != null && iNotif.isOnError()) {
                 throw Exceptions.propagate(iNotif.getThrowable());
             }
-            if (iNotif == null || !iNotif.isOnCompleted()) {
+            if (iNotif == null || !iNotif.isOnComplete()) {
                 if (iNotif == null) {
                     try {
                         notify.acquire();
@@ -108,7 +108,7 @@ public final class BlockingOperatorLatest {
                     }
                 }
             }
-            return !iNotif.isOnCompleted();
+            return !iNotif.isOnComplete();
         }
 
         @Override

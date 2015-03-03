@@ -27,47 +27,47 @@ import org.junit.Test;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 
-import rx.Observable;
+import rx.Flowable;
 import rx.Observer;
 import rx.Subscriber;
 import rx.functions.Action1;
-import rx.functions.Func1;
-import rx.functions.Func2;
+import rx.functions.Function;
+import rx.functions.BiFunction;
 import rx.subjects.PublishSubject;
 
 public class OnSubscribeGroupJoinTest {
     @Mock
     Observer<Object> observer;
 
-    Func2<Integer, Integer, Integer> add = new Func2<Integer, Integer, Integer>() {
+    BiFunction<Integer, Integer, Integer> add = new BiFunction<Integer, Integer, Integer>() {
         @Override
         public Integer call(Integer t1, Integer t2) {
             return t1 + t2;
         }
     };
 
-    <T> Func1<Integer, Observable<T>> just(final Observable<T> observable) {
-        return new Func1<Integer, Observable<T>>() {
+    <T> Function<Integer, Flowable<T>> just(final Flowable<T> observable) {
+        return new Function<Integer, Flowable<T>>() {
             @Override
-            public Observable<T> call(Integer t1) {
+            public Flowable<T> call(Integer t1) {
                 return observable;
             }
         };
     }
 
-    <T, R> Func1<T, Observable<R>> just2(final Observable<R> observable) {
-        return new Func1<T, Observable<R>>() {
+    <T, R> Function<T, Flowable<R>> just2(final Flowable<R> observable) {
+        return new Function<T, Flowable<R>>() {
             @Override
-            public Observable<R> call(T t1) {
+            public Flowable<R> call(T t1) {
                 return observable;
             }
         };
     }
 
-    Func2<Integer, Observable<Integer>, Observable<Integer>> add2 = new Func2<Integer, Observable<Integer>, Observable<Integer>>() {
+    BiFunction<Integer, Flowable<Integer>, Flowable<Integer>> add2 = new BiFunction<Integer, Flowable<Integer>, Flowable<Integer>>() {
         @Override
-        public Observable<Integer> call(final Integer leftValue, Observable<Integer> rightValues) {
-            return rightValues.map(new Func1<Integer, Integer>() {
+        public Flowable<Integer> call(final Integer leftValue, Flowable<Integer> rightValues) {
+            return rightValues.map(new Function<Integer, Integer>() {
                 @Override
                 public Integer call(Integer rightValue) {
                     return add.call(leftValue, rightValue);
@@ -87,9 +87,9 @@ public class OnSubscribeGroupJoinTest {
         PublishSubject<Integer> source1 = PublishSubject.create();
         PublishSubject<Integer> source2 = PublishSubject.create();
 
-        Observable<Integer> m = Observable.merge(source1.groupJoin(source2,
-                just(Observable.never()),
-                just(Observable.never()), add2));
+        Flowable<Integer> m = Flowable.merge(source1.groupJoin(source2,
+                just(Flowable.never()),
+                just(Flowable.never()), add2));
 
         m.subscribe(observer);
 
@@ -101,8 +101,8 @@ public class OnSubscribeGroupJoinTest {
         source2.onNext(32);
         source2.onNext(64);
 
-        source1.onCompleted();
-        source2.onCompleted();
+        source1.onComplete();
+        source2.onComplete();
 
         verify(observer, times(1)).onNext(17);
         verify(observer, times(1)).onNext(18);
@@ -114,7 +114,7 @@ public class OnSubscribeGroupJoinTest {
         verify(observer, times(1)).onNext(66);
         verify(observer, times(1)).onNext(68);
 
-        verify(observer, times(1)).onCompleted(); //Never emitted?
+        verify(observer, times(1)).onComplete(); //Never emitted?
         verify(observer, never()).onError(any(Throwable.class));
     }
 
@@ -140,9 +140,9 @@ public class OnSubscribeGroupJoinTest {
 
     class PPF {
         final Person person;
-        final Observable<PersonFruit> fruits;
+        final Flowable<PersonFruit> fruits;
 
-        public PPF(Person person, Observable<PersonFruit> fruits) {
+        public PPF(Person person, Flowable<PersonFruit> fruits) {
             this.person = person;
             this.fruits = fruits;
         }
@@ -150,25 +150,25 @@ public class OnSubscribeGroupJoinTest {
 
     @Test
     public void normal1() {
-        Observable<Person> source1 = Observable.from(Arrays.asList(
+        Flowable<Person> source1 = Flowable.from(Arrays.asList(
                 new Person(1, "Joe"),
                 new Person(2, "Mike"),
                 new Person(3, "Charlie")
                 ));
 
-        Observable<PersonFruit> source2 = Observable.from(Arrays.asList(
+        Flowable<PersonFruit> source2 = Flowable.from(Arrays.asList(
                 new PersonFruit(1, "Strawberry"),
                 new PersonFruit(1, "Apple"),
                 new PersonFruit(3, "Peach")
                 ));
 
-        Observable<PPF> q = source1.groupJoin(
+        Flowable<PPF> q = source1.groupJoin(
                 source2,
-                just2(Observable.<Object> never()),
-                just2(Observable.<Object> never()),
-                new Func2<Person, Observable<PersonFruit>, PPF>() {
+                just2(Flowable.<Object> never()),
+                just2(Flowable.<Object> never()),
+                new BiFunction<Person, Flowable<PersonFruit>, PPF>() {
                     @Override
-                    public PPF call(Person t1, Observable<PersonFruit> t2) {
+                    public PPF call(Person t1, Flowable<PersonFruit> t2) {
                         return new PPF(t1, t2);
                     }
                 });
@@ -177,7 +177,7 @@ public class OnSubscribeGroupJoinTest {
                 new Subscriber<PPF>() {
                     @Override
                     public void onNext(final PPF ppf) {
-                        ppf.fruits.filter(new Func1<PersonFruit, Boolean>() {
+                        ppf.fruits.filter(new Function<PersonFruit, Boolean>() {
                             @Override
                             public Boolean call(PersonFruit t1) {
                                 return ppf.person.id == t1.personId;
@@ -196,8 +196,8 @@ public class OnSubscribeGroupJoinTest {
                     }
 
                     @Override
-                    public void onCompleted() {
-                        observer.onCompleted();
+                    public void onComplete() {
+                        observer.onComplete();
                     }
 
                 }
@@ -207,7 +207,7 @@ public class OnSubscribeGroupJoinTest {
         verify(observer, times(1)).onNext(Arrays.asList("Joe", "Apple"));
         verify(observer, times(1)).onNext(Arrays.asList("Charlie", "Peach"));
 
-        verify(observer, times(1)).onCompleted();
+        verify(observer, times(1)).onComplete();
         verify(observer, never()).onError(any(Throwable.class));
     }
 
@@ -216,9 +216,9 @@ public class OnSubscribeGroupJoinTest {
         PublishSubject<Integer> source1 = PublishSubject.create();
         PublishSubject<Integer> source2 = PublishSubject.create();
 
-        Observable<Observable<Integer>> m = source1.groupJoin(source2,
-                just(Observable.never()),
-                just(Observable.never()), add2);
+        Flowable<Flowable<Integer>> m = source1.groupJoin(source2,
+                just(Flowable.never()),
+                just(Flowable.never()), add2);
 
         m.subscribe(observer);
 
@@ -226,7 +226,7 @@ public class OnSubscribeGroupJoinTest {
         source1.onError(new RuntimeException("Forced failure"));
 
         verify(observer, times(1)).onError(any(Throwable.class));
-        verify(observer, never()).onCompleted();
+        verify(observer, never()).onComplete();
         verify(observer, never()).onNext(any());
     }
 
@@ -235,18 +235,18 @@ public class OnSubscribeGroupJoinTest {
         PublishSubject<Integer> source1 = PublishSubject.create();
         PublishSubject<Integer> source2 = PublishSubject.create();
 
-        Observable<Observable<Integer>> m = source1.groupJoin(source2,
-                just(Observable.never()),
-                just(Observable.never()), add2);
+        Flowable<Flowable<Integer>> m = source1.groupJoin(source2,
+                just(Flowable.never()),
+                just(Flowable.never()), add2);
 
         m.subscribe(observer);
 
         source1.onNext(1);
         source2.onError(new RuntimeException("Forced failure"));
 
-        verify(observer, times(1)).onNext(any(Observable.class));
+        verify(observer, times(1)).onNext(any(Flowable.class));
         verify(observer, times(1)).onError(any(Throwable.class));
-        verify(observer, never()).onCompleted();
+        verify(observer, never()).onComplete();
     }
 
     @Test
@@ -254,17 +254,17 @@ public class OnSubscribeGroupJoinTest {
         PublishSubject<Integer> source1 = PublishSubject.create();
         PublishSubject<Integer> source2 = PublishSubject.create();
 
-        Observable<Integer> duration1 = Observable.<Integer> error(new RuntimeException("Forced failure"));
+        Flowable<Integer> duration1 = Flowable.<Integer> error(new RuntimeException("Forced failure"));
 
-        Observable<Observable<Integer>> m = source1.groupJoin(source2,
+        Flowable<Flowable<Integer>> m = source1.groupJoin(source2,
                 just(duration1),
-                just(Observable.never()), add2);
+                just(Flowable.never()), add2);
         m.subscribe(observer);
 
         source1.onNext(1);
 
         verify(observer, times(1)).onError(any(Throwable.class));
-        verify(observer, never()).onCompleted();
+        verify(observer, never()).onComplete();
         verify(observer, never()).onNext(any());
     }
 
@@ -273,17 +273,17 @@ public class OnSubscribeGroupJoinTest {
         PublishSubject<Integer> source1 = PublishSubject.create();
         PublishSubject<Integer> source2 = PublishSubject.create();
 
-        Observable<Integer> duration1 = Observable.<Integer> error(new RuntimeException("Forced failure"));
+        Flowable<Integer> duration1 = Flowable.<Integer> error(new RuntimeException("Forced failure"));
 
-        Observable<Observable<Integer>> m = source1.groupJoin(source2,
-                just(Observable.never()),
+        Flowable<Flowable<Integer>> m = source1.groupJoin(source2,
+                just(Flowable.never()),
                 just(duration1), add2);
         m.subscribe(observer);
 
         source2.onNext(1);
 
         verify(observer, times(1)).onError(any(Throwable.class));
-        verify(observer, never()).onCompleted();
+        verify(observer, never()).onComplete();
         verify(observer, never()).onNext(any());
     }
 
@@ -292,22 +292,22 @@ public class OnSubscribeGroupJoinTest {
         PublishSubject<Integer> source1 = PublishSubject.create();
         PublishSubject<Integer> source2 = PublishSubject.create();
 
-        Func1<Integer, Observable<Integer>> fail = new Func1<Integer, Observable<Integer>>() {
+        Function<Integer, Flowable<Integer>> fail = new Function<Integer, Flowable<Integer>>() {
             @Override
-            public Observable<Integer> call(Integer t1) {
+            public Flowable<Integer> call(Integer t1) {
                 throw new RuntimeException("Forced failure");
             }
         };
 
-        Observable<Observable<Integer>> m = source1.groupJoin(source2,
+        Flowable<Flowable<Integer>> m = source1.groupJoin(source2,
                 fail,
-                just(Observable.never()), add2);
+                just(Flowable.never()), add2);
         m.subscribe(observer);
 
         source1.onNext(1);
 
         verify(observer, times(1)).onError(any(Throwable.class));
-        verify(observer, never()).onCompleted();
+        verify(observer, never()).onComplete();
         verify(observer, never()).onNext(any());
     }
 
@@ -316,22 +316,22 @@ public class OnSubscribeGroupJoinTest {
         PublishSubject<Integer> source1 = PublishSubject.create();
         PublishSubject<Integer> source2 = PublishSubject.create();
 
-        Func1<Integer, Observable<Integer>> fail = new Func1<Integer, Observable<Integer>>() {
+        Function<Integer, Flowable<Integer>> fail = new Function<Integer, Flowable<Integer>>() {
             @Override
-            public Observable<Integer> call(Integer t1) {
+            public Flowable<Integer> call(Integer t1) {
                 throw new RuntimeException("Forced failure");
             }
         };
 
-        Observable<Observable<Integer>> m = source1.groupJoin(source2,
-                just(Observable.never()),
+        Flowable<Flowable<Integer>> m = source1.groupJoin(source2,
+                just(Flowable.never()),
                 fail, add2);
         m.subscribe(observer);
 
         source2.onNext(1);
 
         verify(observer, times(1)).onError(any(Throwable.class));
-        verify(observer, never()).onCompleted();
+        verify(observer, never()).onComplete();
         verify(observer, never()).onNext(any());
     }
 
@@ -340,23 +340,23 @@ public class OnSubscribeGroupJoinTest {
         PublishSubject<Integer> source1 = PublishSubject.create();
         PublishSubject<Integer> source2 = PublishSubject.create();
 
-        Func2<Integer, Observable<Integer>, Integer> fail = new Func2<Integer, Observable<Integer>, Integer>() {
+        BiFunction<Integer, Flowable<Integer>, Integer> fail = new BiFunction<Integer, Flowable<Integer>, Integer>() {
             @Override
-            public Integer call(Integer t1, Observable<Integer> t2) {
+            public Integer call(Integer t1, Flowable<Integer> t2) {
                 throw new RuntimeException("Forced failure");
             }
         };
 
-        Observable<Integer> m = source1.groupJoin(source2,
-                just(Observable.never()),
-                just(Observable.never()), fail);
+        Flowable<Integer> m = source1.groupJoin(source2,
+                just(Flowable.never()),
+                just(Flowable.never()), fail);
         m.subscribe(observer);
 
         source1.onNext(1);
         source2.onNext(2);
 
         verify(observer, times(1)).onError(any(Throwable.class));
-        verify(observer, never()).onCompleted();
+        verify(observer, never()).onComplete();
         verify(observer, never()).onNext(any());
     }
 }

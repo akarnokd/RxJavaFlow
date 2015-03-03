@@ -110,7 +110,7 @@ public abstract class RxRingBufferBase {
         // queue is now full
         b.onError(new RuntimeException("an error"));
         try {
-            b.onCompleted();
+            b.onComplete();
             // we ignore duplicate terminal events
         } catch (IllegalStateException e) {
             fail("we will ignore duplicate terminal events");
@@ -126,7 +126,7 @@ public abstract class RxRingBufferBase {
             b.onNext("one");
         }
         // queue is now full
-        b.onCompleted();
+        b.onComplete();
         try {
             b.onError(new RuntimeException("an error"));
             // we ignore duplicate terminal events
@@ -139,12 +139,12 @@ public abstract class RxRingBufferBase {
     public void testPollingTerminalState() throws MissingBackpressureException {
         RxRingBuffer b = createRingBuffer();
         b.onNext(1);
-        b.onCompleted();
+        b.onComplete();
         TestSubscriber<Object> s = new TestSubscriber<Object>();
         Object o = null;
         while ((o = b.poll()) != null) {
             if (b.isCompleted(o)) {
-                s.onCompleted();
+                s.onComplete();
             } else {
                 s.onNext(o);
             }

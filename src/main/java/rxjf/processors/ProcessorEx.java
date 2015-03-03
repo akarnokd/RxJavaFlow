@@ -22,7 +22,7 @@ import rxjf.Flow.Processor;
 import rxjf.Flow.Subscriber;
 
 /**
- * 
+ * Extends upon the Processor interface by adding some common methods.
  */
 public interface ProcessorEx<T, R> extends Processor<T, R> {
     /**
@@ -37,7 +37,7 @@ public interface ProcessorEx<T, R> extends Processor<T, R> {
     boolean hasThrowable();
     /**
      * Check if the Subject has terminated normally.
-     * @return true if the subject completed normally via {@code onCompleted()}
+     * @return true if the subject completed normally via {@code onComplete()}
      */
     boolean hasComplete();
     /**

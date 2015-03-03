@@ -16,20 +16,20 @@
 package rx.internal.operators;
 
 
-import rx.Observable;
-import rx.Observable.Operator;
+import rx.Flowable;
+import rx.Flowable.Operator;
 import rx.Subscriber;
-import rx.functions.Func1;
+import rx.functions.Function;
 
 /**
- * Returns an {@link Observable} that emits <code>true</code> if any element of
+ * Returns an {@link Flowable} that emits <code>true</code> if any element of
  * an observable sequence satisfies a condition, otherwise <code>false</code>.
  */
 public final class OperatorAny<T> implements Operator<Boolean, T> {
-    private final Func1<? super T, Boolean> predicate;
+    private final Function<? super T, Boolean> predicate;
     private final boolean returnOnEmpty;
 
-    public OperatorAny(Func1<? super T, Boolean> predicate, boolean returnOnEmpty) {
+    public OperatorAny(Function<? super T, Boolean> predicate, boolean returnOnEmpty) {
         this.predicate = predicate;
         this.returnOnEmpty = returnOnEmpty;
     }
@@ -47,7 +47,7 @@ public final class OperatorAny<T> implements Operator<Boolean, T> {
                 if (result && !done) {
                     done = true;
                     child.onNext(!returnOnEmpty);
-                    child.onCompleted();
+                    child.onComplete();
                     unsubscribe();
                 } else {
                     // if we drop values we must replace them upstream as downstream won't receive and request more
@@ -61,7 +61,7 @@ public final class OperatorAny<T> implements Operator<Boolean, T> {
             }
 
             @Override
-            public void onCompleted() {
+            public void onComplete() {
                 if (!done) {
                     done = true;
                     if (hasElements) {
@@ -69,7 +69,7 @@ public final class OperatorAny<T> implements Operator<Boolean, T> {
                     } else {
                         child.onNext(returnOnEmpty);
                     }
-                    child.onCompleted();
+                    child.onComplete();
                 }
             }
 

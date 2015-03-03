@@ -16,84 +16,84 @@
 package rx.util;
 
 import rx.Notification;
-import rx.Observable;
-import rx.functions.Func1;
-import rx.functions.Func2;
+import rx.Flowable;
+import rx.functions.Function;
+import rx.functions.BiFunction;
 
-public final class AssertObservable {
-    private AssertObservable() {
+public final class AssertFlowable {
+    private AssertFlowable() {
         throw new IllegalStateException("No instances!");
     }
     /**
-     * Asserts that two Observables are equal. If they are not, an {@link AssertionError} is thrown
+     * Asserts that two Flowables are equal. If they are not, an {@link AssertionError} is thrown
      * with the given message. If <code>expecteds</code> and <code>actuals</code> are
      * <code>null</code>, they are considered equal.
      * 
      * @param expected
-     *            Observable with expected values.
+     *            Flowable with expected values.
      * @param actual
-     *            Observable with actual values
+     *            Flowable with actual values
      */
-    public static <T> void assertObservableEqualsBlocking(Observable<T> expected, Observable<T> actual) {
-        assertObservableEqualsBlocking(null, expected, actual);
+    public static <T> void assertFlowableEqualsBlocking(Flowable<T> expected, Flowable<T> actual) {
+        assertFlowableEqualsBlocking(null, expected, actual);
     }
 
     /**
-     * Asserts that two Observables are equal. If they are not, an {@link AssertionError} is thrown
+     * Asserts that two Flowables are equal. If they are not, an {@link AssertionError} is thrown
      * with the given message. If <code>expected</code> and <code>actual</code> are
      * <code>null</code>, they are considered equal.
      * 
      * @param message
      *            the identifying message for the {@link AssertionError} (<code>null</code> okay)
      * @param expected
-     *            Observable with expected values.
+     *            Flowable with expected values.
      * @param actual
-     *            Observable with actual values
+     *            Flowable with actual values
      */
-    public static <T> void assertObservableEqualsBlocking(String message, Observable<T> expected, Observable<T> actual) {
-        assertObservableEquals(expected, actual).toBlocking().lastOrDefault(null);
+    public static <T> void assertFlowableEqualsBlocking(String message, Flowable<T> expected, Flowable<T> actual) {
+        assertFlowableEquals(expected, actual).toBlocking().lastOrDefault(null);
     }
 
     /**
-     * Asserts that two {@link Observable}s are equal and returns an empty {@link Observable}. If
-     * they are not, an {@link Observable} is returned that calls onError with an {@link AssertionError} when subscribed to. If <code>expected</code> and <code>actual</code>
+     * Asserts that two {@link Flowable}s are equal and returns an empty {@link Flowable}. If
+     * they are not, an {@link Flowable} is returned that calls onError with an {@link AssertionError} when subscribed to. If <code>expected</code> and <code>actual</code>
      * are <code>null</code>, they are considered equal.
      * 
      * @param message
      *            the identifying message for the {@link AssertionError} (<code>null</code> okay)
      * @param expected
-     *            Observable with expected values.
+     *            Flowable with expected values.
      * @param actual
-     *            Observable with actual values
+     *            Flowable with actual values
      */
-    public static <T> Observable<Void> assertObservableEquals(Observable<T> expected, Observable<T> actual) {
-        return assertObservableEquals(null, expected, actual);
+    public static <T> Flowable<Void> assertFlowableEquals(Flowable<T> expected, Flowable<T> actual) {
+        return assertFlowableEquals(null, expected, actual);
     }
 
     /**
-     * Asserts that two {@link Observable}s are equal and returns an empty {@link Observable}. If
-     * they are not, an {@link Observable} is returned that calls onError with an {@link AssertionError} when subscribed to with the given message. If <code>expected</code>
+     * Asserts that two {@link Flowable}s are equal and returns an empty {@link Flowable}. If
+     * they are not, an {@link Flowable} is returned that calls onError with an {@link AssertionError} when subscribed to with the given message. If <code>expected</code>
      * and <code>actual</code> are <code>null</code>, they are considered equal.
      * 
      * @param message
      *            the identifying message for the {@link AssertionError} (<code>null</code> okay)
      * @param expected
-     *            Observable with expected values.
+     *            Flowable with expected values.
      * @param actual
-     *            Observable with actual values
+     *            Flowable with actual values
      */
-    public static <T> Observable<Void> assertObservableEquals(final String message, Observable<T> expected, Observable<T> actual) {
+    public static <T> Flowable<Void> assertFlowableEquals(final String message, Flowable<T> expected, Flowable<T> actual) {
         if (actual == null && expected != null) {
-            return Observable.error(new AssertionError((message != null ? message + ": " : "") + "Actual was null and expected was not"));
+            return Flowable.error(new AssertionError((message != null ? message + ": " : "") + "Actual was null and expected was not"));
         }
         if (actual != null && expected == null) {
-            return Observable.error(new AssertionError((message != null ? message + ": " : "") + "Expected was null and actual was not"));
+            return Flowable.error(new AssertionError((message != null ? message + ": " : "") + "Expected was null and actual was not"));
         }
         if (actual == null && expected == null) {
-            return Observable.empty();
+            return Flowable.empty();
         }
 
-        Func2<? super Notification<T>, ? super Notification<T>, Notification<String>> zipFunction = new Func2<Notification<T>, Notification<T>, Notification<String>>() {
+        BiFunction<? super Notification<T>, ? super Notification<T>, Notification<String>> zipFunction = new BiFunction<Notification<T>, Notification<T>, Notification<String>>() {
             @Override
             public Notification<String> call(Notification<T> expectedNotfication, Notification<T> actualNotification) {
                 if (expectedNotfication.equals(actualNotification)) {
@@ -124,7 +124,7 @@ public final class AssertObservable {
             }
         };
 
-        Func2<Notification<String>, Notification<String>, Notification<String>> accumulator = new Func2<Notification<String>, Notification<String>, Notification<String>>() {
+        BiFunction<Notification<String>, Notification<String>, Notification<String>> accumulator = new BiFunction<Notification<String>, Notification<String>, Notification<String>>() {
             @Override
             public Notification<String> call(Notification<String> a, Notification<String> b) {
                 String message = a.isOnError() ? a.getThrowable().getMessage() : a.getValue();
@@ -140,16 +140,16 @@ public final class AssertObservable {
             }
         };
 
-        Observable<Void> outcomeObservable = Observable.zip(expected.materialize(), actual.materialize(), zipFunction).reduce(accumulator).map(new Func1<Notification<String>, Notification<Void>>() {
+        Flowable<Void> outcomeFlowable = Flowable.zip(expected.materialize(), actual.materialize(), zipFunction).reduce(accumulator).map(new Function<Notification<String>, Notification<Void>>() {
             @Override
             public Notification<Void> call(Notification<String> outcome) {
                 if (outcome.isOnError()) {
-                    String fullMessage = (message != null ? message + ": " : "") + "Observables are different\n\t" + outcome.getThrowable().getMessage();
+                    String fullMessage = (message != null ? message + ": " : "") + "Flowables are different\n\t" + outcome.getThrowable().getMessage();
                     return Notification.createOnError(new AssertionError(fullMessage));
                 }
-                return Notification.createOnCompleted();
+                return Notification.createonComplete();
             }
         }).dematerialize();
-        return outcomeObservable;
+        return outcomeFlowable;
     }
 }

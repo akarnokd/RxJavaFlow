@@ -15,19 +15,19 @@
  */
 package rx.internal.operators;
 
-import rx.Observable.Operator;
+import rx.Flowable.Operator;
 import rx.Subscriber;
-import rx.functions.Func1;
-import rx.functions.Func2;
+import rx.functions.Function;
+import rx.functions.BiFunction;
 
 /**
  * Skips any emitted source items as long as the specified condition holds true. Emits all further source items
  * as soon as the condition becomes false.
  */
 public final class OperatorSkipWhile<T> implements Operator<T, T> {
-    private final Func2<? super T, Integer, Boolean> predicate;
+    private final BiFunction<? super T, Integer, Boolean> predicate;
 
-    public OperatorSkipWhile(Func2<? super T, Integer, Boolean> predicate) {
+    public OperatorSkipWhile(BiFunction<? super T, Integer, Boolean> predicate) {
         this.predicate = predicate;
     }
     @Override
@@ -55,14 +55,14 @@ public final class OperatorSkipWhile<T> implements Operator<T, T> {
             }
 
             @Override
-            public void onCompleted() {
-                child.onCompleted();
+            public void onComplete() {
+                child.onComplete();
             }
         };
     }
-    /** Convert to Func2 type predicate. */
-    public static <T> Func2<T, Integer, Boolean> toPredicate2(final Func1<? super T, Boolean> predicate) {
-        return new Func2<T, Integer, Boolean>() {
+    /** Convert to BiFunction type predicate. */
+    public static <T> BiFunction<T, Integer, Boolean> toPredicate2(final Function<? super T, Boolean> predicate) {
+        return new BiFunction<T, Integer, Boolean>() {
 
             @Override
             public Boolean call(T t1, Integer t2) {

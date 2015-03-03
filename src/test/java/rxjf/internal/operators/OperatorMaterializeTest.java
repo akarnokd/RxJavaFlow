@@ -26,7 +26,7 @@ import java.util.concurrent.ExecutionException;
 import org.junit.Test;
 
 import rx.Notification;
-import rx.Observable;
+import rx.Flowable;
 import rx.Subscriber;
 
 public class OperatorMaterializeTest {
@@ -34,10 +34,10 @@ public class OperatorMaterializeTest {
     @Test
     public void testMaterialize1() {
         // null will cause onError to be triggered before "three" can be returned
-        final TestAsyncErrorObservable o1 = new TestAsyncErrorObservable("one", "two", null, "three");
+        final TestAsyncErrorFlowable o1 = new TestAsyncErrorFlowable("one", "two", null, "three");
 
         TestObserver Observer = new TestObserver();
-        Observable<Notification<String>> m = Observable.create(o1).materialize();
+        Flowable<Notification<String>> m = Flowable.create(o1).materialize();
         m.subscribe(Observer);
 
         try {
@@ -47,7 +47,7 @@ public class OperatorMaterializeTest {
         }
 
         assertFalse(Observer.onError);
-        assertTrue(Observer.onCompleted);
+        assertTrue(Observer.onComplete());
         assertEquals(3, Observer.notifications.size());
         assertEquals("one", Observer.notifications.get(0).getValue());
         assertTrue(Observer.notifications.get(0).isOnNext());
@@ -59,10 +59,10 @@ public class OperatorMaterializeTest {
 
     @Test
     public void testMaterialize2() {
-        final TestAsyncErrorObservable o1 = new TestAsyncErrorObservable("one", "two", "three");
+        final TestAsyncErrorFlowable o1 = new TestAsyncErrorFlowable("one", "two", "three");
 
         TestObserver Observer = new TestObserver();
-        Observable<Notification<String>> m = Observable.create(o1).materialize();
+        Flowable<Notification<String>> m = Flowable.create(o1).materialize();
         m.subscribe(Observer);
 
         try {
@@ -72,7 +72,7 @@ public class OperatorMaterializeTest {
         }
 
         assertFalse(Observer.onError);
-        assertTrue(Observer.onCompleted);
+        assertTrue(Observer.onComplete());
         assertEquals(4, Observer.notifications.size());
         assertEquals("one", Observer.notifications.get(0).getValue());
         assertTrue(Observer.notifications.get(0).isOnNext());
@@ -80,14 +80,14 @@ public class OperatorMaterializeTest {
         assertTrue(Observer.notifications.get(1).isOnNext());
         assertEquals("three", Observer.notifications.get(2).getValue());
         assertTrue(Observer.notifications.get(2).isOnNext());
-        assertTrue(Observer.notifications.get(3).isOnCompleted());
+        assertTrue(Observer.notifications.get(3).isOnComplete());
     }
 
     @Test
     public void testMultipleSubscribes() throws InterruptedException, ExecutionException {
-        final TestAsyncErrorObservable o = new TestAsyncErrorObservable("one", "two", null, "three");
+        final TestAsyncErrorFlowable o = new TestAsyncErrorFlowable("one", "two", null, "three");
 
-        Observable<Notification<String>> m = Observable.create(o).materialize();
+        Flowable<Notification<String>> m = Flowable.create(o).materialize();
 
         assertEquals(3, m.toList().toBlocking().toFuture().get().size());
         assertEquals(3, m.toList().toBlocking().toFuture().get().size());
@@ -95,13 +95,13 @@ public class OperatorMaterializeTest {
 
     private static class TestObserver extends Subscriber<Notification<String>> {
 
-        boolean onCompleted = false;
+        boolean onComplete() = false;
         boolean onError = false;
         List<Notification<String>> notifications = new Vector<Notification<String>>();
 
         @Override
-        public void onCompleted() {
-            this.onCompleted = true;
+        public void onComplete() {
+            this.onComplete() = true;
         }
 
         @Override
@@ -116,11 +116,11 @@ public class OperatorMaterializeTest {
 
     }
 
-    private static class TestAsyncErrorObservable implements Observable.OnSubscribe<String> {
+    private static class TestAsyncErrorFlowable implements Flowable.OnSubscribe<String> {
 
         String[] valuesToReturn;
 
-        TestAsyncErrorObservable(String... values) {
+        TestAsyncErrorFlowable(String... values) {
             valuesToReturn = values;
         }
 
@@ -147,7 +147,7 @@ public class OperatorMaterializeTest {
                         }
                     }
                     System.out.println("subscription complete");
-                    observer.onCompleted();
+                    observer.onComplete();
                 }
 
             });

@@ -23,7 +23,7 @@ import rxjf.exceptions.OnErrorThrowable;
 import rxjf.subscribers.AbstractSubscriber;
 
 /**
- * Filters an Observable by discarding any items it emits that do not meet some test.
+ * Filters an Flowable by discarding any items it emits that do not meet some test.
  * <p>
  * <img width="640" src="https://github.com/ReactiveX/RxJava/wiki/images/rx-operators/filter.png" alt="">
  */

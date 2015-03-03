@@ -30,7 +30,7 @@ import rxjf.schedulers.Scheduler;
  *            the type of the key
  * @param <T>
  *            the type of the items emitted by the {@code GroupedFlowable}
- * @see Flowable#groupBy(Func1)
+ * @see Flowable#groupBy(Function)
  * @see <a href="http://reactivex.io/documentation/operators/groupby.html">ReactiveX documentation: GroupBy</a>
  */
 public class GroupedFlowable<K, T> extends Flowable<T> {
@@ -56,9 +56,9 @@ public class GroupedFlowable<K, T> extends Flowable<T> {
      * <img width="640" height="200" src="https://raw.github.com/wiki/ReactiveX/RxJava/images/rx-operators/create.png" alt="">
      * <p>
      * Write the function you pass to {@code create} so that it behaves as an Flowable: It should invoke the
-     * Subscriber's {@link Subscriber#onNext onNext}, {@link Subscriber#onError onError}, and {@link Subscriber#onCompleted onCompleted} methods appropriately.
+     * Subscriber's {@link Subscriber#onNext onNext}, {@link Subscriber#onError onError}, and {@link Subscriber#onComplete() onComplete()} methods appropriately.
      * <p>
-     * A well-formed Flowable must invoke either the Subscriber's {@code onCompleted} method exactly once or
+     * A well-formed Flowable must invoke either the Subscriber's {@code onComplete()} method exactly once or
      * its {@code onError} method exactly once.
      * <p>
      * See <a href="http://go.microsoft.com/fwlink/?LinkID=205219">Rx Design Guidelines (PDF)</a> for detailed
@@ -73,7 +73,7 @@ public class GroupedFlowable<K, T> extends Flowable<T> {
      * @param <T>
      *            the type of the items that this Flowable emits
      * @param f
-     *            a function that accepts an {@code Subscriber<T>}, and invokes its {@code onNext}, {@code onError}, and {@code onCompleted} methods as appropriate
+     *            a function that accepts an {@code Subscriber<T>}, and invokes its {@code onNext}, {@code onError}, and {@code onComplete()} methods as appropriate
      * @return a GroupedFlowable that, when a {@link Subscriber} subscribes to it, will execute the specified
      *         function
      */

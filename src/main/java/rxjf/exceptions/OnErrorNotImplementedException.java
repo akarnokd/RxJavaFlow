@@ -25,7 +25,7 @@ import rxjf.Flow.Subscriber;
  * <blockquote><p>
  * "when calling the Subscribe method that only has an onNext argument, the OnError behavior will be
  * to rethrow the exception on the thread that the message comes out from the observable sequence.
- * The OnCompleted behavior in this case is to do nothing."
+ * The onComplete() behavior in this case is to do nothing."
  * </p></blockquote>
  *
  * @see <a href="https://github.com/ReactiveX/RxJava/issues/198">RxJava issue #198</a>

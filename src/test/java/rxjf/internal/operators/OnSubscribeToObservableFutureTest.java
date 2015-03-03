@@ -32,14 +32,14 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.junit.Test;
 
-import rx.Observable;
+import rx.Flowable;
 import rx.Observer;
 import rx.Subscription;
 import rx.observers.TestObserver;
 import rx.observers.TestSubscriber;
 import rx.schedulers.Schedulers;
 
-public class OnSubscribeToObservableFutureTest {
+public class OnSubscribeToFlowableFutureTest {
 
     @Test
     public void testSuccess() throws Exception {
@@ -50,11 +50,11 @@ public class OnSubscribeToObservableFutureTest {
         @SuppressWarnings("unchecked")
         Observer<Object> o = mock(Observer.class);
 
-        Subscription sub = Observable.from(future).subscribe(new TestObserver<Object>(o));
+        Subscription sub = Flowable.from(future).subscribe(new TestObserver<Object>(o));
         sub.unsubscribe();
 
         verify(o, times(1)).onNext(value);
-        verify(o, times(1)).onCompleted();
+        verify(o, times(1)).onComplete();
         verify(o, never()).onError(any(Throwable.class));
         verify(future, times(1)).cancel(true);
     }
@@ -68,11 +68,11 @@ public class OnSubscribeToObservableFutureTest {
         @SuppressWarnings("unchecked")
         Observer<Object> o = mock(Observer.class);
 
-        Subscription sub = Observable.from(future).subscribe(new TestObserver<Object>(o));
+        Subscription sub = Flowable.from(future).subscribe(new TestObserver<Object>(o));
         sub.unsubscribe();
 
         verify(o, never()).onNext(null);
-        verify(o, never()).onCompleted();
+        verify(o, never()).onComplete();
         verify(o, times(1)).onError(e);
         verify(future, times(1)).cancel(true);
     }
@@ -88,9 +88,9 @@ public class OnSubscribeToObservableFutureTest {
 
         TestSubscriber<Object> testSubscriber = new TestSubscriber<Object>(o);
         testSubscriber.unsubscribe();
-        Subscription sub = Observable.from(future).subscribe(testSubscriber);
+        Subscription sub = Flowable.from(future).subscribe(testSubscriber);
         assertEquals(0, testSubscriber.getOnErrorEvents().size());
-        assertEquals(0, testSubscriber.getOnCompletedEvents().size());
+        assertEquals(0, testSubscriber.getonComplete()Events().size());
     }
 
     @Test
@@ -132,11 +132,11 @@ public class OnSubscribeToObservableFutureTest {
         Observer<Object> o = mock(Observer.class);
 
         TestSubscriber<Object> testSubscriber = new TestSubscriber<Object>(o);
-        Observable<Object> futureObservable = Observable.from(future);
-        Subscription sub = futureObservable.subscribeOn(Schedulers.computation()).subscribe(testSubscriber);
+        Flowable<Object> futureFlowable = Flowable.from(future);
+        Subscription sub = futureFlowable.subscribeOn(Schedulers.computation()).subscribe(testSubscriber);
         sub.unsubscribe();
         assertEquals(0, testSubscriber.getOnErrorEvents().size());
-        assertEquals(0, testSubscriber.getOnCompletedEvents().size());
+        assertEquals(0, testSubscriber.getonComplete()Events().size());
         assertEquals(0, testSubscriber.getOnNextEvents().size());
     }
 }

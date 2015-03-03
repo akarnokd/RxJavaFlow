@@ -23,22 +23,22 @@ import org.junit.Before;
 import org.junit.Test;
 import org.mockito.InOrder;
 
-import rx.Observable;
+import rx.Flowable;
 import rx.Observer;
-import rx.functions.Func2;
+import rx.functions.BiFunction;
 import rx.subjects.PublishSubject;
 
 /**
- * Systematically tests that when zipping an infinite and a finite Observable,
- * the resulting Observable is finite.
+ * Systematically tests that when zipping an infinite and a finite Flowable,
+ * the resulting Flowable is finite.
  * 
  */
 public class OperatorZipCompletionTest {
-    Func2<String, String, String> concat2Strings;
+    BiFunction<String, String, String> concat2Strings;
 
     PublishSubject<String> s1;
     PublishSubject<String> s2;
-    Observable<String> zipped;
+    Flowable<String> zipped;
 
     Observer<String> observer;
     InOrder inOrder;
@@ -46,7 +46,7 @@ public class OperatorZipCompletionTest {
     @Before
     @SuppressWarnings("unchecked")
     public void setUp() {
-        concat2Strings = new Func2<String, String, String>() {
+        concat2Strings = new BiFunction<String, String, String>() {
             @Override
             public String call(String t1, String t2) {
                 return t1 + "-" + t2;
@@ -55,7 +55,7 @@ public class OperatorZipCompletionTest {
 
         s1 = PublishSubject.create();
         s2 = PublishSubject.create();
-        zipped = Observable.zip(s1, s2, concat2Strings);
+        zipped = Flowable.zip(s1, s2, concat2Strings);
 
         observer = mock(Observer.class);
         inOrder = inOrder(observer);
@@ -67,12 +67,12 @@ public class OperatorZipCompletionTest {
     public void testFirstCompletesThenSecondInfinite() {
         s1.onNext("a");
         s1.onNext("b");
-        s1.onCompleted();
+        s1.onComplete();
         s2.onNext("1");
         inOrder.verify(observer, times(1)).onNext("a-1");
         s2.onNext("2");
         inOrder.verify(observer, times(1)).onNext("b-2");
-        inOrder.verify(observer, times(1)).onCompleted();
+        inOrder.verify(observer, times(1)).onComplete();
         inOrder.verifyNoMoreInteractions();
     }
 
@@ -84,8 +84,8 @@ public class OperatorZipCompletionTest {
         inOrder.verify(observer, times(1)).onNext("a-1");
         s1.onNext("b");
         inOrder.verify(observer, times(1)).onNext("b-2");
-        s1.onCompleted();
-        inOrder.verify(observer, times(1)).onCompleted();
+        s1.onComplete();
+        inOrder.verify(observer, times(1)).onComplete();
         inOrder.verifyNoMoreInteractions();
     }
 
@@ -93,12 +93,12 @@ public class OperatorZipCompletionTest {
     public void testSecondCompletesThenFirstInfinite() {
         s2.onNext("1");
         s2.onNext("2");
-        s2.onCompleted();
+        s2.onComplete();
         s1.onNext("a");
         inOrder.verify(observer, times(1)).onNext("a-1");
         s1.onNext("b");
         inOrder.verify(observer, times(1)).onNext("b-2");
-        inOrder.verify(observer, times(1)).onCompleted();
+        inOrder.verify(observer, times(1)).onComplete();
         inOrder.verifyNoMoreInteractions();
     }
 
@@ -110,8 +110,8 @@ public class OperatorZipCompletionTest {
         inOrder.verify(observer, times(1)).onNext("a-1");
         s2.onNext("2");
         inOrder.verify(observer, times(1)).onNext("b-2");
-        s2.onCompleted();
-        inOrder.verify(observer, times(1)).onCompleted();
+        s2.onComplete();
+        inOrder.verify(observer, times(1)).onComplete();
         inOrder.verifyNoMoreInteractions();
     }
 

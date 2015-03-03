@@ -30,8 +30,8 @@ import java.util.List;
 import org.junit.Test;
 import org.mockito.InOrder;
 
-import rx.Observable;
-import rx.Observable.OnSubscribe;
+import rx.Flowable;
+import rx.Flowable.OnSubscribe;
 import rx.Observer;
 import rx.Subscriber;
 import rx.Subscription;
@@ -39,7 +39,7 @@ import rx.exceptions.TestException;
 import rx.functions.Action0;
 import rx.functions.Action1;
 import rx.functions.Func0;
-import rx.functions.Func1;
+import rx.functions.Function;
 import rx.subscriptions.Subscriptions;
 
 public class OnSubscribeUsingTest {
@@ -89,23 +89,23 @@ public class OnSubscribeUsingTest {
             }
         };
 
-        Func1<Resource, Observable<String>> observableFactory = new Func1<Resource, Observable<String>>() {
+        Function<Resource, Flowable<String>> observableFactory = new Function<Resource, Flowable<String>>() {
             @Override
-            public Observable<String> call(Resource resource) {
-                return Observable.from(resource.getTextFromWeb().split(" "));
+            public Flowable<String> call(Resource resource) {
+                return Flowable.from(resource.getTextFromWeb().split(" "));
             }
         };
 
         @SuppressWarnings("unchecked")
         Observer<String> observer = mock(Observer.class);
-        Observable<String> observable = Observable.using(resourceFactory, observableFactory,
+        Flowable<String> observable = Flowable.using(resourceFactory, observableFactory,
                 new DisposeAction(), disposeEagerly);
         observable.subscribe(observer);
 
         InOrder inOrder = inOrder(observer);
         inOrder.verify(observer, times(1)).onNext("Hello");
         inOrder.verify(observer, times(1)).onNext("world!");
-        inOrder.verify(observer, times(1)).onCompleted();
+        inOrder.verify(observer, times(1)).onComplete();
         inOrder.verifyNoMoreInteractions();
 
         // The resouce should be closed
@@ -149,16 +149,16 @@ public class OnSubscribeUsingTest {
             }
         };
 
-        Func1<Resource, Observable<String>> observableFactory = new Func1<Resource, Observable<String>>() {
+        Function<Resource, Flowable<String>> observableFactory = new Function<Resource, Flowable<String>>() {
             @Override
-            public Observable<String> call(Resource resource) {
-                return Observable.from(resource.getTextFromWeb().split(" "));
+            public Flowable<String> call(Resource resource) {
+                return Flowable.from(resource.getTextFromWeb().split(" "));
             }
         };
 
         @SuppressWarnings("unchecked")
         Observer<String> observer = mock(Observer.class);
-        Observable<String> observable = Observable.using(resourceFactory, observableFactory,
+        Flowable<String> observable = Flowable.using(resourceFactory, observableFactory,
                 new DisposeAction(), disposeEagerly);
         observable.subscribe(observer);
         observable.subscribe(observer);
@@ -167,11 +167,11 @@ public class OnSubscribeUsingTest {
 
         inOrder.verify(observer, times(1)).onNext("Hello");
         inOrder.verify(observer, times(1)).onNext("world!");
-        inOrder.verify(observer, times(1)).onCompleted();
+        inOrder.verify(observer, times(1)).onComplete();
 
         inOrder.verify(observer, times(1)).onNext("Hello");
         inOrder.verify(observer, times(1)).onNext("world!");
-        inOrder.verify(observer, times(1)).onCompleted();
+        inOrder.verify(observer, times(1)).onComplete();
         inOrder.verifyNoMoreInteractions();
     }
 
@@ -193,28 +193,28 @@ public class OnSubscribeUsingTest {
             }
         };
 
-        Func1<Subscription, Observable<Integer>> observableFactory = new Func1<Subscription, Observable<Integer>>() {
+        Function<Subscription, Flowable<Integer>> observableFactory = new Function<Subscription, Flowable<Integer>>() {
             @Override
-            public Observable<Integer> call(Subscription subscription) {
-                return Observable.empty();
+            public Flowable<Integer> call(Subscription subscription) {
+                return Flowable.empty();
             }
         };
 
-        Observable.using(resourceFactory, observableFactory, disposeSubscription).toBlocking()
+        Flowable.using(resourceFactory, observableFactory, disposeSubscription).toBlocking()
                 .last();
     }
 
     @Test
-    public void testUsingWithObservableFactoryError() {
-        performTestUsingWithObservableFactoryError(false);
+    public void testUsingWithFlowableFactoryError() {
+        performTestUsingWithFlowableFactoryError(false);
     }
 
     @Test
-    public void testUsingWithObservableFactoryErrorDisposeEagerly() {
-        performTestUsingWithObservableFactoryError(true);
+    public void testUsingWithFlowableFactoryErrorDisposeEagerly() {
+        performTestUsingWithFlowableFactoryError(true);
     }
 
-    private void performTestUsingWithObservableFactoryError(boolean disposeEagerly) {
+    private void performTestUsingWithFlowableFactoryError(boolean disposeEagerly) {
         final Action0 unsubscribe = mock(Action0.class);
         Func0<Subscription> resourceFactory = new Func0<Subscription>() {
             @Override
@@ -223,15 +223,15 @@ public class OnSubscribeUsingTest {
             }
         };
 
-        Func1<Subscription, Observable<Integer>> observableFactory = new Func1<Subscription, Observable<Integer>>() {
+        Function<Subscription, Flowable<Integer>> observableFactory = new Function<Subscription, Flowable<Integer>>() {
             @Override
-            public Observable<Integer> call(Subscription subscription) {
+            public Flowable<Integer> call(Subscription subscription) {
                 throw new TestException();
             }
         };
 
         try {
-            Observable.using(resourceFactory, observableFactory, disposeSubscription).toBlocking()
+            Flowable.using(resourceFactory, observableFactory, disposeSubscription).toBlocking()
                     .last();
             fail("Should throw a TestException when the observableFactory throws it");
         } catch (TestException e) {
@@ -242,16 +242,16 @@ public class OnSubscribeUsingTest {
     }
 
     @Test
-    public void testUsingWithObservableFactoryErrorInOnSubscribe() {
-        performTestUsingWithObservableFactoryErrorInOnSubscribe(false);
+    public void testUsingWithFlowableFactoryErrorInOnSubscribe() {
+        performTestUsingWithFlowableFactoryErrorInOnSubscribe(false);
     }
 
     @Test
-    public void testUsingWithObservableFactoryErrorInOnSubscribeDisposeEagerly() {
-        performTestUsingWithObservableFactoryErrorInOnSubscribe(true);
+    public void testUsingWithFlowableFactoryErrorInOnSubscribeDisposeEagerly() {
+        performTestUsingWithFlowableFactoryErrorInOnSubscribe(true);
     }
 
-    private void performTestUsingWithObservableFactoryErrorInOnSubscribe(boolean disposeEagerly) {
+    private void performTestUsingWithFlowableFactoryErrorInOnSubscribe(boolean disposeEagerly) {
         final Action0 unsubscribe = mock(Action0.class);
         Func0<Subscription> resourceFactory = new Func0<Subscription>() {
             @Override
@@ -260,10 +260,10 @@ public class OnSubscribeUsingTest {
             }
         };
 
-        Func1<Subscription, Observable<Integer>> observableFactory = new Func1<Subscription, Observable<Integer>>() {
+        Function<Subscription, Flowable<Integer>> observableFactory = new Function<Subscription, Flowable<Integer>>() {
             @Override
-            public Observable<Integer> call(Subscription subscription) {
-                return Observable.create(new OnSubscribe<Integer>() {
+            public Flowable<Integer> call(Subscription subscription) {
+                return Flowable.create(new OnSubscribe<Integer>() {
                     @Override
                     public void call(Subscriber<? super Integer> t1) {
                         throw new TestException();
@@ -273,7 +273,7 @@ public class OnSubscribeUsingTest {
         };
 
         try {
-            Observable
+            Flowable
                     .using(resourceFactory, observableFactory, disposeSubscription, disposeEagerly)
                     .toBlocking().last();
             fail("Should throw a TestException when the observableFactory throws it");
@@ -288,21 +288,21 @@ public class OnSubscribeUsingTest {
     public void testUsingDisposesEagerlyBeforeCompletion() {
         final List<String> events = new ArrayList<String>();
         Func0<Resource> resourceFactory = createResourceFactory(events);
-        final Action0 completion = createOnCompletedAction(events);
+        final Action0 completion = createonComplete()Action(events);
         final Action0 unsub =createUnsubAction(events);
 
-        Func1<Resource, Observable<String>> observableFactory = new Func1<Resource, Observable<String>>() {
+        Function<Resource, Flowable<String>> observableFactory = new Function<Resource, Flowable<String>>() {
             @Override
-            public Observable<String> call(Resource resource) {
-                return Observable.from(resource.getTextFromWeb().split(" "));
+            public Flowable<String> call(Resource resource) {
+                return Flowable.from(resource.getTextFromWeb().split(" "));
             }
         };
 
         @SuppressWarnings("unchecked")
         Observer<String> observer = mock(Observer.class);
-        Observable<String> observable = Observable.using(resourceFactory, observableFactory,
+        Flowable<String> observable = Flowable.using(resourceFactory, observableFactory,
                 new DisposeAction(), true).doOnUnsubscribe(unsub)
-                .doOnCompleted(completion);
+                .doonComplete()(completion);
         observable.subscribe(observer);
 
         assertEquals(Arrays.asList("disposed", "completed", "unsub"), events);
@@ -313,21 +313,21 @@ public class OnSubscribeUsingTest {
     public void testUsingDoesNotDisposesEagerlyBeforeCompletion() {
         final List<String> events = new ArrayList<String>();
         Func0<Resource> resourceFactory = createResourceFactory(events);
-        final Action0 completion = createOnCompletedAction(events);
+        final Action0 completion = createonComplete()Action(events);
         final Action0 unsub =createUnsubAction(events);
 
-        Func1<Resource, Observable<String>> observableFactory = new Func1<Resource, Observable<String>>() {
+        Function<Resource, Flowable<String>> observableFactory = new Function<Resource, Flowable<String>>() {
             @Override
-            public Observable<String> call(Resource resource) {
-                return Observable.from(resource.getTextFromWeb().split(" "));
+            public Flowable<String> call(Resource resource) {
+                return Flowable.from(resource.getTextFromWeb().split(" "));
             }
         };
 
         @SuppressWarnings("unchecked")
         Observer<String> observer = mock(Observer.class);
-        Observable<String> observable = Observable.using(resourceFactory, observableFactory,
+        Flowable<String> observable = Flowable.using(resourceFactory, observableFactory,
                 new DisposeAction(), false).doOnUnsubscribe(unsub)
-                .doOnCompleted(completion);
+                .doonComplete()(completion);
         observable.subscribe(observer);
 
         assertEquals(Arrays.asList("completed", "unsub", "disposed"), events);
@@ -343,16 +343,16 @@ public class OnSubscribeUsingTest {
         final Action1<Throwable> onError = createOnErrorAction(events);
         final Action0 unsub = createUnsubAction(events);
         
-        Func1<Resource, Observable<String>> observableFactory = new Func1<Resource, Observable<String>>() {
+        Function<Resource, Flowable<String>> observableFactory = new Function<Resource, Flowable<String>>() {
             @Override
-            public Observable<String> call(Resource resource) {
-                return Observable.from(resource.getTextFromWeb().split(" ")).concatWith(Observable.<String>error(new RuntimeException()));
+            public Flowable<String> call(Resource resource) {
+                return Flowable.from(resource.getTextFromWeb().split(" ")).concatWith(Flowable.<String>error(new RuntimeException()));
             }
         };
 
         @SuppressWarnings("unchecked")
         Observer<String> observer = mock(Observer.class);
-        Observable<String> observable = Observable.using(resourceFactory, observableFactory,
+        Flowable<String> observable = Flowable.using(resourceFactory, observableFactory,
                 new DisposeAction(), true).doOnUnsubscribe(unsub)
                 .doOnError(onError);
         observable.subscribe(observer);
@@ -368,16 +368,16 @@ public class OnSubscribeUsingTest {
         final Action1<Throwable> onError = createOnErrorAction(events);
         final Action0 unsub = createUnsubAction(events);
         
-        Func1<Resource, Observable<String>> observableFactory = new Func1<Resource, Observable<String>>() {
+        Function<Resource, Flowable<String>> observableFactory = new Function<Resource, Flowable<String>>() {
             @Override
-            public Observable<String> call(Resource resource) {
-                return Observable.from(resource.getTextFromWeb().split(" ")).concatWith(Observable.<String>error(new RuntimeException()));
+            public Flowable<String> call(Resource resource) {
+                return Flowable.from(resource.getTextFromWeb().split(" ")).concatWith(Flowable.<String>error(new RuntimeException()));
             }
         };
 
         @SuppressWarnings("unchecked")
         Observer<String> observer = mock(Observer.class);
-        Observable<String> observable = Observable.using(resourceFactory, observableFactory,
+        Flowable<String> observable = Flowable.using(resourceFactory, observableFactory,
                 new DisposeAction(), false).doOnUnsubscribe(unsub)
                 .doOnError(onError);
         observable.subscribe(observer);
@@ -423,7 +423,7 @@ public class OnSubscribeUsingTest {
         };
     }
     
-    private static Action0 createOnCompletedAction(final List<String> events) {
+    private static Action0 createonComplete()Action(final List<String> events) {
         return new Action0() {
             @Override
             public void call() {

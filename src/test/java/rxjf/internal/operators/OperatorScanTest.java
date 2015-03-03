@@ -33,14 +33,14 @@ import org.junit.Before;
 import org.junit.Test;
 import org.mockito.MockitoAnnotations;
 
-import rx.Observable;
+import rx.Flowable;
 import rx.Observer;
 import rx.Producer;
 import rx.Subscriber;
 import rx.functions.Action2;
 import rx.functions.Func0;
-import rx.functions.Func1;
-import rx.functions.Func2;
+import rx.functions.Function;
+import rx.functions.BiFunction;
 import rx.observers.TestSubscriber;
 
 public class OperatorScanTest {
@@ -55,9 +55,9 @@ public class OperatorScanTest {
         @SuppressWarnings("unchecked")
         Observer<String> observer = mock(Observer.class);
 
-        Observable<Integer> observable = Observable.just(1, 2, 3);
+        Flowable<Integer> observable = Flowable.just(1, 2, 3);
 
-        Observable<String> m = observable.scan("", new Func2<String, Integer, String>() {
+        Flowable<String> m = observable.scan("", new BiFunction<String, Integer, String>() {
 
             @Override
             public String call(String s, Integer n) {
@@ -73,7 +73,7 @@ public class OperatorScanTest {
         verify(observer, times(1)).onNext("12");
         verify(observer, times(1)).onNext("123");
         verify(observer, times(4)).onNext(anyString());
-        verify(observer, times(1)).onCompleted();
+        verify(observer, times(1)).onComplete();
         verify(observer, never()).onError(any(Throwable.class));
     }
 
@@ -82,9 +82,9 @@ public class OperatorScanTest {
         @SuppressWarnings("unchecked")
         Observer<Integer> observer = mock(Observer.class);
 
-        Observable<Integer> observable = Observable.just(1, 2, 3);
+        Flowable<Integer> observable = Flowable.just(1, 2, 3);
 
-        Observable<Integer> m = observable.scan(new Func2<Integer, Integer, Integer>() {
+        Flowable<Integer> m = observable.scan(new BiFunction<Integer, Integer, Integer>() {
 
             @Override
             public Integer call(Integer t1, Integer t2) {
@@ -100,7 +100,7 @@ public class OperatorScanTest {
         verify(observer, times(1)).onNext(3);
         verify(observer, times(1)).onNext(6);
         verify(observer, times(3)).onNext(anyInt());
-        verify(observer, times(1)).onCompleted();
+        verify(observer, times(1)).onComplete();
         verify(observer, never()).onError(any(Throwable.class));
     }
 
@@ -109,9 +109,9 @@ public class OperatorScanTest {
         @SuppressWarnings("unchecked")
         Observer<Integer> observer = mock(Observer.class);
 
-        Observable<Integer> observable = Observable.just(1);
+        Flowable<Integer> observable = Flowable.just(1);
 
-        Observable<Integer> m = observable.scan(new Func2<Integer, Integer, Integer>() {
+        Flowable<Integer> m = observable.scan(new BiFunction<Integer, Integer, Integer>() {
 
             @Override
             public Integer call(Integer t1, Integer t2) {
@@ -125,21 +125,21 @@ public class OperatorScanTest {
         verify(observer, never()).onNext(0);
         verify(observer, times(1)).onNext(1);
         verify(observer, times(1)).onNext(anyInt());
-        verify(observer, times(1)).onCompleted();
+        verify(observer, times(1)).onComplete();
         verify(observer, never()).onError(any(Throwable.class));
     }
     
     @Test
     public void shouldNotEmitUntilAfterSubscription() {
         TestSubscriber<Integer> ts = new TestSubscriber<Integer>();
-        Observable.range(1, 100).scan(0, new Func2<Integer, Integer, Integer>() {
+        Flowable.range(1, 100).scan(0, new BiFunction<Integer, Integer, Integer>() {
 
             @Override
             public Integer call(Integer t1, Integer t2) {
                 return t1 + t2;
             }
 
-        }).filter(new Func1<Integer, Boolean>() {
+        }).filter(new Function<Integer, Boolean>() {
 
             @Override
             public Boolean call(Integer t1) {
@@ -155,8 +155,8 @@ public class OperatorScanTest {
     @Test
     public void testBackpressureWithInitialValue() {
         final AtomicInteger count = new AtomicInteger();
-        Observable.range(1, 100)
-                .scan(0, new Func2<Integer, Integer, Integer>() {
+        Flowable.range(1, 100)
+                .scan(0, new BiFunction<Integer, Integer, Integer>() {
 
                     @Override
                     public Integer call(Integer t1, Integer t2) {
@@ -172,7 +172,7 @@ public class OperatorScanTest {
                     }
 
                     @Override
-                    public void onCompleted() {
+                    public void onComplete() {
 
                     }
 
@@ -196,8 +196,8 @@ public class OperatorScanTest {
     @Test
     public void testBackpressureWithoutInitialValue() {
         final AtomicInteger count = new AtomicInteger();
-        Observable.range(1, 100)
-                .scan(new Func2<Integer, Integer, Integer>() {
+        Flowable.range(1, 100)
+                .scan(new BiFunction<Integer, Integer, Integer>() {
 
                     @Override
                     public Integer call(Integer t1, Integer t2) {
@@ -213,7 +213,7 @@ public class OperatorScanTest {
                     }
 
                     @Override
-                    public void onCompleted() {
+                    public void onComplete() {
 
                     }
 
@@ -237,8 +237,8 @@ public class OperatorScanTest {
     @Test
     public void testNoBackpressureWithInitialValue() {
         final AtomicInteger count = new AtomicInteger();
-        Observable.range(1, 100)
-                .scan(0, new Func2<Integer, Integer, Integer>() {
+        Flowable.range(1, 100)
+                .scan(0, new BiFunction<Integer, Integer, Integer>() {
 
                     @Override
                     public Integer call(Integer t1, Integer t2) {
@@ -249,7 +249,7 @@ public class OperatorScanTest {
                 .subscribe(new Subscriber<Integer>() {
 
                     @Override
-                    public void onCompleted() {
+                    public void onComplete() {
 
                     }
 
@@ -275,7 +275,7 @@ public class OperatorScanTest {
      */
     @Test
     public void testSeedFactory() {
-        Observable<List<Integer>> o = Observable.range(1, 10)
+        Flowable<List<Integer>> o = Flowable.range(1, 10)
                 .collect(new Func0<List<Integer>>() {
 
                     @Override
@@ -298,7 +298,7 @@ public class OperatorScanTest {
 
     @Test
     public void testScanWithRequestOne() {
-        Observable<Integer> o = Observable.just(1, 2).scan(0, new Func2<Integer, Integer, Integer>() {
+        Flowable<Integer> o = Flowable.just(1, 2).scan(0, new BiFunction<Integer, Integer, Integer>() {
 
             @Override
             public Integer call(Integer t1, Integer t2) {
@@ -316,7 +316,7 @@ public class OperatorScanTest {
     @Test
     public void testScanShouldNotRequestZero() {
         final AtomicReference<Producer> producer = new AtomicReference<Producer>();
-        Observable<Integer> o = Observable.create(new Observable.OnSubscribe<Integer>() {
+        Flowable<Integer> o = Flowable.create(new Flowable.OnSubscribe<Integer>() {
             @Override
             public void call(final Subscriber subscriber) {
                 Producer p = spy(new Producer() {
@@ -328,14 +328,14 @@ public class OperatorScanTest {
                         if (requested.compareAndSet(false, true)) {
                             subscriber.onNext(1);
                         } else {
-                            subscriber.onCompleted();
+                            subscriber.onComplete();
                         }
                     }
                 });
                 producer.set(p);
                 subscriber.setProducer(p);
             }
-        }).scan(100, new Func2<Integer, Integer, Integer>() {
+        }).scan(100, new BiFunction<Integer, Integer, Integer>() {
 
             @Override
             public Integer call(Integer t1, Integer t2) {

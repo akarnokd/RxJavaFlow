@@ -19,18 +19,18 @@ import org.junit.Test;
 
 import rx.EventStream.Event;
 import rx.functions.Action1;
-import rx.functions.Func1;
-import rx.observables.GroupedObservable;
+import rx.functions.Function;
+import rx.observables.GroupedFlowable;
 
 public class GroupByTests {
 
     @Test
     public void testTakeUnsubscribesOnGroupBy() {
-        Observable.merge(
+        Flowable.merge(
                 EventStream.getEventStream("HTTP-ClusterA", 50),
                 EventStream.getEventStream("HTTP-ClusterB", 20))
                 // group by type (2 clusters)
-                .groupBy(new Func1<Event, String>() {
+                .groupBy(new Function<Event, String>() {
 
                     @Override
                     public String call(Event event) {
@@ -38,10 +38,10 @@ public class GroupByTests {
                     }
 
                 }).take(1)
-                .toBlocking().forEach(new Action1<GroupedObservable<String, Event>>() {
+                .toBlocking().forEach(new Action1<GroupedFlowable<String, Event>>() {
 
                     @Override
-                    public void call(GroupedObservable<String, Event> g) {
+                    public void call(GroupedFlowable<String, Event> g) {
                         System.out.println(g);
                     }
 
@@ -52,11 +52,11 @@ public class GroupByTests {
 
     @Test
     public void testTakeUnsubscribesOnFlatMapOfGroupBy() {
-        Observable.merge(
+        Flowable.merge(
                 EventStream.getEventStream("HTTP-ClusterA", 50),
                 EventStream.getEventStream("HTTP-ClusterB", 20))
                 // group by type (2 clusters)
-                .groupBy(new Func1<Event, String>() {
+                .groupBy(new Function<Event, String>() {
 
                     @Override
                     public String call(Event event) {
@@ -64,11 +64,11 @@ public class GroupByTests {
                     }
 
                 })
-                .flatMap(new Func1<GroupedObservable<String, Event>, Observable<String>>() {
+                .flatMap(new Function<GroupedFlowable<String, Event>, Flowable<String>>() {
 
                     @Override
-                    public Observable<String> call(GroupedObservable<String, Event> g) {
-                        return g.map(new Func1<Event, String>() {
+                    public Flowable<String> call(GroupedFlowable<String, Event> g) {
+                        return g.map(new Function<Event, String>() {
 
                             @Override
                             public String call(Event event) {

@@ -26,9 +26,9 @@ import java.util.concurrent.TimeUnit;
 import org.junit.Assert;
 import org.junit.Test;
 
-import rx.Observable;
+import rx.Flowable;
 import rx.exceptions.TestException;
-import rx.observables.BlockingObservable;
+import rx.observables.BlockingFlowable;
 import rx.schedulers.TestScheduler;
 import rx.subjects.PublishSubject;
 import rx.subjects.Subject;
@@ -36,7 +36,7 @@ import rx.subjects.Subject;
 public class BlockingOperatorMostRecentTest {
     @Test
     public void testMostRecentNull() {
-        assertEquals(null, Observable.<Void>never().toBlocking().mostRecent(null).iterator().next());
+        assertEquals(null, Flowable.<Void>never().toBlocking().mostRecent(null).iterator().next());
     }
 
     @Test
@@ -59,7 +59,7 @@ public class BlockingOperatorMostRecentTest {
         assertEquals("two", it.next());
         assertEquals("two", it.next());
 
-        s.onCompleted();
+        s.onComplete();
         assertFalse(it.hasNext());
 
     }
@@ -83,7 +83,7 @@ public class BlockingOperatorMostRecentTest {
     @Test(timeout = 1000)
     public void testSingleSourceManyIterators() {
         TestScheduler scheduler = new TestScheduler();
-        BlockingObservable<Long> source = Observable.interval(1, TimeUnit.SECONDS, scheduler).take(10).toBlocking();
+        BlockingFlowable<Long> source = Flowable.interval(1, TimeUnit.SECONDS, scheduler).take(10).toBlocking();
 
         Iterable<Long> iter = source.mostRecent(-1L);
 

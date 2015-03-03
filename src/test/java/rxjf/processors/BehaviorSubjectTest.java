@@ -63,7 +63,7 @@ public class BehaviorSubjectTest {
         verify(observer, times(1)).onNext("two");
         verify(observer, times(1)).onNext("three");
         verify(observer, Mockito.never()).onError(testException);
-        verify(observer, Mockito.never()).onCompleted();
+        verify(observer, Mockito.never()).onComplete();
     }
 
     @Test
@@ -84,7 +84,7 @@ public class BehaviorSubjectTest {
         verify(observer, times(1)).onNext("two");
         verify(observer, times(1)).onNext("three");
         verify(observer, Mockito.never()).onError(testException);
-        verify(observer, Mockito.never()).onCompleted();
+        verify(observer, Mockito.never()).onComplete();
     }
 
     @Test
@@ -96,19 +96,19 @@ public class BehaviorSubjectTest {
         subject.subscribe(observer);
 
         subject.onNext("one");
-        subject.onCompleted();
+        subject.onComplete();
 
         verify(observer, times(1)).onNext("default");
         verify(observer, times(1)).onNext("one");
         verify(observer, Mockito.never()).onError(any(Throwable.class));
-        verify(observer, times(1)).onCompleted();
+        verify(observer, times(1)).onComplete();
     }
 
     @Test
     public void testSubscribeToCompletedOnlyEmitsOnComplete() {
         BehaviorSubject<String> subject = BehaviorSubject.create("default");
         subject.onNext("one");
-        subject.onCompleted();
+        subject.onComplete();
 
         @SuppressWarnings("unchecked")
         Observer<String> observer = mock(Observer.class);
@@ -117,7 +117,7 @@ public class BehaviorSubjectTest {
         verify(observer, never()).onNext("default");
         verify(observer, never()).onNext("one");
         verify(observer, Mockito.never()).onError(any(Throwable.class));
-        verify(observer, times(1)).onCompleted();
+        verify(observer, times(1)).onComplete();
     }
 
     @Test
@@ -134,7 +134,7 @@ public class BehaviorSubjectTest {
         verify(observer, never()).onNext("default");
         verify(observer, never()).onNext("one");
         verify(observer, times(1)).onError(re);
-        verify(observer, never()).onCompleted();
+        verify(observer, never()).onComplete();
     }
 
     @Test
@@ -169,13 +169,13 @@ public class BehaviorSubjectTest {
 
         inOrderB.verify(observerB).onNext(4711);
 
-        channel.onCompleted();
+        channel.onComplete();
 
-        inOrderB.verify(observerB).onCompleted();
+        inOrderB.verify(observerB).onComplete();
 
         channel.subscribe(observerC);
 
-        inOrderC.verify(observerC).onCompleted();
+        inOrderC.verify(observerC).onComplete();
 
         channel.onNext(13);
 
@@ -194,13 +194,13 @@ public class BehaviorSubjectTest {
         subject.onNext("one");
         subject.onError(testException);
         subject.onNext("two");
-        subject.onCompleted();
+        subject.onComplete();
 
         verify(observer, times(1)).onNext("default");
         verify(observer, times(1)).onNext("one");
         verify(observer, times(1)).onError(testException);
         verify(observer, never()).onNext("two");
-        verify(observer, never()).onCompleted();
+        verify(observer, never()).onComplete();
     }
 
     @Test
@@ -214,20 +214,20 @@ public class BehaviorSubjectTest {
         subject.onNext("one");
         subject.onError(testException);
         subject.onNext("two");
-        subject.onCompleted();
+        subject.onComplete();
 
         verify(observer, times(1)).onNext("default");
         verify(observer, times(1)).onNext("one");
         verify(observer, times(1)).onError(testException);
         verify(observer, never()).onNext("two");
-        verify(observer, never()).onCompleted();
+        verify(observer, never()).onComplete();
 
         @SuppressWarnings("unchecked")
         Observer<Object> o2 = mock(Observer.class);
         subject.subscribe(o2);
         verify(o2, times(1)).onError(testException);
         verify(o2, never()).onNext(any());
-        verify(o2, never()).onCompleted();
+        verify(o2, never()).onComplete();
     }
 
     @Test
@@ -239,20 +239,20 @@ public class BehaviorSubjectTest {
         subject.subscribe(observer);
 
         subject.onNext("one");
-        subject.onCompleted();
+        subject.onComplete();
         subject.onNext("two");
-        subject.onCompleted();
+        subject.onComplete();
 
         verify(observer, times(1)).onNext("default");
         verify(observer, times(1)).onNext("one");
-        verify(observer, times(1)).onCompleted();
+        verify(observer, times(1)).onComplete();
         verify(observer, never()).onError(any(Throwable.class));
         verify(observer, never()).onNext("two");
 
         @SuppressWarnings("unchecked")
         Observer<Object> o2 = mock(Observer.class);
         subject.subscribe(o2);
-        verify(o2, times(1)).onCompleted();
+        verify(o2, times(1)).onComplete();
         verify(o2, never()).onNext(any());
         verify(observer, never()).onError(any(Throwable.class));
     }
@@ -268,11 +268,11 @@ public class BehaviorSubjectTest {
             src.onNext(v);
             System.out.printf("Turn: %d%n", i);
             src.first()
-                .flatMap(new Func1<String, Observable<String>>() {
+                .flatMap(new Function<String, Flowable<String>>() {
 
                     @Override
-                    public Observable<String> call(String t1) {
-                        return Observable.just(t1 + ", " + t1);
+                    public Flowable<String> call(String t1) {
+                        return Flowable.just(t1 + ", " + t1);
                     }
                 })
                 .subscribe(new Observer<String>() {
@@ -287,12 +287,12 @@ public class BehaviorSubjectTest {
                     }
 
                     @Override
-                    public void onCompleted() {
-                        o.onCompleted();
+                    public void onComplete() {
+                        o.onComplete();
                     }
                 });
             inOrder.verify(o).onNext(v + ", " + v);
-            inOrder.verify(o).onCompleted();
+            inOrder.verify(o).onComplete();
             verify(o, never()).onError(any(Throwable.class));
         }
     }
@@ -306,18 +306,18 @@ public class BehaviorSubjectTest {
         source.subscribe(o);
         
         inOrder.verify(o, never()).onNext(any());
-        inOrder.verify(o, never()).onCompleted();
+        inOrder.verify(o, never()).onComplete();
         
         source.onNext(1);
         
-        source.onCompleted();
+        source.onComplete();
         
         source.onNext(2);
         
         verify(o, never()).onError(any(Throwable.class));
 
         inOrder.verify(o).onNext(1);
-        inOrder.verify(o).onCompleted();
+        inOrder.verify(o).onComplete();
         inOrder.verifyNoMoreInteractions();
         
         
@@ -335,11 +335,11 @@ public class BehaviorSubjectTest {
 
         inOrder.verify(o).onNext(1);
 
-        source.onCompleted();
+        source.onComplete();
 
         source.onNext(2);
 
-        inOrder.verify(o).onCompleted();
+        inOrder.verify(o).onComplete();
         inOrder.verifyNoMoreInteractions();
         
         verify(o, never()).onError(any(Throwable.class));
@@ -352,13 +352,13 @@ public class BehaviorSubjectTest {
         final Observer<Object> o = mock(Observer.class);
 
         source.onNext(1);
-        source.onCompleted();
+        source.onComplete();
 
         source.onNext(2);
 
         source.subscribe(o);
 
-        verify(o).onCompleted();
+        verify(o).onComplete();
         verify(o, never()).onError(any(Throwable.class));
         verify(o, never()).onNext(any());
     }
@@ -372,7 +372,7 @@ public class BehaviorSubjectTest {
         source.take(1).subscribe(o);
         
         verify(o).onNext(1);
-        verify(o).onCompleted();
+        verify(o).onComplete();
         verify(o, never()).onError(any(Throwable.class));
         
         assertEquals(0, source.subscriberCount());
@@ -453,7 +453,7 @@ public class BehaviorSubjectTest {
             .subscribe(new Observer<Object>() {
 
                 @Override
-                public void onCompleted() {
+                public void onComplete() {
                     o.set(-1);
                     finish.countDown();
                 }
@@ -476,12 +476,12 @@ public class BehaviorSubjectTest {
             if (!finish.await(5, TimeUnit.SECONDS)) {
                 System.out.println(o.get());
                 System.out.println(rs.hasObservers());
-                rs.onCompleted();
+                rs.onComplete();
                 Assert.fail("Timeout @ " + i);
                 break;
             } else {
                 Assert.assertEquals(1, o.get());
-                rs.onCompleted();
+                rs.onComplete();
             }
         }
     }
@@ -504,7 +504,7 @@ public class BehaviorSubjectTest {
         assertEquals(1, as.getValue());
         assertNull(as.getThrowable());
         
-        as.onCompleted();
+        as.onComplete();
         
         assertFalse(as.hasValue());
         assertFalse(as.hasThrowable());
@@ -531,7 +531,7 @@ public class BehaviorSubjectTest {
         assertEquals(2, as.getValue());
         assertNull(as.getThrowable());
         
-        as.onCompleted();
+        as.onComplete();
         assertFalse(as.hasValue());
         assertFalse(as.hasThrowable());
         assertTrue(as.hasCompleted());
@@ -549,7 +549,7 @@ public class BehaviorSubjectTest {
         assertNull(as.getValue());
         assertNull(as.getThrowable());
         
-        as.onCompleted();
+        as.onComplete();
         
         assertFalse(as.hasValue());
         assertFalse(as.hasThrowable());

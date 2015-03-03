@@ -26,15 +26,15 @@ import java.util.List;
 
 import org.junit.Test;
 
-import rx.Observable;
+import rx.Flowable;
 import rx.Observer;
 import rx.exceptions.TestException;
 import rx.subjects.PublishSubject;
 
-public class OperatorWindowWithObservableTest {
+public class OperatorWindowWithFlowableTest {
 
     @Test
-    public void testWindowViaObservableNormal1() {
+    public void testWindowViaFlowableNormal1() {
         PublishSubject<Integer> source = PublishSubject.create();
         PublishSubject<Integer> boundary = PublishSubject.create();
 
@@ -43,9 +43,9 @@ public class OperatorWindowWithObservableTest {
 
         final List<Observer<Object>> values = new ArrayList<Observer<Object>>();
 
-        Observer<Observable<Integer>> wo = new Observer<Observable<Integer>>() {
+        Observer<Flowable<Integer>> wo = new Observer<Flowable<Integer>>() {
             @Override
-            public void onNext(Observable<Integer> args) {
+            public void onNext(Flowable<Integer> args) {
                 @SuppressWarnings("unchecked")
                 final Observer<Object> mo = mock(Observer.class);
                 values.add(mo);
@@ -59,8 +59,8 @@ public class OperatorWindowWithObservableTest {
             }
 
             @Override
-            public void onCompleted() {
-                o.onCompleted();
+            public void onComplete() {
+                o.onComplete();
             }
         };
 
@@ -73,7 +73,7 @@ public class OperatorWindowWithObservableTest {
                 boundary.onNext(i / 3);
             }
         }
-        source.onCompleted();
+        source.onComplete();
 
         assertEquals(n / 3, values.size());
 
@@ -82,17 +82,17 @@ public class OperatorWindowWithObservableTest {
             for (int i = 0; i < 3; i++) {
                 verify(mo).onNext(j + i);
             }
-            verify(mo).onCompleted();
+            verify(mo).onComplete();
             verify(mo, never()).onError(any(Throwable.class));
             j += 3;
         }
 
-        verify(o).onCompleted();
+        verify(o).onComplete();
         verify(o, never()).onError(any(Throwable.class));
     }
 
     @Test
-    public void testWindowViaObservableBoundaryCompletes() {
+    public void testWindowViaFlowableBoundaryCompletes() {
         PublishSubject<Integer> source = PublishSubject.create();
         PublishSubject<Integer> boundary = PublishSubject.create();
 
@@ -101,9 +101,9 @@ public class OperatorWindowWithObservableTest {
 
         final List<Observer<Object>> values = new ArrayList<Observer<Object>>();
 
-        Observer<Observable<Integer>> wo = new Observer<Observable<Integer>>() {
+        Observer<Flowable<Integer>> wo = new Observer<Flowable<Integer>>() {
             @Override
-            public void onNext(Observable<Integer> args) {
+            public void onNext(Flowable<Integer> args) {
                 @SuppressWarnings("unchecked")
                 final Observer<Object> mo = mock(Observer.class);
                 values.add(mo);
@@ -117,8 +117,8 @@ public class OperatorWindowWithObservableTest {
             }
 
             @Override
-            public void onCompleted() {
-                o.onCompleted();
+            public void onComplete() {
+                o.onComplete();
             }
         };
 
@@ -131,7 +131,7 @@ public class OperatorWindowWithObservableTest {
                 boundary.onNext(i / 3);
             }
         }
-        boundary.onCompleted();
+        boundary.onComplete();
 
         assertEquals(n / 3, values.size());
 
@@ -140,17 +140,17 @@ public class OperatorWindowWithObservableTest {
             for (int i = 0; i < 3; i++) {
                 verify(mo).onNext(j + i);
             }
-            verify(mo).onCompleted();
+            verify(mo).onComplete();
             verify(mo, never()).onError(any(Throwable.class));
             j += 3;
         }
 
-        verify(o).onCompleted();
+        verify(o).onComplete();
         verify(o, never()).onError(any(Throwable.class));
     }
 
     @Test
-    public void testWindowViaObservableBoundaryThrows() {
+    public void testWindowViaFlowableBoundaryThrows() {
         PublishSubject<Integer> source = PublishSubject.create();
         PublishSubject<Integer> boundary = PublishSubject.create();
 
@@ -159,9 +159,9 @@ public class OperatorWindowWithObservableTest {
 
         final List<Observer<Object>> values = new ArrayList<Observer<Object>>();
 
-        Observer<Observable<Integer>> wo = new Observer<Observable<Integer>>() {
+        Observer<Flowable<Integer>> wo = new Observer<Flowable<Integer>>() {
             @Override
-            public void onNext(Observable<Integer> args) {
+            public void onNext(Flowable<Integer> args) {
                 @SuppressWarnings("unchecked")
                 final Observer<Object> mo = mock(Observer.class);
                 values.add(mo);
@@ -175,8 +175,8 @@ public class OperatorWindowWithObservableTest {
             }
 
             @Override
-            public void onCompleted() {
-                o.onCompleted();
+            public void onComplete() {
+                o.onComplete();
             }
         };
 
@@ -197,12 +197,12 @@ public class OperatorWindowWithObservableTest {
         verify(mo).onNext(2);
         verify(mo).onError(any(TestException.class));
 
-        verify(o, never()).onCompleted();
+        verify(o, never()).onComplete();
         verify(o).onError(any(TestException.class));
     }
 
     @Test
-    public void testWindowViaObservableSourceThrows() {
+    public void testWindowViaFlowableSourceThrows() {
         PublishSubject<Integer> source = PublishSubject.create();
         PublishSubject<Integer> boundary = PublishSubject.create();
 
@@ -211,9 +211,9 @@ public class OperatorWindowWithObservableTest {
 
         final List<Observer<Object>> values = new ArrayList<Observer<Object>>();
 
-        Observer<Observable<Integer>> wo = new Observer<Observable<Integer>>() {
+        Observer<Flowable<Integer>> wo = new Observer<Flowable<Integer>>() {
             @Override
-            public void onNext(Observable<Integer> args) {
+            public void onNext(Flowable<Integer> args) {
                 @SuppressWarnings("unchecked")
                 final Observer<Object> mo = mock(Observer.class);
                 values.add(mo);
@@ -227,8 +227,8 @@ public class OperatorWindowWithObservableTest {
             }
 
             @Override
-            public void onCompleted() {
-                o.onCompleted();
+            public void onComplete() {
+                o.onComplete();
             }
         };
 
@@ -249,7 +249,7 @@ public class OperatorWindowWithObservableTest {
         verify(mo).onNext(2);
         verify(mo).onError(any(TestException.class));
 
-        verify(o, never()).onCompleted();
+        verify(o, never()).onComplete();
         verify(o).onError(any(TestException.class));
     }
 }

@@ -23,107 +23,107 @@ import static org.mockito.Mockito.times;
 import org.junit.Test;
 import org.mockito.InOrder;
 
-import rx.Observable;
+import rx.Flowable;
 import rx.Observer;
 import rx.exceptions.TestException;
-import rx.functions.Func2;
+import rx.functions.BiFunction;
 
 public class OperatorSequenceEqualTest {
 
     @Test
     public void test1() {
-        Observable<Boolean> observable = Observable.sequenceEqual(
-                Observable.just("one", "two", "three"),
-                Observable.just("one", "two", "three"));
+        Flowable<Boolean> observable = Flowable.sequenceEqual(
+                Flowable.just("one", "two", "three"),
+                Flowable.just("one", "two", "three"));
         verifyResult(observable, true);
     }
 
     @Test
     public void test2() {
-        Observable<Boolean> observable = Observable.sequenceEqual(
-                Observable.just("one", "two", "three"),
-                Observable.just("one", "two", "three", "four"));
+        Flowable<Boolean> observable = Flowable.sequenceEqual(
+                Flowable.just("one", "two", "three"),
+                Flowable.just("one", "two", "three", "four"));
         verifyResult(observable, false);
     }
 
     @Test
     public void test3() {
-        Observable<Boolean> observable = Observable.sequenceEqual(
-                Observable.just("one", "two", "three", "four"),
-                Observable.just("one", "two", "three"));
+        Flowable<Boolean> observable = Flowable.sequenceEqual(
+                Flowable.just("one", "two", "three", "four"),
+                Flowable.just("one", "two", "three"));
         verifyResult(observable, false);
     }
 
     @Test
     public void testWithError1() {
-        Observable<Boolean> observable = Observable.sequenceEqual(
-                Observable.concat(Observable.just("one"),
-                        Observable.<String> error(new TestException())),
-                Observable.just("one", "two", "three"));
+        Flowable<Boolean> observable = Flowable.sequenceEqual(
+                Flowable.concat(Flowable.just("one"),
+                        Flowable.<String> error(new TestException())),
+                Flowable.just("one", "two", "three"));
         verifyError(observable);
     }
 
     @Test
     public void testWithError2() {
-        Observable<Boolean> observable = Observable.sequenceEqual(
-                Observable.just("one", "two", "three"),
-                Observable.concat(Observable.just("one"),
-                        Observable.<String> error(new TestException())));
+        Flowable<Boolean> observable = Flowable.sequenceEqual(
+                Flowable.just("one", "two", "three"),
+                Flowable.concat(Flowable.just("one"),
+                        Flowable.<String> error(new TestException())));
         verifyError(observable);
     }
 
     @Test
     public void testWithError3() {
-        Observable<Boolean> observable = Observable.sequenceEqual(
-                Observable.concat(Observable.just("one"),
-                        Observable.<String> error(new TestException())),
-                Observable.concat(Observable.just("one"),
-                        Observable.<String> error(new TestException())));
+        Flowable<Boolean> observable = Flowable.sequenceEqual(
+                Flowable.concat(Flowable.just("one"),
+                        Flowable.<String> error(new TestException())),
+                Flowable.concat(Flowable.just("one"),
+                        Flowable.<String> error(new TestException())));
         verifyError(observable);
     }
 
     @Test
     public void testWithEmpty1() {
-        Observable<Boolean> observable = Observable.sequenceEqual(
-                Observable.<String> empty(),
-                Observable.just("one", "two", "three"));
+        Flowable<Boolean> observable = Flowable.sequenceEqual(
+                Flowable.<String> empty(),
+                Flowable.just("one", "two", "three"));
         verifyResult(observable, false);
     }
 
     @Test
     public void testWithEmpty2() {
-        Observable<Boolean> observable = Observable.sequenceEqual(
-                Observable.just("one", "two", "three"),
-                Observable.<String> empty());
+        Flowable<Boolean> observable = Flowable.sequenceEqual(
+                Flowable.just("one", "two", "three"),
+                Flowable.<String> empty());
         verifyResult(observable, false);
     }
 
     @Test
     public void testWithEmpty3() {
-        Observable<Boolean> observable = Observable.sequenceEqual(
-                Observable.<String> empty(), Observable.<String> empty());
+        Flowable<Boolean> observable = Flowable.sequenceEqual(
+                Flowable.<String> empty(), Flowable.<String> empty());
         verifyResult(observable, true);
     }
 
     @Test
     public void testWithNull1() {
-        Observable<Boolean> observable = Observable.sequenceEqual(
-                Observable.just((String) null), Observable.just("one"));
+        Flowable<Boolean> observable = Flowable.sequenceEqual(
+                Flowable.just((String) null), Flowable.just("one"));
         verifyResult(observable, false);
     }
 
     @Test
     public void testWithNull2() {
-        Observable<Boolean> observable = Observable.sequenceEqual(
-                Observable.just((String) null), Observable.just((String) null));
+        Flowable<Boolean> observable = Flowable.sequenceEqual(
+                Flowable.just((String) null), Flowable.just((String) null));
         verifyResult(observable, true);
     }
 
     @Test
     public void testWithEqualityError() {
-        Observable<Boolean> observable = Observable.sequenceEqual(
-                Observable.just("one"), Observable.just("one"),
-                new Func2<String, String, Boolean>() {
+        Flowable<Boolean> observable = Flowable.sequenceEqual(
+                Flowable.just("one"), Flowable.just("one"),
+                new BiFunction<String, String, Boolean>() {
                     @Override
                     public Boolean call(String t1, String t2) {
                         throw new TestException();
@@ -132,18 +132,18 @@ public class OperatorSequenceEqualTest {
         verifyError(observable);
     }
 
-    private void verifyResult(Observable<Boolean> observable, boolean result) {
+    private void verifyResult(Flowable<Boolean> observable, boolean result) {
         @SuppressWarnings("unchecked")
         Observer<Boolean> observer = mock(Observer.class);
         observable.subscribe(observer);
 
         InOrder inOrder = inOrder(observer);
         inOrder.verify(observer, times(1)).onNext(result);
-        inOrder.verify(observer).onCompleted();
+        inOrder.verify(observer).onComplete();
         inOrder.verifyNoMoreInteractions();
     }
 
-    private void verifyError(Observable<Boolean> observable) {
+    private void verifyError(Flowable<Boolean> observable) {
         @SuppressWarnings("unchecked")
         Observer<Boolean> observer = mock(Observer.class);
         observable.subscribe(observer);

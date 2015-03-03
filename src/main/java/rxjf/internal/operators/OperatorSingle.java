@@ -22,8 +22,8 @@ import rxjf.Flowable.Operator;
 import rxjf.subscribers.AbstractSubscriber;
 
 /**
- * If the Observable completes after emitting a single item that matches a
- * predicate, return an Observable containing that item. If it emits more than
+ * If the Flowable completes after emitting a single item that matches a
+ * predicate, return an Flowable containing that item. If it emits more than
  * one such item or no item, throw an IllegalArgumentException.
  */
 public final class OperatorSingle<T> implements Operator<T, T> {

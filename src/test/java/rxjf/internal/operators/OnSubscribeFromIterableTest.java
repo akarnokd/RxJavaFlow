@@ -31,7 +31,7 @@ import java.util.concurrent.TimeUnit;
 import org.junit.Test;
 import org.mockito.Mockito;
 
-import rx.Observable;
+import rx.Flowable;
 import rx.Observer;
 import rx.Subscriber;
 import rx.internal.util.RxRingBuffer;
@@ -42,12 +42,12 @@ public class OnSubscribeFromIterableTest {
 
     @Test(expected = NullPointerException.class)
     public void testNull() {
-        Observable.create(new OnSubscribeFromIterable<String>(null));
+        Flowable.create(new OnSubscribeFromIterable<String>(null));
     }
     
     @Test
     public void testListIterable() {
-        Observable<String> observable = Observable.create(new OnSubscribeFromIterable<String>(Arrays.<String> asList("one", "two", "three")));
+        Flowable<String> observable = Flowable.create(new OnSubscribeFromIterable<String>(Arrays.<String> asList("one", "two", "three")));
 
         @SuppressWarnings("unchecked")
         Observer<String> observer = mock(Observer.class);
@@ -56,7 +56,7 @@ public class OnSubscribeFromIterableTest {
         verify(observer, times(1)).onNext("two");
         verify(observer, times(1)).onNext("three");
         verify(observer, Mockito.never()).onError(any(Throwable.class));
-        verify(observer, times(1)).onCompleted();
+        verify(observer, times(1)).onComplete();
     }
 
     /**
@@ -90,7 +90,7 @@ public class OnSubscribeFromIterableTest {
             }
 
         };
-        Observable<String> observable = Observable.create(new OnSubscribeFromIterable<String>(it));
+        Flowable<String> observable = Flowable.create(new OnSubscribeFromIterable<String>(it));
 
         @SuppressWarnings("unchecked")
         Observer<String> observer = mock(Observer.class);
@@ -99,12 +99,12 @@ public class OnSubscribeFromIterableTest {
         verify(observer, times(1)).onNext("2");
         verify(observer, times(1)).onNext("3");
         verify(observer, Mockito.never()).onError(any(Throwable.class));
-        verify(observer, times(1)).onCompleted();
+        verify(observer, times(1)).onComplete();
     }
 
     @Test
-    public void testObservableFromIterable() {
-        Observable<String> observable = Observable.from(Arrays.<String> asList("one", "two", "three"));
+    public void testFlowableFromIterable() {
+        Flowable<String> observable = Flowable.from(Arrays.<String> asList("one", "two", "three"));
 
         @SuppressWarnings("unchecked")
         Observer<String> observer = mock(Observer.class);
@@ -113,7 +113,7 @@ public class OnSubscribeFromIterableTest {
         verify(observer, times(1)).onNext("two");
         verify(observer, times(1)).onNext("three");
         verify(observer, Mockito.never()).onError(any(Throwable.class));
-        verify(observer, times(1)).onCompleted();
+        verify(observer, times(1)).onComplete();
     }
 
     @Test
@@ -165,7 +165,7 @@ public class OnSubscribeFromIterableTest {
     
     @Test
     public void testFromIterableRequestOverflow() throws InterruptedException {
-        Observable<Integer> o = Observable.from(Arrays.asList(1,2,3,4));
+        Flowable<Integer> o = Flowable.from(Arrays.asList(1,2,3,4));
         final int expectedCount = 4;
         final CountDownLatch latch = new CountDownLatch(expectedCount);
         o.subscribeOn(Schedulers.computation()).subscribe(new Subscriber<Integer>() {
@@ -176,7 +176,7 @@ public class OnSubscribeFromIterableTest {
             }
 
             @Override
-            public void onCompleted() {
+            public void onComplete() {
                 //ignore
             }
 

@@ -21,8 +21,8 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicLongFieldUpdater;
 
-import rx.Observable;
-import rx.Observable.OnSubscribe;
+import rx.Flowable;
+import rx.Flowable.OnSubscribe;
 import rx.Producer;
 import rx.Subscriber;
 import rx.exceptions.MissingBackpressureException;
@@ -30,10 +30,10 @@ import rx.functions.FuncN;
 import rx.internal.util.RxRingBuffer;
 
 /**
- * Returns an Observable that combines the emissions of multiple source observables. Once each
- * source Observable has emitted at least one item, combineLatest emits an item whenever any of
- * the source Observables emits an item, by combining the latest emissions from each source
- * Observable with a specified function.
+ * Returns an Flowable that combines the emissions of multiple source observables. Once each
+ * source Flowable has emitted at least one item, combineLatest emits an item whenever any of
+ * the source Flowables emits an item, by combining the latest emissions from each source
+ * Flowable with a specified function.
  * <p>
  * <img width="640" src="https://github.com/ReactiveX/RxJava/wiki/images/rx-operators/combineLatest.png" alt="">
  * 
@@ -43,10 +43,10 @@ import rx.internal.util.RxRingBuffer;
  *            the result type of the combinator function
  */
 public final class OnSubscribeCombineLatest<T, R> implements OnSubscribe<R> {
-    final List<? extends Observable<? extends T>> sources;
+    final List<? extends Flowable<? extends T>> sources;
     final FuncN<? extends R> combinator;
 
-    public OnSubscribeCombineLatest(List<? extends Observable<? extends T>> sources, FuncN<? extends R> combinator) {
+    public OnSubscribeCombineLatest(List<? extends Flowable<? extends T>> sources, FuncN<? extends R> combinator) {
         this.sources = sources;
         this.combinator = combinator;
         if (sources.size() > 128) {
@@ -59,7 +59,7 @@ public final class OnSubscribeCombineLatest<T, R> implements OnSubscribe<R> {
     @Override
     public void call(final Subscriber<? super R> child) {
         if (sources.isEmpty()) {
-            child.onCompleted();
+            child.onComplete();
             return;
         }
         if (sources.size() == 1) {
@@ -77,7 +77,7 @@ public final class OnSubscribeCombineLatest<T, R> implements OnSubscribe<R> {
     final static class MultiSourceProducer<T, R> implements Producer {
         private final AtomicBoolean started = new AtomicBoolean();
         private final AtomicLong requested = new AtomicLong();
-        private final List<? extends Observable<? extends T>> sources;
+        private final List<? extends Flowable<? extends T>> sources;
         private final Subscriber<? super R> child;
         private final FuncN<? extends R> combinator;
         private final MultiSourceRequestableSubscriber<T, R>[] subscribers;
@@ -96,7 +96,7 @@ public final class OnSubscribeCombineLatest<T, R> implements OnSubscribe<R> {
         private static final AtomicLongFieldUpdater<MultiSourceProducer> WIP = AtomicLongFieldUpdater.newUpdater(MultiSourceProducer.class, "counter");
 
         @SuppressWarnings("unchecked")
-        public MultiSourceProducer(final Subscriber<? super R> child, final List<? extends Observable<? extends T>> sources, FuncN<? extends R> combinator) {
+        public MultiSourceProducer(final Subscriber<? super R> child, final List<? extends Flowable<? extends T>> sources, FuncN<? extends R> combinator) {
             this.sources = sources;
             this.child = child;
             this.combinator = combinator;
@@ -121,7 +121,7 @@ public final class OnSubscribeCombineLatest<T, R> implements OnSubscribe<R> {
                 int sizePerSubscriber = RxRingBuffer.SIZE / sources.size();
                 int leftOver = RxRingBuffer.SIZE % sources.size();
                 for (int i = 0; i < sources.size(); i++) {
-                    Observable<? extends T> o = sources.get(i);
+                    Flowable<? extends T> o = sources.get(i);
                     int toRequest = sizePerSubscriber;
                     if (i == sources.size() - 1) {
                         toRequest += leftOver;
@@ -147,7 +147,7 @@ public final class OnSubscribeCombineLatest<T, R> implements OnSubscribe<R> {
                         Object o = buffer.poll();
                         if (o != null) {
                             if (buffer.isCompleted(o)) {
-                                child.onCompleted();
+                                child.onComplete();
                             } else {
                                 buffer.accept(o, child);
                                 emitted++;
@@ -164,9 +164,9 @@ public final class OnSubscribeCombineLatest<T, R> implements OnSubscribe<R> {
             }
         }
 
-        public void onCompleted(int index, boolean hadValue) {
+        public void onComplete()(int index, boolean hadValue) {
             if (!hadValue) {
-                child.onCompleted();
+                child.onComplete();
                 return;
             }
             boolean done = false;
@@ -178,7 +178,7 @@ public final class OnSubscribeCombineLatest<T, R> implements OnSubscribe<R> {
                 }
             }
             if (done) {
-                buffer.onCompleted();
+                buffer.onComplete();
                 tick();
             }
         }
@@ -241,8 +241,8 @@ public final class OnSubscribeCombineLatest<T, R> implements OnSubscribe<R> {
         }
 
         @Override
-        public void onCompleted() {
-            producer.onCompleted(index, hasValue);
+        public void onComplete() {
+            producer.onComplete()(index, hasValue);
         }
 
         @Override
@@ -264,12 +264,12 @@ public final class OnSubscribeCombineLatest<T, R> implements OnSubscribe<R> {
 
     final static class SingleSourceProducer<T, R> implements Producer {
         final AtomicBoolean started = new AtomicBoolean();
-        final Observable<? extends T> source;
+        final Flowable<? extends T> source;
         final Subscriber<? super R> child;
         final FuncN<? extends R> combinator;
         final SingleSourceRequestableSubscriber<T, R> subscriber;
 
-        public SingleSourceProducer(final Subscriber<? super R> child, Observable<? extends T> source, FuncN<? extends R> combinator) {
+        public SingleSourceProducer(final Subscriber<? super R> child, Flowable<? extends T> source, FuncN<? extends R> combinator) {
             this.source = source;
             this.child = child;
             this.combinator = combinator;
@@ -313,8 +313,8 @@ public final class OnSubscribeCombineLatest<T, R> implements OnSubscribe<R> {
         }
 
         @Override
-        public void onCompleted() {
-            child.onCompleted();
+        public void onComplete() {
+            child.onComplete();
         }
     }
 }

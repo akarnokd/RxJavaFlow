@@ -17,8 +17,8 @@ package rx.internal.operators;
 
 import java.util.concurrent.TimeUnit;
 
-import rx.Observable;
-import rx.Observable.Operator;
+import rx.Flowable;
+import rx.Flowable.Operator;
 import rx.Scheduler;
 import rx.Scheduler.Worker;
 import rx.Subscriber;
@@ -32,12 +32,12 @@ import rx.functions.Action0;
  */
 public final class OperatorDelay<T> implements Operator<T, T> {
 
-    final Observable<? extends T> source;
+    final Flowable<? extends T> source;
     final long delay;
     final TimeUnit unit;
     final Scheduler scheduler;
 
-    public OperatorDelay(Observable<? extends T> source, long delay, TimeUnit unit, Scheduler scheduler) {
+    public OperatorDelay(Flowable<? extends T> source, long delay, TimeUnit unit, Scheduler scheduler) {
         this.source = source;
         this.delay = delay;
         this.unit = unit;
@@ -51,12 +51,12 @@ public final class OperatorDelay<T> implements Operator<T, T> {
         return new Subscriber<T>(child) {
 
             @Override
-            public void onCompleted() {
+            public void onComplete() {
                 worker.schedule(new Action0() {
 
                     @Override
                     public void call() {
-                        child.onCompleted();
+                        child.onComplete();
                     }
 
                 }, delay, unit);

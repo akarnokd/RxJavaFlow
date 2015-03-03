@@ -23,7 +23,7 @@ import java.util.concurrent.TimeUnit;
 import org.junit.*;
 
 import rx.*;
-import rx.Observable;
+import rx.Flowable;
 import rx.Observer;
 import rx.functions.*;
 import rx.schedulers.TestScheduler;
@@ -44,7 +44,7 @@ public class OperatorWindowWithTimeTest {
         final List<String> list = new ArrayList<String>();
         final List<List<String>> lists = new ArrayList<List<String>>();
 
-        Observable<String> source = Observable.create(new Observable.OnSubscribe<String>() {
+        Flowable<String> source = Flowable.create(new Flowable.OnSubscribe<String>() {
             @Override
             public void call(Subscriber<? super String> observer) {
                 push(observer, "one", 10);
@@ -56,7 +56,7 @@ public class OperatorWindowWithTimeTest {
             }
         });
 
-        Observable<Observable<String>> windowed = source.window(100, TimeUnit.MILLISECONDS, 2, scheduler);
+        Flowable<Flowable<String>> windowed = source.window(100, TimeUnit.MILLISECONDS, 2, scheduler);
         windowed.subscribe(observeWindow(list, lists));
 
         scheduler.advanceTimeTo(100, TimeUnit.MILLISECONDS);
@@ -77,7 +77,7 @@ public class OperatorWindowWithTimeTest {
         final List<String> list = new ArrayList<String>();
         final List<List<String>> lists = new ArrayList<List<String>>();
 
-        Observable<String> source = Observable.create(new Observable.OnSubscribe<String>() {
+        Flowable<String> source = Flowable.create(new Flowable.OnSubscribe<String>() {
             @Override
             public void call(Subscriber<? super String> observer) {
                 push(observer, "one", 98);
@@ -89,7 +89,7 @@ public class OperatorWindowWithTimeTest {
             }
         });
 
-        Observable<Observable<String>> windowed = source.window(100, TimeUnit.MILLISECONDS, scheduler);
+        Flowable<Flowable<String>> windowed = source.window(100, TimeUnit.MILLISECONDS, scheduler);
         windowed.subscribe(observeWindow(list, lists));
 
         scheduler.advanceTimeTo(101, TimeUnit.MILLISECONDS);
@@ -122,18 +122,18 @@ public class OperatorWindowWithTimeTest {
         innerScheduler.schedule(new Action0() {
             @Override
             public void call() {
-                observer.onCompleted();
+                observer.onComplete();
             }
         }, delay, TimeUnit.MILLISECONDS);
     }
 
-    private <T> Action1<Observable<T>> observeWindow(final List<T> list, final List<List<T>> lists) {
-        return new Action1<Observable<T>>() {
+    private <T> Action1<Flowable<T>> observeWindow(final List<T> list, final List<List<T>> lists) {
+        return new Action1<Flowable<T>>() {
             @Override
-            public void call(Observable<T> stringObservable) {
-                stringObservable.subscribe(new Observer<T>() {
+            public void call(Flowable<T> stringFlowable) {
+                stringFlowable.subscribe(new Observer<T>() {
                     @Override
-                    public void onCompleted() {
+                    public void onComplete() {
                         lists.add(new ArrayList<T>(list));
                         list.clear();
                     }
@@ -153,7 +153,7 @@ public class OperatorWindowWithTimeTest {
     }
     @Test
     public void testExactWindowSize() {
-        Observable<Observable<Integer>> source = Observable.range(1, 10).window(1, TimeUnit.MINUTES, 3, scheduler);
+        Flowable<Flowable<Integer>> source = Flowable.range(1, 10).window(1, TimeUnit.MINUTES, 3, scheduler);
         
         final List<Integer> list = new ArrayList<Integer>();
         final List<List<Integer>> lists = new ArrayList<List<Integer>>();

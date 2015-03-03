@@ -70,7 +70,7 @@ public final class OnSubscribeArray<T> implements OnSubscribe<T> {
                     } else {
                         r0 = produced(c);
                     }
-                    if (r0 == 0) {
+                    if (r0 <= 0) {
                         break;
                     }
                 }

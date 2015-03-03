@@ -23,22 +23,22 @@ import java.util.concurrent.atomic.AtomicIntegerFieldUpdater;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicLongFieldUpdater;
 
-import rx.Observable;
-import rx.Observable.OnSubscribe;
-import rx.Observable.Operator;
+import rx.Flowable;
+import rx.Flowable.OnSubscribe;
+import rx.Flowable.Operator;
 import rx.Observer;
 import rx.Producer;
 import rx.Subscriber;
 import rx.exceptions.OnErrorThrowable;
 import rx.functions.Action0;
-import rx.functions.Func1;
-import rx.observables.GroupedObservable;
+import rx.functions.Function;
+import rx.observables.GroupedFlowable;
 import rx.subjects.Subject;
 import rx.subscriptions.Subscriptions;
 
 /**
- * Groups the items emitted by an Observable according to a specified criterion, and emits these
- * grouped items as Observables, one Observable per group.
+ * Groups the items emitted by an Flowable according to a specified criterion, and emits these
+ * grouped items as Flowables, one Flowable per group.
  * <p>
  * <img width="640" height="360" src="https://raw.githubusercontent.com/wiki/ReactiveX/RxJava/images/rx-operators/groupBy.png" alt="">
  *
@@ -49,33 +49,33 @@ import rx.subscriptions.Subscriptions;
  * @param <R>
  *            the value type of the groups
  */
-public class OperatorGroupBy<T, K, R> implements Operator<GroupedObservable<K, R>, T> {
-    final Func1<? super T, ? extends K> keySelector;
-    final Func1<? super T, ? extends R> valueSelector;
+public class OperatorGroupBy<T, K, R> implements Operator<GroupedFlowable<K, R>, T> {
+    final Function<? super T, ? extends K> keySelector;
+    final Function<? super T, ? extends R> valueSelector;
 
     @SuppressWarnings("unchecked")
-    public OperatorGroupBy(final Func1<? super T, ? extends K> keySelector) {
-        this(keySelector, (Func1<T, R>) IDENTITY);
+    public OperatorGroupBy(final Function<? super T, ? extends K> keySelector) {
+        this(keySelector, (Function<T, R>) IDENTITY);
     }
 
     public OperatorGroupBy(
-            Func1<? super T, ? extends K> keySelector,
-            Func1<? super T, ? extends R> valueSelector) {
+            Function<? super T, ? extends K> keySelector,
+            Function<? super T, ? extends R> valueSelector) {
         this.keySelector = keySelector;
         this.valueSelector = valueSelector;
     }
 
     @Override
-    public Subscriber<? super T> call(final Subscriber<? super GroupedObservable<K, R>> child) {
+    public Subscriber<? super T> call(final Subscriber<? super GroupedFlowable<K, R>> child) {
         return new GroupBySubscriber<K, T, R>(keySelector, valueSelector, child);
     }
 
     static final class GroupBySubscriber<K, T, R> extends Subscriber<T> {
         private static final int MAX_QUEUE_SIZE = 1024;
         final GroupBySubscriber<K, T, R> self = this;
-        final Func1<? super T, ? extends K> keySelector;
-        final Func1<? super T, ? extends R> elementSelector;
-        final Subscriber<? super GroupedObservable<K, R>> child;
+        final Function<? super T, ? extends K> keySelector;
+        final Function<? super T, ? extends R> elementSelector;
+        final Subscriber<? super GroupedFlowable<K, R>> child;
 
         // We should not call `unsubscribe()` until `groups.isEmpty() && child.isUnsubscribed()` is true.
         // Use `WIP_FOR_UNSUBSCRIBE_UPDATER` to monitor these statuses and call `unsubscribe()` properly.
@@ -85,9 +85,9 @@ public class OperatorGroupBy<T, K, R> implements Operator<GroupedObservable<K, R
         volatile int wipForUnsubscribe = 1;
 
         public GroupBySubscriber(
-                Func1<? super T, ? extends K> keySelector,
-                Func1<? super T, ? extends R> elementSelector,
-                Subscriber<? super GroupedObservable<K, R>> child) {
+                Function<? super T, ? extends K> keySelector,
+                Function<? super T, ? extends R> elementSelector,
+                Subscriber<? super GroupedFlowable<K, R>> child) {
             super();
             this.keySelector = keySelector;
             this.elementSelector = elementSelector;
@@ -110,7 +110,7 @@ public class OperatorGroupBy<T, K, R> implements Operator<GroupedObservable<K, R
             private final AtomicLong count = new AtomicLong();
             private final Queue<Object> buffer = new ConcurrentLinkedQueue<Object>(); // TODO should this be lazily created?
 
-            public Observable<T> getObservable() {
+            public Flowable<T> getFlowable() {
                 return s;
             }
 
@@ -153,9 +153,9 @@ public class OperatorGroupBy<T, K, R> implements Operator<GroupedObservable<K, R
         }
 
         @Override
-        public void onCompleted() {
+        public void onComplete() {
             if (TERMINATED_UPDATER.compareAndSet(this, UNTERMINATED, TERMINATED_WITH_COMPLETED)) {
-                // if we receive onCompleted from our parent we onComplete children
+                // if we receive onComplete() from our parent we onComplete children
                 // for each group check if it is ready to accept more events if so pass the oncomplete through else buffer it.
                 for (GroupState<K, T> group : groups.values()) {
                     emitItem(group, nl.completed());
@@ -163,9 +163,9 @@ public class OperatorGroupBy<T, K, R> implements Operator<GroupedObservable<K, R
 
                 // special case (no groups emitted ... or all unsubscribed)
                 if (groups.isEmpty()) {
-                    // we must track 'completionEmitted' seperately from 'completed' since `completeInner` can result in childObserver.onCompleted() being emitted
+                    // we must track 'completionEmitted' seperately from 'completed' since `completeInner` can result in childObserver.onComplete() being emitted
                     if (COMPLETION_EMITTED_UPDATER.compareAndSet(this, 0, 1)) {
-                        child.onCompleted();
+                        child.onComplete();
                     }
                 }
             }
@@ -193,7 +193,7 @@ public class OperatorGroupBy<T, K, R> implements Operator<GroupedObservable<K, R
         // Here we keep track of the requested count for each group
         // If we already have items queued when a request comes in we vend those and decrement the outstanding request count
 
-        void requestFromGroupedObservable(long n, GroupState<K, T> group) {
+        void requestFromGroupedFlowable(long n, GroupState<K, T> group) {
             group.requested.getAndAdd(n);
             if (group.count.getAndIncrement() == 0) {
                 pollQueue(group);
@@ -233,7 +233,7 @@ public class OperatorGroupBy<T, K, R> implements Operator<GroupedObservable<K, R
         private GroupState<K, T> createNewGroup(final Object key) {
             final GroupState<K, T> groupState = new GroupState<K, T>();
 
-            GroupedObservable<K, R> go = GroupedObservable.create(getKey(key), new OnSubscribe<R>() {
+            GroupedFlowable<K, R> go = GroupedFlowable.create(getKey(key), new OnSubscribe<R>() {
 
                 @Override
                 public void call(final Subscriber<? super R> o) {
@@ -241,14 +241,14 @@ public class OperatorGroupBy<T, K, R> implements Operator<GroupedObservable<K, R
 
                         @Override
                         public void request(long n) {
-                            requestFromGroupedObservable(n, groupState);
+                            requestFromGroupedFlowable(n, groupState);
                         }
 
                     });
 
                     final AtomicBoolean once = new AtomicBoolean();
 
-                    groupState.getObservable().doOnUnsubscribe(new Action0() {
+                    groupState.getFlowable().doOnUnsubscribe(new Action0() {
 
                         @Override
                         public void call() {
@@ -261,8 +261,8 @@ public class OperatorGroupBy<T, K, R> implements Operator<GroupedObservable<K, R
                     }).unsafeSubscribe(new Subscriber<T>(o) {
 
                         @Override
-                        public void onCompleted() {
-                            o.onCompleted();
+                        public void onComplete() {
+                            o.onComplete();
                             // eagerly cleanup instead of waiting for unsubscribe
                             if (once.compareAndSet(false, true)) {
                                 // done once per instance, either onComplete or onUnSubscribe
@@ -400,16 +400,16 @@ public class OperatorGroupBy<T, K, R> implements Operator<GroupedObservable<K, R
                 unsubscribe();
             } else if (groups.isEmpty() && terminated == TERMINATED_WITH_COMPLETED) {
                 // if we have no outstanding groups (all completed or unsubscribe) and terminated on outer
-                // completionEmitted ensures we only emit onCompleted once
+                // completionEmitted ensures we only emit onComplete() once
                 if (COMPLETION_EMITTED_UPDATER.compareAndSet(this, 0, 1)) {
-                    child.onCompleted();
+                    child.onComplete();
                 }
             }
         }
 
     }
 
-    private final static Func1<Object, Object> IDENTITY = new Func1<Object, Object>() {
+    private final static Function<Object, Object> IDENTITY = new Function<Object, Object>() {
         @Override
         public Object call(Object t) {
             return t;

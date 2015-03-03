@@ -29,7 +29,7 @@ public class SerializedSubjectTest {
         TestSubscriber<String> ts = new TestSubscriber<String>();
         subject.subscribe(ts);
         subject.onNext("hello");
-        subject.onCompleted();
+        subject.onComplete();
         ts.awaitTerminalEvent();
         ts.assertReceivedOnNext(Arrays.asList("hello"));
     }

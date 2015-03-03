@@ -22,8 +22,8 @@ import java.util.concurrent.atomic.AtomicReference;
 
 import org.junit.Test;
 
-import rx.Observable;
-import rx.Observable.OnSubscribe;
+import rx.Flowable;
+import rx.Flowable.OnSubscribe;
 import rx.Subscriber;
 import rx.functions.Action0;
 
@@ -32,7 +32,7 @@ public class OperatorDoOnSubscribeTest {
     @Test
     public void testDoOnSubscribe() throws Exception {
         final AtomicInteger count = new AtomicInteger();
-        Observable<Integer> o = Observable.just(1).doOnSubscribe(new Action0() {
+        Flowable<Integer> o = Flowable.just(1).doOnSubscribe(new Action0() {
 
             @Override
             public void call() {
@@ -50,7 +50,7 @@ public class OperatorDoOnSubscribeTest {
     @Test
     public void testDoOnSubscribe2() throws Exception {
         final AtomicInteger count = new AtomicInteger();
-        Observable<Integer> o = Observable.just(1).doOnSubscribe(new Action0() {
+        Flowable<Integer> o = Flowable.just(1).doOnSubscribe(new Action0() {
 
             @Override
             public void call() {
@@ -76,7 +76,7 @@ public class OperatorDoOnSubscribeTest {
         final AtomicInteger countBefore = new AtomicInteger();
         final AtomicInteger countAfter = new AtomicInteger();
         final AtomicReference<Subscriber<? super Integer>> sref = new AtomicReference<Subscriber<? super Integer>>();
-        Observable<Integer> o = Observable.create(new OnSubscribe<Integer>() {
+        Flowable<Integer> o = Flowable.create(new OnSubscribe<Integer>() {
 
             @Override
             public void call(Subscriber<? super Integer> s) {
@@ -106,7 +106,7 @@ public class OperatorDoOnSubscribeTest {
         assertEquals(1, countBefore.get());
         assertEquals(1, onSubscribed.get());
         assertEquals(3, countAfter.get());
-        sref.get().onCompleted();
+        sref.get().onComplete();
         o.subscribe();
         o.subscribe();
         o.subscribe();

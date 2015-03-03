@@ -1,6 +1,6 @@
 package rxjf.schedulers;
 
-import rx.Observable;
+import rx.Flowable;
 import rx.Observer;
 import rx.Scheduler;
 
@@ -28,7 +28,7 @@ final class SchedulerTests {
             CapturingUncaughtExceptionHandler handler = new CapturingUncaughtExceptionHandler();
             Thread.setDefaultUncaughtExceptionHandler(handler);
             IllegalStateException error = new IllegalStateException("Should be delivered to handler");
-            Observable.error(error)
+            Flowable.error(error)
                     .subscribeOn(scheduler)
                     .subscribe();
 
@@ -63,7 +63,7 @@ final class SchedulerTests {
             CapturingObserver<Object> observer = new CapturingObserver<Object>();
             Thread.setDefaultUncaughtExceptionHandler(handler);
             IllegalStateException error = new IllegalStateException("Should be delivered to handler");
-            Observable.error(error)
+            Flowable.error(error)
                     .subscribeOn(scheduler)
                     .subscribe(observer);
 
@@ -107,7 +107,7 @@ final class SchedulerTests {
         Throwable error;
 
         @Override
-        public void onCompleted() {
+        public void onComplete() {
         }
 
         @Override

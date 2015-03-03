@@ -24,8 +24,8 @@ import java.util.Arrays;
 import org.junit.*;
 
 import rx.*;
-import rx.Observable.OnSubscribe;
-import rx.functions.Func1;
+import rx.Flowable.OnSubscribe;
+import rx.functions.Function;
 import rx.observers.TestSubscriber;
 import rx.subjects.*;
 
@@ -33,8 +33,8 @@ public class OperatorTakeWhileTest {
 
     @Test
     public void testTakeWhile1() {
-        Observable<Integer> w = Observable.just(1, 2, 3);
-        Observable<Integer> take = w.takeWhile(new Func1<Integer, Boolean>() {
+        Flowable<Integer> w = Flowable.just(1, 2, 3);
+        Flowable<Integer> take = w.takeWhile(new Function<Integer, Boolean>() {
             @Override
             public Boolean call(Integer input) {
                 return input < 3;
@@ -48,13 +48,13 @@ public class OperatorTakeWhileTest {
         verify(observer, times(1)).onNext(2);
         verify(observer, never()).onNext(3);
         verify(observer, never()).onError(any(Throwable.class));
-        verify(observer, times(1)).onCompleted();
+        verify(observer, times(1)).onComplete();
     }
 
     @Test
     public void testTakeWhileOnSubject1() {
         Subject<Integer, Integer> s = PublishSubject.create();
-        Observable<Integer> take = s.takeWhile(new Func1<Integer, Boolean>() {
+        Flowable<Integer> take = s.takeWhile(new Function<Integer, Boolean>() {
             @Override
             public Boolean call(Integer input) {
                 return input < 3;
@@ -70,7 +70,7 @@ public class OperatorTakeWhileTest {
         s.onNext(3);
         s.onNext(4);
         s.onNext(5);
-        s.onCompleted();
+        s.onComplete();
 
         verify(observer, times(1)).onNext(1);
         verify(observer, times(1)).onNext(2);
@@ -78,13 +78,13 @@ public class OperatorTakeWhileTest {
         verify(observer, never()).onNext(4);
         verify(observer, never()).onNext(5);
         verify(observer, never()).onError(any(Throwable.class));
-        verify(observer, times(1)).onCompleted();
+        verify(observer, times(1)).onComplete();
     }
 
     @Test
     public void testTakeWhile2() {
-        Observable<String> w = Observable.just("one", "two", "three");
-        Observable<String> take = w.takeWhile(new Func1<String, Boolean>() {
+        Flowable<String> w = Flowable.just("one", "two", "three");
+        Flowable<String> take = w.takeWhile(new Function<String, Boolean>() {
             int index = 0;
 
             @Override
@@ -100,12 +100,12 @@ public class OperatorTakeWhileTest {
         verify(observer, times(1)).onNext("two");
         verify(observer, never()).onNext("three");
         verify(observer, never()).onError(any(Throwable.class));
-        verify(observer, times(1)).onCompleted();
+        verify(observer, times(1)).onComplete();
     }
 
     @Test
     public void testTakeWhileDoesntLeakErrors() {
-        Observable<String> source = Observable.create(new OnSubscribe<String>() {
+        Flowable<String> source = Flowable.create(new OnSubscribe<String>() {
             @Override
             public void call(Subscriber<? super String> observer) {
                 observer.onNext("one");
@@ -113,7 +113,7 @@ public class OperatorTakeWhileTest {
             }
         });
 
-        source.takeWhile(new Func1<String, Boolean>() {
+        source.takeWhile(new Function<String, Boolean>() {
             @Override
             public Boolean call(String s) {
                 return false;
@@ -123,12 +123,12 @@ public class OperatorTakeWhileTest {
 
     @Test
     public void testTakeWhileProtectsPredicateCall() {
-        TestObservable source = new TestObservable(mock(Subscription.class), "one");
+        TestFlowable source = new TestFlowable(mock(Subscription.class), "one");
         final RuntimeException testException = new RuntimeException("test exception");
 
         @SuppressWarnings("unchecked")
         Observer<String> observer = mock(Observer.class);
-        Observable<String> take = Observable.create(source).takeWhile(new Func1<String, Boolean>() {
+        Flowable<String> take = Flowable.create(source).takeWhile(new Function<String, Boolean>() {
             @Override
             public Boolean call(String s) {
                 throw testException;
@@ -136,7 +136,7 @@ public class OperatorTakeWhileTest {
         });
         take.subscribe(observer);
 
-        // wait for the Observable to complete
+        // wait for the Flowable to complete
         try {
             source.t.join();
         } catch (Throwable e) {
@@ -151,11 +151,11 @@ public class OperatorTakeWhileTest {
     @Test
     public void testUnsubscribeAfterTake() {
         Subscription s = mock(Subscription.class);
-        TestObservable w = new TestObservable(s, "one", "two", "three");
+        TestFlowable w = new TestFlowable(s, "one", "two", "three");
 
         @SuppressWarnings("unchecked")
         Observer<String> observer = mock(Observer.class);
-        Observable<String> take = Observable.create(w).takeWhile(new Func1<String, Boolean>() {
+        Flowable<String> take = Flowable.create(w).takeWhile(new Function<String, Boolean>() {
             int index = 0;
 
             @Override
@@ -165,7 +165,7 @@ public class OperatorTakeWhileTest {
         });
         take.subscribe(observer);
 
-        // wait for the Observable to complete
+        // wait for the Flowable to complete
         try {
             w.t.join();
         } catch (Throwable e) {
@@ -173,54 +173,54 @@ public class OperatorTakeWhileTest {
             fail(e.getMessage());
         }
 
-        System.out.println("TestObservable thread finished");
+        System.out.println("TestFlowable thread finished");
         verify(observer, times(1)).onNext("one");
         verify(observer, never()).onNext("two");
         verify(observer, never()).onNext("three");
         verify(s, times(1)).unsubscribe();
     }
 
-    private static class TestObservable implements Observable.OnSubscribe<String> {
+    private static class TestFlowable implements Flowable.OnSubscribe<String> {
 
         final Subscription s;
         final String[] values;
         Thread t = null;
 
-        public TestObservable(Subscription s, String... values) {
+        public TestFlowable(Subscription s, String... values) {
             this.s = s;
             this.values = values;
         }
 
         @Override
         public void call(final Subscriber<? super String> observer) {
-            System.out.println("TestObservable subscribed to ...");
+            System.out.println("TestFlowable subscribed to ...");
             observer.add(s);
             t = new Thread(new Runnable() {
 
                 @Override
                 public void run() {
                     try {
-                        System.out.println("running TestObservable thread");
+                        System.out.println("running TestFlowable thread");
                         for (String s : values) {
-                            System.out.println("TestObservable onNext: " + s);
+                            System.out.println("TestFlowable onNext: " + s);
                             observer.onNext(s);
                         }
-                        observer.onCompleted();
+                        observer.onComplete();
                     } catch (Throwable e) {
                         throw new RuntimeException(e);
                     }
                 }
 
             });
-            System.out.println("starting TestObservable thread");
+            System.out.println("starting TestFlowable thread");
             t.start();
-            System.out.println("done starting TestObservable thread");
+            System.out.println("done starting TestFlowable thread");
         }
     }
     
     @Test
     public void testBackpressure() {
-        Observable<Integer> source = Observable.range(1, 1000).takeWhile(new Func1<Integer, Boolean>() {
+        Flowable<Integer> source = Flowable.range(1, 1000).takeWhile(new Function<Integer, Boolean>() {
             @Override
             public Boolean call(Integer t1) {
                 return t1 < 100;
@@ -246,7 +246,7 @@ public class OperatorTakeWhileTest {
     
     @Test
     public void testNoUnsubscribeDownstream() {
-        Observable<Integer> source = Observable.range(1, 1000).takeWhile(new Func1<Integer, Boolean>() {
+        Flowable<Integer> source = Flowable.range(1, 1000).takeWhile(new Function<Integer, Boolean>() {
             @Override
             public Boolean call(Integer t1) {
                 return t1 < 2;

@@ -20,16 +20,16 @@ import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 
-import rx.Observable;
-import rx.Observable.Operator;
+import rx.Flowable;
+import rx.Flowable.Operator;
 import rx.Producer;
 import rx.Subscriber;
 
 /**
  * This operation takes
- * values from the specified {@link Observable} source and stores them in all active chunks until the buffer
+ * values from the specified {@link Flowable} source and stores them in all active chunks until the buffer
  * contains a specified number of elements. The buffer is then emitted. Chunks are created after a certain
- * amount of values have been received. When the source {@link Observable} completes or produces an error,
+ * amount of values have been received. When the source {@link Flowable} completes or produces an error,
  * the currently active chunks are emitted, and the event is propagated to all subscribed {@link Subscriber}s.
  * <p>
  * Note that this operation can produce <strong>non-connected, connected non-overlapping, or overlapping
@@ -111,7 +111,7 @@ public final class OperatorBufferWithSize<T> implements Operator<List<T>, T> {
                 }
 
                 @Override
-                public void onCompleted() {
+                public void onComplete() {
                     List<T> oldBuffer = buffer;
                     buffer = null;
                     if (oldBuffer != null) {
@@ -122,7 +122,7 @@ public final class OperatorBufferWithSize<T> implements Operator<List<T>, T> {
                             return;
                         }
                     }
-                    child.onCompleted();
+                    child.onComplete();
                 }
             };
         }
@@ -212,7 +212,7 @@ public final class OperatorBufferWithSize<T> implements Operator<List<T>, T> {
                 child.onError(e);
             }
             @Override
-            public void onCompleted() {
+            public void onComplete() {
                 try {
                     for (List<T> chunk : chunks) {
                         try {
@@ -222,7 +222,7 @@ public final class OperatorBufferWithSize<T> implements Operator<List<T>, T> {
                             return;
                         }
                     }
-                    child.onCompleted();
+                    child.onComplete();
                 } finally {
                     chunks.clear();
                 }

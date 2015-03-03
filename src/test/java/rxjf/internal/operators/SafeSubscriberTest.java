@@ -23,7 +23,7 @@ import static org.mockito.Mockito.verify;
 import org.junit.Test;
 import org.mockito.Mockito;
 
-import rx.Observable;
+import rx.Flowable;
 import rx.Observer;
 import rx.Subscriber;
 import rx.Subscription;
@@ -37,8 +37,8 @@ public class SafeSubscriberTest {
      */
     @Test
     public void testOnNextAfterOnError() {
-        TestObservable t = new TestObservable();
-        Observable<String> st = Observable.create(t);
+        TestFlowable t = new TestFlowable();
+        Flowable<String> st = Flowable.create(t);
 
         @SuppressWarnings("unchecked")
         Observer<String> w = mock(Observer.class);
@@ -55,12 +55,12 @@ public class SafeSubscriberTest {
     }
 
     /**
-     * Ensure onCompleted can not be called after onError
+     * Ensure onComplete() can not be called after onError
      */
     @Test
-    public void testOnCompletedAfterOnError() {
-        TestObservable t = new TestObservable();
-        Observable<String> st = Observable.create(t);
+    public void testonComplete()AfterOnError() {
+        TestFlowable t = new TestFlowable();
+        Flowable<String> st = Flowable.create(t);
 
         @SuppressWarnings("unchecked")
         Observer<String> w = mock(Observer.class);
@@ -69,20 +69,20 @@ public class SafeSubscriberTest {
 
         t.sendOnNext("one");
         t.sendOnError(new RuntimeException("bad"));
-        t.sendOnCompleted();
+        t.sendonComplete();
 
         verify(w, times(1)).onNext("one");
         verify(w, times(1)).onError(any(Throwable.class));
-        verify(w, Mockito.never()).onCompleted();
+        verify(w, Mockito.never()).onComplete();
     }
 
     /**
-     * Ensure onNext can not be called after onCompleted
+     * Ensure onNext can not be called after onComplete()
      */
     @Test
-    public void testOnNextAfterOnCompleted() {
-        TestObservable t = new TestObservable();
-        Observable<String> st = Observable.create(t);
+    public void testOnNextAfteronComplete() {
+        TestFlowable t = new TestFlowable();
+        Flowable<String> st = Flowable.create(t);
 
         @SuppressWarnings("unchecked")
         Observer<String> w = mock(Observer.class);
@@ -90,22 +90,22 @@ public class SafeSubscriberTest {
         Subscription ws = st.subscribe(new SafeSubscriber<String>(new TestSubscriber<String>(w)));
 
         t.sendOnNext("one");
-        t.sendOnCompleted();
+        t.sendonComplete();
         t.sendOnNext("two");
 
         verify(w, times(1)).onNext("one");
         verify(w, Mockito.never()).onNext("two");
-        verify(w, times(1)).onCompleted();
+        verify(w, times(1)).onComplete();
         verify(w, Mockito.never()).onError(any(Throwable.class));
     }
 
     /**
-     * Ensure onError can not be called after onCompleted
+     * Ensure onError can not be called after onComplete()
      */
     @Test
-    public void testOnErrorAfterOnCompleted() {
-        TestObservable t = new TestObservable();
-        Observable<String> st = Observable.create(t);
+    public void testOnErrorAfteronComplete() {
+        TestFlowable t = new TestFlowable();
+        Flowable<String> st = Flowable.create(t);
 
         @SuppressWarnings("unchecked")
         Observer<String> w = mock(Observer.class);
@@ -113,24 +113,24 @@ public class SafeSubscriberTest {
         Subscription ws = st.subscribe(new SafeSubscriber<String>(new TestSubscriber<String>(w)));
 
         t.sendOnNext("one");
-        t.sendOnCompleted();
+        t.sendonComplete();
         t.sendOnError(new RuntimeException("bad"));
 
         verify(w, times(1)).onNext("one");
-        verify(w, times(1)).onCompleted();
+        verify(w, times(1)).onComplete();
         verify(w, Mockito.never()).onError(any(Throwable.class));
     }
 
     /**
-     * A Observable that doesn't do the right thing on UnSubscribe/Error/etc in that it will keep sending events down the pipe regardless of what happens.
+     * A Flowable that doesn't do the right thing on UnSubscribe/Error/etc in that it will keep sending events down the pipe regardless of what happens.
      */
-    private static class TestObservable implements Observable.OnSubscribe<String> {
+    private static class TestFlowable implements Flowable.OnSubscribe<String> {
 
         Observer<? super String> observer = null;
 
         /* used to simulate subscription */
-        public void sendOnCompleted() {
-            observer.onCompleted();
+        public void sendonComplete() {
+            observer.onComplete();
         }
 
         /* used to simulate subscription */
@@ -150,7 +150,7 @@ public class SafeSubscriberTest {
 
                 @Override
                 public void unsubscribe() {
-                    // going to do nothing to pretend I'm a bad Observable that keeps allowing events to be sent
+                    // going to do nothing to pretend I'm a bad Flowable that keeps allowing events to be sent
                     System.out.println("==> SynchronizeTest unsubscribe that does nothing!");
                 }
 

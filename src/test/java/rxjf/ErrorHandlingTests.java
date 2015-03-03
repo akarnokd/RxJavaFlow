@@ -34,11 +34,11 @@ public class ErrorHandlingTests {
     public void testOnNextError() throws InterruptedException {
         final CountDownLatch latch = new CountDownLatch(1);
         final AtomicReference<Throwable> caughtError = new AtomicReference<Throwable>();
-        Observable<Long> o = Observable.interval(50, TimeUnit.MILLISECONDS);
+        Flowable<Long> o = Flowable.interval(50, TimeUnit.MILLISECONDS);
         Subscriber<Long> observer = new Subscriber<Long>() {
 
             @Override
-            public void onCompleted() {
+            public void onComplete() {
                 System.out.println("completed");
                 latch.countDown();
             }
@@ -69,11 +69,11 @@ public class ErrorHandlingTests {
     public void testOnNextErrorAcrossThread() throws InterruptedException {
         final CountDownLatch latch = new CountDownLatch(1);
         final AtomicReference<Throwable> caughtError = new AtomicReference<Throwable>();
-        Observable<Long> o = Observable.interval(50, TimeUnit.MILLISECONDS);
+        Flowable<Long> o = Flowable.interval(50, TimeUnit.MILLISECONDS);
         Subscriber<Long> observer = new Subscriber<Long>() {
 
             @Override
-            public void onCompleted() {
+            public void onComplete() {
                 System.out.println("completed");
                 latch.countDown();
             }

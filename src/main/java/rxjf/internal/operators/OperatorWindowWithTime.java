@@ -21,8 +21,8 @@ import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
-import rx.Observable;
-import rx.Observable.Operator;
+import rx.Flowable;
+import rx.Flowable.Operator;
 import rx.Observer;
 import rx.Scheduler;
 import rx.Scheduler.Worker;
@@ -37,11 +37,11 @@ import rx.observers.SerializedSubscriber;
  * window is opened.
  *
  * <p>Note that this conforms the Rx.NET behavior, but does not match former RxJava
- * behavior, which operated as a regular buffer and mapped its lists to Observables.</p>
+ * behavior, which operated as a regular buffer and mapped its lists to Flowables.</p>
  *
  * @param <T> the value type
  */
-public final class OperatorWindowWithTime<T> implements Operator<Observable<T>, T> {
+public final class OperatorWindowWithTime<T> implements Operator<Flowable<T>, T> {
     /** Length of each window. */
     final long timespan;
     /** Period of creating new windows. */
@@ -60,7 +60,7 @@ public final class OperatorWindowWithTime<T> implements Operator<Observable<T>, 
     
     
     @Override
-    public Subscriber<? super T> call(Subscriber<? super Observable<T>> child) {
+    public Subscriber<? super T> call(Subscriber<? super Flowable<T>> child) {
         Worker worker = scheduler.createWorker();
         child.add(worker);
         
@@ -83,11 +83,11 @@ public final class OperatorWindowWithTime<T> implements Operator<Observable<T>, 
     /** The immutable windowing state with one subject. */
     static final class State<T> {
         final Observer<T> consumer;
-        final Observable<T> producer;
+        final Flowable<T> producer;
         final int count;
         static final State<Object> EMPTY = new State<Object>(null, null, 0);
         
-        public State(Observer<T> consumer, Observable<T> producer, int count) {
+        public State(Observer<T> consumer, Flowable<T> producer, int count) {
             this.consumer = consumer;
             this.producer = producer;
             this.count = count;
@@ -95,7 +95,7 @@ public final class OperatorWindowWithTime<T> implements Operator<Observable<T>, 
         public State<T> next() {
             return new State<T>(consumer, producer, count + 1);
         }
-        public State<T> create(Observer<T> consumer, Observable<T> producer) {
+        public State<T> create(Observer<T> consumer, Flowable<T> producer) {
             return new State<T>(consumer, producer, 0);
         }
         public State<T> clear() {
@@ -108,7 +108,7 @@ public final class OperatorWindowWithTime<T> implements Operator<Observable<T>, 
     }
     /** Subscriber with exact, non-overlapping windows. */
     final class ExactSubscriber extends Subscriber<T> {
-        final Subscriber<? super Observable<T>> child;
+        final Subscriber<? super Flowable<T>> child;
         final Worker worker;
         final Object guard;
         /** Guarded by guard. */
@@ -117,9 +117,9 @@ public final class OperatorWindowWithTime<T> implements Operator<Observable<T>, 
         boolean emitting;
         volatile State<T> state;
         
-        public ExactSubscriber(Subscriber<? super Observable<T>> child, Worker worker) {
+        public ExactSubscriber(Subscriber<? super Flowable<T>> child, Worker worker) {
             super(child);
-            this.child = new SerializedSubscriber<Observable<T>>(child);
+            this.child = new SerializedSubscriber<Flowable<T>>(child);
             this.worker = worker;
             this.guard = new Object();
             this.state = State.empty();
@@ -197,7 +197,7 @@ public final class OperatorWindowWithTime<T> implements Operator<Observable<T>, 
         void replaceSubject() {
             Observer<T> s = state.consumer;
             if (s != null) {
-                s.onCompleted();
+                s.onComplete();
             }
             BufferUntilSubscriber<T> bus = BufferUntilSubscriber.create();
             state = state.create(bus, bus);
@@ -211,7 +211,7 @@ public final class OperatorWindowWithTime<T> implements Operator<Observable<T>, 
             }
             s.consumer.onNext(t);
             if (s.count == size - 1) {
-                s.consumer.onCompleted();
+                s.consumer.onComplete();
                 s = s.clear();
             } else {
                 s = s.next();
@@ -245,13 +245,13 @@ public final class OperatorWindowWithTime<T> implements Operator<Observable<T>, 
             Observer<T> s = state.consumer;
             state = state.clear();
             if (s != null) {
-                s.onCompleted();
+                s.onComplete();
             }
-            child.onCompleted();
+            child.onComplete();
             unsubscribe();
         }
         @Override
-        public void onCompleted() {
+        public void onComplete() {
             List<Object> localQueue;
             synchronized (guard) {
                 if (emitting) {
@@ -332,24 +332,24 @@ public final class OperatorWindowWithTime<T> implements Operator<Observable<T>, 
      */
     static final class CountedSerializedSubject<T> {
         final Observer<T> consumer;
-        final Observable<T> producer;
+        final Flowable<T> producer;
         int count;
 
-        public CountedSerializedSubject(Observer<T> consumer, Observable<T> producer) {
+        public CountedSerializedSubject(Observer<T> consumer, Flowable<T> producer) {
             this.consumer = new SerializedObserver<T>(consumer);
             this.producer = producer;
         }
     }
     /** Subscriber with inexact, potentially overlapping or discontinuous windows. */
     final class InexactSubscriber extends Subscriber<T> {
-        final Subscriber<? super Observable<T>> child;
+        final Subscriber<? super Flowable<T>> child;
         final Worker worker;
         final Object guard;
         /** Guarded by this. */
         final List<CountedSerializedSubject<T>> chunks;
         /** Guarded by this. */
         boolean done;
-        public InexactSubscriber(Subscriber<? super Observable<T>> child, Worker worker) {
+        public InexactSubscriber(Subscriber<? super Flowable<T>> child, Worker worker) {
             super(child);
             this.child = child;
             this.worker = worker;
@@ -381,7 +381,7 @@ public final class OperatorWindowWithTime<T> implements Operator<Observable<T>, 
             for (CountedSerializedSubject<T> cs : list) {
                 cs.consumer.onNext(t);
                 if (cs.count == size) {
-                    cs.consumer.onCompleted();
+                    cs.consumer.onComplete();
                 }
             }
         }
@@ -404,7 +404,7 @@ public final class OperatorWindowWithTime<T> implements Operator<Observable<T>, 
         }
 
         @Override
-        public void onCompleted() {
+        public void onComplete() {
             List<CountedSerializedSubject<T>> list;
             synchronized (guard) {
                 if (done) {
@@ -415,9 +415,9 @@ public final class OperatorWindowWithTime<T> implements Operator<Observable<T>, 
                 chunks.clear();
             }
             for (CountedSerializedSubject<T> cs : list) {
-                cs.consumer.onCompleted();
+                cs.consumer.onComplete();
             }
-            child.onCompleted();
+            child.onComplete();
         }
         void scheduleChunk() {
             worker.schedulePeriodically(new Action0() {
@@ -470,7 +470,7 @@ public final class OperatorWindowWithTime<T> implements Operator<Observable<T>, 
                 }
             }
             if (terminate) {
-                chunk.consumer.onCompleted();
+                chunk.consumer.onComplete();
             }
         }
         CountedSerializedSubject<T> createCountedSerializedSubject() {

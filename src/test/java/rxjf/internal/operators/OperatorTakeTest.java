@@ -35,14 +35,14 @@ import java.util.concurrent.atomic.AtomicReference;
 import org.junit.Test;
 import org.mockito.InOrder;
 
-import rx.Observable;
-import rx.Observable.OnSubscribe;
+import rx.Flowable;
+import rx.Flowable.OnSubscribe;
 import rx.Observer;
 import rx.Producer;
 import rx.Subscriber;
 import rx.Subscription;
 import rx.functions.Action1;
-import rx.functions.Func1;
+import rx.functions.Function;
 import rx.observers.Subscribers;
 import rx.observers.TestSubscriber;
 import rx.schedulers.Schedulers;
@@ -51,8 +51,8 @@ public class OperatorTakeTest {
 
     @Test
     public void testTake1() {
-        Observable<String> w = Observable.from(Arrays.asList("one", "two", "three"));
-        Observable<String> take = w.lift(new OperatorTake<String>(2));
+        Flowable<String> w = Flowable.from(Arrays.asList("one", "two", "three"));
+        Flowable<String> take = w.lift(new OperatorTake<String>(2));
 
         @SuppressWarnings("unchecked")
         Observer<String> observer = mock(Observer.class);
@@ -61,13 +61,13 @@ public class OperatorTakeTest {
         verify(observer, times(1)).onNext("two");
         verify(observer, never()).onNext("three");
         verify(observer, never()).onError(any(Throwable.class));
-        verify(observer, times(1)).onCompleted();
+        verify(observer, times(1)).onComplete();
     }
 
     @Test
     public void testTake2() {
-        Observable<String> w = Observable.from(Arrays.asList("one", "two", "three"));
-        Observable<String> take = w.lift(new OperatorTake<String>(1));
+        Flowable<String> w = Flowable.from(Arrays.asList("one", "two", "three"));
+        Flowable<String> take = w.lift(new OperatorTake<String>(1));
 
         @SuppressWarnings("unchecked")
         Observer<String> observer = mock(Observer.class);
@@ -76,12 +76,12 @@ public class OperatorTakeTest {
         verify(observer, never()).onNext("two");
         verify(observer, never()).onNext("three");
         verify(observer, never()).onError(any(Throwable.class));
-        verify(observer, times(1)).onCompleted();
+        verify(observer, times(1)).onComplete();
     }
 
     @Test(expected = IllegalArgumentException.class)
     public void testTakeWithError() {
-        Observable.from(Arrays.asList(1, 2, 3)).take(1).map(new Func1<Integer, Integer>() {
+        Flowable.from(Arrays.asList(1, 2, 3)).take(1).map(new Function<Integer, Integer>() {
             @Override
             public Integer call(Integer t1) {
                 throw new IllegalArgumentException("some error");
@@ -91,7 +91,7 @@ public class OperatorTakeTest {
 
     @Test
     public void testTakeWithErrorHappeningInOnNext() {
-        Observable<Integer> w = Observable.from(Arrays.asList(1, 2, 3)).take(2).map(new Func1<Integer, Integer>() {
+        Flowable<Integer> w = Flowable.from(Arrays.asList(1, 2, 3)).take(2).map(new Function<Integer, Integer>() {
             @Override
             public Integer call(Integer t1) {
                 throw new IllegalArgumentException("some error");
@@ -108,7 +108,7 @@ public class OperatorTakeTest {
 
     @Test
     public void testTakeWithErrorHappeningInTheLastOnNext() {
-        Observable<Integer> w = Observable.from(Arrays.asList(1, 2, 3)).take(1).map(new Func1<Integer, Integer>() {
+        Flowable<Integer> w = Flowable.from(Arrays.asList(1, 2, 3)).take(1).map(new Function<Integer, Integer>() {
             @Override
             public Integer call(Integer t1) {
                 throw new IllegalArgumentException("some error");
@@ -125,7 +125,7 @@ public class OperatorTakeTest {
 
     @Test
     public void testTakeDoesntLeakErrors() {
-        Observable<String> source = Observable.create(new Observable.OnSubscribe<String>() {
+        Flowable<String> source = Flowable.create(new Flowable.OnSubscribe<String>() {
             @Override
             public void call(Subscriber<? super String> observer) {
                 observer.onNext("one");
@@ -141,7 +141,7 @@ public class OperatorTakeTest {
         verify(observer, times(1)).onNext("one");
         // even though onError is called we take(1) so shouldn't see it
         verify(observer, never()).onError(any(Throwable.class));
-        verify(observer, times(1)).onCompleted();
+        verify(observer, times(1)).onComplete();
         verifyNoMoreInteractions(observer);
     }
 
@@ -149,7 +149,7 @@ public class OperatorTakeTest {
     public void testTakeZeroDoesntLeakError() {
         final AtomicBoolean subscribed = new AtomicBoolean(false);
         final AtomicBoolean unSubscribed = new AtomicBoolean(false);
-        Observable<String> source = Observable.create(new Observable.OnSubscribe<String>() {
+        Flowable<String> source = Flowable.create(new Flowable.OnSubscribe<String>() {
             @Override
             public void call(Subscriber<? super String> observer) {
                 subscribed.set(true);
@@ -178,15 +178,15 @@ public class OperatorTakeTest {
         verify(observer, never()).onNext(anyString());
         // even though onError is called we take(0) so shouldn't see it
         verify(observer, never()).onError(any(Throwable.class));
-        verify(observer, times(1)).onCompleted();
+        verify(observer, times(1)).onComplete();
         verifyNoMoreInteractions(observer);
     }
 
     @Test
     public void testUnsubscribeAfterTake() {
         final Subscription s = mock(Subscription.class);
-        TestObservableFunc f = new TestObservableFunc("one", "two", "three");
-        Observable<String> w = Observable.create(f);
+        TestFlowableFunc f = new TestFlowableFunc("one", "two", "three");
+        Flowable<String> w = Flowable.create(f);
 
         @SuppressWarnings("unchecked")
         Observer<String> observer = mock(Observer.class);
@@ -194,10 +194,10 @@ public class OperatorTakeTest {
         Subscriber<String> subscriber = Subscribers.from(observer);
         subscriber.add(s);
         
-        Observable<String> take = w.lift(new OperatorTake<String>(1));
+        Flowable<String> take = w.lift(new OperatorTake<String>(1));
         take.subscribe(subscriber);
 
-        // wait for the Observable to complete
+        // wait for the Flowable to complete
         try {
             f.t.join();
         } catch (Throwable e) {
@@ -205,17 +205,17 @@ public class OperatorTakeTest {
             fail(e.getMessage());
         }
 
-        System.out.println("TestObservable thread finished");
+        System.out.println("TestFlowable thread finished");
         verify(observer, times(1)).onNext("one");
         verify(observer, never()).onNext("two");
         verify(observer, never()).onNext("three");
-        verify(observer, times(1)).onCompleted();
+        verify(observer, times(1)).onComplete();
         verify(s, times(1)).unsubscribe();
         verifyNoMoreInteractions(observer);
     }
 
     @Test(timeout = 2000)
-    public void testUnsubscribeFromSynchronousInfiniteObservable() {
+    public void testUnsubscribeFromSynchronousInfiniteFlowable() {
         final AtomicLong count = new AtomicLong();
         INFINITE_OBSERVABLE.take(10).subscribe(new Action1<Long>() {
 
@@ -231,7 +231,7 @@ public class OperatorTakeTest {
     @Test(timeout = 2000)
     public void testMultiTake() {
         final AtomicInteger count = new AtomicInteger();
-        Observable.create(new OnSubscribe<Integer>() {
+        Flowable.create(new OnSubscribe<Integer>() {
 
             @Override
             public void call(Subscriber<? super Integer> s) {
@@ -255,42 +255,42 @@ public class OperatorTakeTest {
         assertEquals(1, count.get());
     }
 
-    private static class TestObservableFunc implements Observable.OnSubscribe<String> {
+    private static class TestFlowableFunc implements Flowable.OnSubscribe<String> {
 
         final String[] values;
         Thread t = null;
 
-        public TestObservableFunc(String... values) {
+        public TestFlowableFunc(String... values) {
             this.values = values;
         }
 
         @Override
         public void call(final Subscriber<? super String> observer) {
-            System.out.println("TestObservable subscribed to ...");
+            System.out.println("TestFlowable subscribed to ...");
             t = new Thread(new Runnable() {
 
                 @Override
                 public void run() {
                     try {
-                        System.out.println("running TestObservable thread");
+                        System.out.println("running TestFlowable thread");
                         for (String s : values) {
-                            System.out.println("TestObservable onNext: " + s);
+                            System.out.println("TestFlowable onNext: " + s);
                             observer.onNext(s);
                         }
-                        observer.onCompleted();
+                        observer.onComplete();
                     } catch (Throwable e) {
                         throw new RuntimeException(e);
                     }
                 }
 
             });
-            System.out.println("starting TestObservable thread");
+            System.out.println("starting TestFlowable thread");
             t.start();
-            System.out.println("done starting TestObservable thread");
+            System.out.println("done starting TestFlowable thread");
         }
     }
 
-    private static Observable<Long> INFINITE_OBSERVABLE = Observable.create(new OnSubscribe<Long>() {
+    private static Flowable<Long> INFINITE_OBSERVABLE = Flowable.create(new OnSubscribe<Long>() {
 
         @Override
         public void call(Subscriber<? super Long> op) {
@@ -298,7 +298,7 @@ public class OperatorTakeTest {
             while (!op.isUnsubscribed()) {
                 op.onNext(l++);
             }
-            op.onCompleted();
+            op.onComplete();
         }
 
     });
@@ -315,7 +315,7 @@ public class OperatorTakeTest {
         
         verify(o).onNext(1L);
         verify(o, never()).onNext(2L);
-        verify(o).onCompleted();
+        verify(o).onComplete();
         verify(o, never()).onError(any(Throwable.class));
     }
     
@@ -324,7 +324,7 @@ public class OperatorTakeTest {
         TestSubscriber<Integer> ts = new TestSubscriber<Integer>();
         ts.requestMore(3);
         final AtomicLong requested = new AtomicLong();
-        Observable.create(new OnSubscribe<Integer>() {
+        Flowable.create(new OnSubscribe<Integer>() {
 
             @Override
             public void call(Subscriber<? super Integer> s) {
@@ -347,7 +347,7 @@ public class OperatorTakeTest {
         TestSubscriber<Integer> ts = new TestSubscriber<Integer>();
         ts.requestMore(3);
         final AtomicLong requested = new AtomicLong();
-        Observable.create(new OnSubscribe<Integer>() {
+        Flowable.create(new OnSubscribe<Integer>() {
 
             @Override
             public void call(Subscriber<? super Integer> s) {
@@ -369,7 +369,7 @@ public class OperatorTakeTest {
     public void testInterrupt() throws InterruptedException {
         final AtomicReference<Object> exception = new AtomicReference<Object>();
         final CountDownLatch latch = new CountDownLatch(1);
-        Observable.just(1).subscribeOn(Schedulers.computation()).take(1).subscribe(new Action1<Integer>() {
+        Flowable.just(1).subscribeOn(Schedulers.computation()).take(1).subscribe(new Action1<Integer>() {
 
             @Override
             public void call(Integer t1) {

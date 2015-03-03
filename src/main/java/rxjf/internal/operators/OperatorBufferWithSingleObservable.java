@@ -18,8 +18,8 @@ package rx.internal.operators;
 import java.util.ArrayList;
 import java.util.List;
 
-import rx.Observable;
-import rx.Observable.Operator;
+import rx.Flowable;
+import rx.Flowable.Operator;
 import rx.Observer;
 import rx.Subscriber;
 import rx.functions.Func0;
@@ -28,11 +28,11 @@ import rx.observers.Subscribers;
 
 /**
  * This operation takes
- * values from the specified {@link Observable} source and stores them in a buffer until the
- * {@link Observable} constructed using the {@link Func0} argument, produces a value. The buffer is then
- * emitted, and a new buffer is created to replace it. A new {@link Observable} will be constructed using
+ * values from the specified {@link Flowable} source and stores them in a buffer until the
+ * {@link Flowable} constructed using the {@link Func0} argument, produces a value. The buffer is then
+ * emitted, and a new buffer is created to replace it. A new {@link Flowable} will be constructed using
  * the provided {@link Func0} object, which will determine when this new buffer is emitted. When the source
- * {@link Observable} completes or produces an error, the current buffer is emitted, and the event is
+ * {@link Flowable} completes or produces an error, the current buffer is emitted, and the event is
  * propagated to all subscribed {@link Observer}s.
  * <p>
  * Note that this operation only produces <strong>non-overlapping chunks</strong>. At all times there is
@@ -42,31 +42,31 @@ import rx.observers.Subscribers;
  * @param <T> the buffered value type
  */
 
-public final class OperatorBufferWithSingleObservable<T, TClosing> implements Operator<List<T>, T> {
-    final Func0<? extends Observable<? extends TClosing>> bufferClosingSelector;
+public final class OperatorBufferWithSingleFlowable<T, TClosing> implements Operator<List<T>, T> {
+    final Func0<? extends Flowable<? extends TClosing>> bufferClosingSelector;
     final int initialCapacity;
     /**
      * @param bufferClosingSelector
-     *            a {@link Func0} object which produces {@link Observable}s. These {@link Observable}s determine
+     *            a {@link Func0} object which produces {@link Flowable}s. These {@link Flowable}s determine
      *            when a buffer is emitted and replaced by simply producing an object.
      * @param initialCapacity the initial capacity of each buffer
      */
-    public OperatorBufferWithSingleObservable(Func0<? extends Observable<? extends TClosing>> bufferClosingSelector,
+    public OperatorBufferWithSingleFlowable(Func0<? extends Flowable<? extends TClosing>> bufferClosingSelector,
             int initialCapacity) {
         this.bufferClosingSelector = bufferClosingSelector;
         this.initialCapacity = initialCapacity;
     }
     /**
      * @param bufferClosing
-     *            An {@link Observable} to determine
+     *            An {@link Flowable} to determine
      *            when a buffer is emitted and replaced by simply producing an object.
      * @param initialCapacity the initial capacity of each buffer
      */
-    public OperatorBufferWithSingleObservable(final Observable<? extends TClosing> bufferClosing,
+    public OperatorBufferWithSingleFlowable(final Flowable<? extends TClosing> bufferClosing,
             int initialCapacity) {
-        this.bufferClosingSelector = new Func0<Observable<? extends TClosing>>() {
+        this.bufferClosingSelector = new Func0<Flowable<? extends TClosing>>() {
             @Override
-            public Observable<? extends TClosing> call() {
+            public Flowable<? extends TClosing> call() {
                 return bufferClosing;
             }
         };
@@ -75,7 +75,7 @@ public final class OperatorBufferWithSingleObservable<T, TClosing> implements Op
 
     @Override
     public Subscriber<? super T> call(final Subscriber<? super List<T>> child) {
-        Observable<? extends TClosing> closing;
+        Flowable<? extends TClosing> closing;
         try {
             closing = bufferClosingSelector.call();
         } catch (Throwable t) {
@@ -97,8 +97,8 @@ public final class OperatorBufferWithSingleObservable<T, TClosing> implements Op
             }
 
             @Override
-            public void onCompleted() {
-                bsub.onCompleted();
+            public void onComplete() {
+                bsub.onComplete();
             }
         };
 
@@ -144,7 +144,7 @@ public final class OperatorBufferWithSingleObservable<T, TClosing> implements Op
         }
 
         @Override
-        public void onCompleted() {
+        public void onComplete() {
             try {
                 List<T> toEmit;
                 synchronized (this) {
@@ -160,7 +160,7 @@ public final class OperatorBufferWithSingleObservable<T, TClosing> implements Op
                 child.onError(t);
                 return;
             }
-            child.onCompleted();
+            child.onComplete();
             unsubscribe();
         }
         

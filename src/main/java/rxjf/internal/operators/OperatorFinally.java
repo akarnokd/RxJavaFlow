@@ -15,16 +15,16 @@
  */
 package rx.internal.operators;
 
-import rx.Observable.Operator;
+import rx.Flowable.Operator;
 import rx.Subscriber;
 import rx.functions.Action0;
 
 /**
- * Registers an action to be called after an Observable invokes {@code onComplete} or {@code onError}.
+ * Registers an action to be called after an Flowable invokes {@code onComplete} or {@code onError}.
  * <p>
  * <img width="640" src="https://github.com/ReactiveX/RxJava/wiki/images/rx-operators/finallyDo.png" alt="">
  * <p>
- * See also the <a href="http://msdn.microsoft.com/en-us/library/hh212133.aspx">MSDN Observable.Finally
+ * See also the <a href="http://msdn.microsoft.com/en-us/library/hh212133.aspx">MSDN Flowable.Finally
  * method</a>
  * 
  * @param <T> the value type
@@ -55,9 +55,9 @@ public final class OperatorFinally<T> implements Operator<T, T> {
             }
 
             @Override
-            public void onCompleted() {
+            public void onComplete() {
                 try {
-                    child.onCompleted();
+                    child.onComplete();
                 } finally {
                     action.call();
                 }

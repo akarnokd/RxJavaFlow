@@ -30,7 +30,7 @@ import java.util.concurrent.atomic.AtomicReference;
 import org.junit.*;
 
 import rx.*;
-import rx.Observable.OnSubscribe;
+import rx.Flowable.OnSubscribe;
 import rx.functions.*;
 import rx.observers.TestSubscriber;
 import rx.schedulers.Schedulers;
@@ -56,7 +56,7 @@ public class ReplaySubjectBoundedConcurrencyTest {
 
             @Override
             public void run() {
-                Observable.create(new OnSubscribe<Long>() {
+                Flowable.create(new OnSubscribe<Long>() {
 
                     @Override
                     public void call(Subscriber<? super Long> o) {
@@ -65,7 +65,7 @@ public class ReplaySubjectBoundedConcurrencyTest {
                             o.onNext(l);
                         }
                         System.out.println("********* Finished Source Data ***********");
-                        o.onCompleted();
+                        o.onComplete();
                     }
                 }).subscribe(replay);
             }
@@ -84,7 +84,7 @@ public class ReplaySubjectBoundedConcurrencyTest {
                 Subscriber<Long> slow = new Subscriber<Long>() {
 
                     @Override
-                    public void onCompleted() {
+                    public void onComplete() {
                         System.out.println("*** Slow Observer completed");
                         slowLatch.countDown();
                     }
@@ -125,7 +125,7 @@ public class ReplaySubjectBoundedConcurrencyTest {
                 Subscriber<Long> fast = new Subscriber<Long>() {
 
                     @Override
-                    public void onCompleted() {
+                    public void onComplete() {
                         System.out.println("*** Fast Observer completed");
                         fastLatch.countDown();
                     }
@@ -165,7 +165,7 @@ public class ReplaySubjectBoundedConcurrencyTest {
 
             @Override
             public void run() {
-                Observable.create(new OnSubscribe<Long>() {
+                Flowable.create(new OnSubscribe<Long>() {
 
                     @Override
                     public void call(Subscriber<? super Long> o) {
@@ -174,7 +174,7 @@ public class ReplaySubjectBoundedConcurrencyTest {
                             o.onNext(l);
                         }
                         System.out.println("********* Finished Source Data ***********");
-                        o.onCompleted();
+                        o.onComplete();
                     }
                 }).subscribe(replay);
             }
@@ -242,7 +242,7 @@ public class ReplaySubjectBoundedConcurrencyTest {
     }
 
     /**
-     * Can receive timeout if subscribe never receives an onError/onCompleted ... which reveals a race condition.
+     * Can receive timeout if subscribe never receives an onError/onComplete() ... which reveals a race condition.
      */
     @Test(timeout = 10000)
     public void testSubscribeCompletionRaceCondition() {
@@ -270,7 +270,7 @@ public class ReplaySubjectBoundedConcurrencyTest {
                 @Override
                 public void run() {
                     subject.onNext("value");
-                    subject.onCompleted();
+                    subject.onComplete();
                 }
             });
 
@@ -311,7 +311,7 @@ public class ReplaySubjectBoundedConcurrencyTest {
         final List<Integer> expected = Arrays.asList(1);
         for (int i = 0; i < 100000; i++) {
             TestSubscriber<Integer> ts = new TestSubscriber<Integer>();
-            Observable.just(1).subscribeOn(Schedulers.computation()).cache().subscribe(ts);
+            Flowable.just(1).subscribeOn(Schedulers.computation()).cache().subscribe(ts);
             ts.awaitTerminalEvent();
             ts.assertReceivedOnNext(expected);
             ts.assertTerminalEvent();
@@ -369,7 +369,7 @@ public class ReplaySubjectBoundedConcurrencyTest {
             .subscribe(new Observer<Object>() {
 
                 @Override
-                public void onCompleted() {
+                public void onComplete() {
                     o.set(-1);
                     finish.countDown();
                 }
@@ -392,7 +392,7 @@ public class ReplaySubjectBoundedConcurrencyTest {
             if (!finish.await(5, TimeUnit.SECONDS)) {
                 System.out.println(o.get());
                 System.out.println(rs.hasObservers());
-                rs.onCompleted();
+                rs.onComplete();
                 Assert.fail("Timeout @ " + i);
                 break;
             } else {
@@ -400,7 +400,7 @@ public class ReplaySubjectBoundedConcurrencyTest {
                 worker.schedule(new Action0() {
                     @Override
                     public void call() {
-                        rs.onCompleted();
+                        rs.onComplete();
                     }
                 });
             }
@@ -424,7 +424,7 @@ public class ReplaySubjectBoundedConcurrencyTest {
                 for (int i = 0; i < 1000000; i++) {
                     rs.onNext(i);
                 }
-                rs.onCompleted();
+                rs.onComplete();
                 System.out.println("Replay fill Thread finished!");
             }
         });
@@ -478,7 +478,7 @@ public class ReplaySubjectBoundedConcurrencyTest {
                 for (int i = 0; i < 1000000; i++) {
                     rs.onNext(i);
                 }
-                rs.onCompleted();
+                rs.onComplete();
                 System.out.println("Replay fill Thread finished!");
             }
         });
@@ -528,7 +528,7 @@ public class ReplaySubjectBoundedConcurrencyTest {
                         }
                     }
                 }
-                rs.onCompleted();
+                rs.onComplete();
                 System.out.println("Replay fill Thread finished!");
             }
         });

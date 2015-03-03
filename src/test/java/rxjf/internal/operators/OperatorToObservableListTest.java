@@ -27,41 +27,41 @@ import org.junit.Assert;
 import org.junit.Test;
 import org.mockito.Mockito;
 
-import rx.Observable;
+import rx.Flowable;
 import rx.Observer;
 
-public class OperatorToObservableListTest {
+public class OperatorToFlowableListTest {
 
     @Test
     public void testList() {
-        Observable<String> w = Observable.from(Arrays.asList("one", "two", "three"));
-        Observable<List<String>> observable = w.toList();
+        Flowable<String> w = Flowable.from(Arrays.asList("one", "two", "three"));
+        Flowable<List<String>> observable = w.toList();
 
         @SuppressWarnings("unchecked")
         Observer<List<String>> observer = mock(Observer.class);
         observable.subscribe(observer);
         verify(observer, times(1)).onNext(Arrays.asList("one", "two", "three"));
         verify(observer, Mockito.never()).onError(any(Throwable.class));
-        verify(observer, times(1)).onCompleted();
+        verify(observer, times(1)).onComplete();
     }
     
     @Test
-    public void testListViaObservable() {
-        Observable<String> w = Observable.from(Arrays.asList("one", "two", "three"));
-        Observable<List<String>> observable = w.toList();
+    public void testListViaFlowable() {
+        Flowable<String> w = Flowable.from(Arrays.asList("one", "two", "three"));
+        Flowable<List<String>> observable = w.toList();
 
         @SuppressWarnings("unchecked")
         Observer<List<String>> observer = mock(Observer.class);
         observable.subscribe(observer);
         verify(observer, times(1)).onNext(Arrays.asList("one", "two", "three"));
         verify(observer, Mockito.never()).onError(any(Throwable.class));
-        verify(observer, times(1)).onCompleted();
+        verify(observer, times(1)).onComplete();
     }
 
     @Test
     public void testListMultipleObservers() {
-        Observable<String> w = Observable.from(Arrays.asList("one", "two", "three"));
-        Observable<List<String>> observable = w.toList();
+        Flowable<String> w = Flowable.from(Arrays.asList("one", "two", "three"));
+        Flowable<List<String>> observable = w.toList();
 
         @SuppressWarnings("unchecked")
         Observer<List<String>> o1 = mock(Observer.class);
@@ -75,29 +75,29 @@ public class OperatorToObservableListTest {
 
         verify(o1, times(1)).onNext(expected);
         verify(o1, Mockito.never()).onError(any(Throwable.class));
-        verify(o1, times(1)).onCompleted();
+        verify(o1, times(1)).onComplete();
 
         verify(o2, times(1)).onNext(expected);
         verify(o2, Mockito.never()).onError(any(Throwable.class));
-        verify(o2, times(1)).onCompleted();
+        verify(o2, times(1)).onComplete();
     }
 
     @Test
     public void testListWithNullValue() {
-        Observable<String> w = Observable.from(Arrays.asList("one", null, "three"));
-        Observable<List<String>> observable = w.toList();
+        Flowable<String> w = Flowable.from(Arrays.asList("one", null, "three"));
+        Flowable<List<String>> observable = w.toList();
 
         @SuppressWarnings("unchecked")
         Observer<List<String>> observer = mock(Observer.class);
         observable.subscribe(observer);
         verify(observer, times(1)).onNext(Arrays.asList("one", null, "three"));
         verify(observer, Mockito.never()).onError(any(Throwable.class));
-        verify(observer, times(1)).onCompleted();
+        verify(observer, times(1)).onComplete();
     }
 
     @Test
     public void testListWithBlockingFirst() {
-        Observable<String> o = Observable.from(Arrays.asList("one", "two", "three"));
+        Flowable<String> o = Flowable.from(Arrays.asList("one", "two", "three"));
         List<String> actual = o.toList().toBlocking().first();
         Assert.assertEquals(Arrays.asList("one", "two", "three"), actual);
     }

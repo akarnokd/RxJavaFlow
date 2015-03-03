@@ -33,11 +33,11 @@ import rx.subscriptions.Subscriptions;
  * <li>work with the backpressure solution ... still to be implemented (such as co-routines)</li>
  * </ol><p>
  * Generally the buffer should be very short lived (milliseconds) and then stops being involved. It can become a
- * memory leak though if a {@code GroupedObservable} backed by this class is emitted but never subscribed to
+ * memory leak though if a {@code GroupedFlowable} backed by this class is emitted but never subscribed to
  * (such as filtered out). In that case, either a time-bomb to throw away the buffer, or just blowing up and
  * making the user do something about it is needed.
  * <p>
- * For example, to filter out {@code GroupedObservable}s, perhaps they need a silent {@code subscribe()} on them
+ * For example, to filter out {@code GroupedFlowable}s, perhaps they need a silent {@code subscribe()} on them
  * to just blackhole the data.
  * <p>
  * This is an initial start at solving this problem and solves the immediate problem of {@code groupBy} and
@@ -156,9 +156,9 @@ public final class BufferUntilSubscriber<T> extends Subject<T, T> {
     }
 
     @Override
-    public void onCompleted() {
+    public void onComplete() {
         if (forward) {
-            state.observerRef.onCompleted();
+            state.observerRef.onComplete();
         }
         else {
             emit(state.nl.completed());
@@ -196,7 +196,7 @@ public final class BufferUntilSubscriber<T> extends Subject<T, T> {
     private final static Observer EMPTY_OBSERVER = new Observer() {
 
         @Override
-        public void onCompleted() {
+        public void onComplete() {
             
         }
 

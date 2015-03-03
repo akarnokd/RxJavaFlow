@@ -29,7 +29,7 @@ import org.junit.Test;
 import org.mockito.InOrder;
 
 import rx.*;
-import rx.Observable.OnSubscribe;
+import rx.Flowable.OnSubscribe;
 import rx.functions.Action0;
 import rx.schedulers.TestScheduler;
 import rx.subjects.PublishSubject;
@@ -53,7 +53,7 @@ public class OperatorSampleTest {
 
     @Test
     public void testSample() {
-        Observable<Long> source = Observable.create(new OnSubscribe<Long>() {
+        Flowable<Long> source = Flowable.create(new OnSubscribe<Long>() {
             @Override
             public void call(final Subscriber<? super Long> observer1) {
                 innerScheduler.schedule(new Action0() {
@@ -71,44 +71,44 @@ public class OperatorSampleTest {
                 innerScheduler.schedule(new Action0() {
                     @Override
                     public void call() {
-                        observer1.onCompleted();
+                        observer1.onComplete();
                     }
                 }, 3, TimeUnit.SECONDS);
             }
         });
 
-        Observable<Long> sampled = source.sample(400L, TimeUnit.MILLISECONDS, scheduler);
+        Flowable<Long> sampled = source.sample(400L, TimeUnit.MILLISECONDS, scheduler);
         sampled.subscribe(observer);
 
         InOrder inOrder = inOrder(observer);
 
         scheduler.advanceTimeTo(800L, TimeUnit.MILLISECONDS);
         verify(observer, never()).onNext(any(Long.class));
-        verify(observer, never()).onCompleted();
+        verify(observer, never()).onComplete();
         verify(observer, never()).onError(any(Throwable.class));
 
         scheduler.advanceTimeTo(1200L, TimeUnit.MILLISECONDS);
         inOrder.verify(observer, times(1)).onNext(1L);
         verify(observer, never()).onNext(2L);
-        verify(observer, never()).onCompleted();
+        verify(observer, never()).onComplete();
         verify(observer, never()).onError(any(Throwable.class));
 
         scheduler.advanceTimeTo(1600L, TimeUnit.MILLISECONDS);
         inOrder.verify(observer, never()).onNext(1L);
         verify(observer, never()).onNext(2L);
-        verify(observer, never()).onCompleted();
+        verify(observer, never()).onComplete();
         verify(observer, never()).onError(any(Throwable.class));
 
         scheduler.advanceTimeTo(2000L, TimeUnit.MILLISECONDS);
         inOrder.verify(observer, never()).onNext(1L);
         inOrder.verify(observer, times(1)).onNext(2L);
-        verify(observer, never()).onCompleted();
+        verify(observer, never()).onComplete();
         verify(observer, never()).onError(any(Throwable.class));
 
         scheduler.advanceTimeTo(3000L, TimeUnit.MILLISECONDS);
         inOrder.verify(observer, never()).onNext(1L);
         inOrder.verify(observer, never()).onNext(2L);
-        verify(observer, times(1)).onCompleted();
+        verify(observer, times(1)).onComplete();
         verify(observer, never()).onError(any(Throwable.class));
     }
 
@@ -117,7 +117,7 @@ public class OperatorSampleTest {
         PublishSubject<Integer> source = PublishSubject.create();
         PublishSubject<Integer> sampler = PublishSubject.create();
 
-        Observable<Integer> m = source.sample(sampler);
+        Flowable<Integer> m = source.sample(sampler);
         m.subscribe(observer2);
 
         source.onNext(1);
@@ -126,7 +126,7 @@ public class OperatorSampleTest {
         source.onNext(3);
         source.onNext(4);
         sampler.onNext(2);
-        source.onCompleted();
+        source.onComplete();
         sampler.onNext(3);
 
         InOrder inOrder = inOrder(observer2);
@@ -134,7 +134,7 @@ public class OperatorSampleTest {
         inOrder.verify(observer2, times(1)).onNext(2);
         inOrder.verify(observer2, never()).onNext(3);
         inOrder.verify(observer2, times(1)).onNext(4);
-        inOrder.verify(observer2, times(1)).onCompleted();
+        inOrder.verify(observer2, times(1)).onComplete();
         verify(observer, never()).onError(any(Throwable.class));
     }
 
@@ -143,7 +143,7 @@ public class OperatorSampleTest {
         PublishSubject<Integer> source = PublishSubject.create();
         PublishSubject<Integer> sampler = PublishSubject.create();
 
-        Observable<Integer> m = source.sample(sampler);
+        Flowable<Integer> m = source.sample(sampler);
         m.subscribe(observer2);
 
         source.onNext(1);
@@ -156,7 +156,7 @@ public class OperatorSampleTest {
         sampler.onNext(2);
         sampler.onNext(2);
 
-        source.onCompleted();
+        source.onComplete();
         sampler.onNext(3);
 
         InOrder inOrder = inOrder(observer2);
@@ -164,7 +164,7 @@ public class OperatorSampleTest {
         inOrder.verify(observer2, times(1)).onNext(2);
         inOrder.verify(observer2, never()).onNext(3);
         inOrder.verify(observer2, times(1)).onNext(4);
-        inOrder.verify(observer2, times(1)).onCompleted();
+        inOrder.verify(observer2, times(1)).onComplete();
         verify(observer, never()).onError(any(Throwable.class));
     }
 
@@ -173,13 +173,13 @@ public class OperatorSampleTest {
         PublishSubject<Integer> source = PublishSubject.create();
         PublishSubject<Integer> sampler = PublishSubject.create();
 
-        Observable<Integer> m = source.sample(sampler);
+        Flowable<Integer> m = source.sample(sampler);
         m.subscribe(observer2);
 
         source.onNext(1);
         source.onNext(2);
         sampler.onNext(1);
-        sampler.onCompleted();
+        sampler.onComplete();
 
         source.onNext(3);
         source.onNext(4);
@@ -187,7 +187,7 @@ public class OperatorSampleTest {
         InOrder inOrder = inOrder(observer2);
         inOrder.verify(observer2, never()).onNext(1);
         inOrder.verify(observer2, times(1)).onNext(2);
-        inOrder.verify(observer2, times(1)).onCompleted();
+        inOrder.verify(observer2, times(1)).onComplete();
         inOrder.verify(observer2, never()).onNext(any());
         verify(observer, never()).onError(any(Throwable.class));
     }
@@ -197,22 +197,22 @@ public class OperatorSampleTest {
         PublishSubject<Integer> source = PublishSubject.create();
         PublishSubject<Integer> sampler = PublishSubject.create();
 
-        Observable<Integer> m = source.sample(sampler);
+        Flowable<Integer> m = source.sample(sampler);
         m.subscribe(observer2);
 
         source.onNext(1);
         source.onNext(2);
         sampler.onNext(1);
         source.onNext(3);
-        source.onCompleted();
+        source.onComplete();
         sampler.onNext(2);
-        sampler.onCompleted();
+        sampler.onComplete();
 
         InOrder inOrder = inOrder(observer2);
         inOrder.verify(observer2, never()).onNext(1);
         inOrder.verify(observer2, times(1)).onNext(2);
         inOrder.verify(observer2, never()).onNext(3);
-        inOrder.verify(observer2, times(1)).onCompleted();
+        inOrder.verify(observer2, times(1)).onComplete();
         inOrder.verify(observer2, never()).onNext(any());
         verify(observer, never()).onError(any(Throwable.class));
     }
@@ -222,14 +222,14 @@ public class OperatorSampleTest {
         PublishSubject<Integer> source = PublishSubject.create();
         PublishSubject<Integer> sampler = PublishSubject.create();
 
-        Observable<Integer> m = source.sample(sampler);
+        Flowable<Integer> m = source.sample(sampler);
         m.subscribe(observer2);
 
-        source.onCompleted();
+        source.onComplete();
         sampler.onNext(1);
 
         InOrder inOrder = inOrder(observer2);
-        inOrder.verify(observer2, times(1)).onCompleted();
+        inOrder.verify(observer2, times(1)).onComplete();
         verify(observer2, never()).onNext(any());
         verify(observer, never()).onError(any(Throwable.class));
     }
@@ -239,7 +239,7 @@ public class OperatorSampleTest {
         PublishSubject<Integer> source = PublishSubject.create();
         PublishSubject<Integer> sampler = PublishSubject.create();
 
-        Observable<Integer> m = source.sample(sampler);
+        Flowable<Integer> m = source.sample(sampler);
         m.subscribe(observer2);
 
         source.onNext(1);
@@ -249,7 +249,7 @@ public class OperatorSampleTest {
         InOrder inOrder = inOrder(observer2);
         inOrder.verify(observer2, times(1)).onError(any(Throwable.class));
         verify(observer2, never()).onNext(any());
-        verify(observer, never()).onCompleted();
+        verify(observer, never()).onComplete();
     }
 
     @Test
@@ -257,7 +257,7 @@ public class OperatorSampleTest {
         PublishSubject<Integer> source = PublishSubject.create();
         PublishSubject<Integer> sampler = PublishSubject.create();
 
-        Observable<Integer> m = source.sample(sampler);
+        Flowable<Integer> m = source.sample(sampler);
         m.subscribe(observer2);
 
         source.onNext(1);
@@ -267,13 +267,13 @@ public class OperatorSampleTest {
         InOrder inOrder = inOrder(observer2);
         inOrder.verify(observer2, times(1)).onNext(1);
         inOrder.verify(observer2, times(1)).onError(any(RuntimeException.class));
-        verify(observer, never()).onCompleted();
+        verify(observer, never()).onComplete();
     }
 
     @Test
     public void testSampleUnsubscribe() {
         final Subscription s = mock(Subscription.class);
-        Observable<Integer> o = Observable.create(
+        Flowable<Integer> o = Flowable.create(
                 new OnSubscribe<Integer>() {
                     @Override
                     public void call(Subscriber<? super Integer> subscriber) {

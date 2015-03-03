@@ -35,17 +35,17 @@ import rx.CovarianceTest.Rating;
 import rx.CovarianceTest.Result;
 import rx.EventStream.Event;
 import rx.functions.Action1;
-import rx.functions.Func1;
-import rx.functions.Func2;
+import rx.functions.Function;
+import rx.functions.BiFunction;
 import rx.functions.FuncN;
-import rx.observables.GroupedObservable;
+import rx.observables.GroupedFlowable;
 
 public class ZipTests {
 
     @Test
-    public void testZipObservableOfObservables() {
+    public void testZipFlowableOfFlowables() {
         EventStream.getEventStream("HTTP-ClusterB", 20)
-                .groupBy(new Func1<Event, String>() {
+                .groupBy(new Function<Event, String>() {
 
                     @Override
                     public String call(Event e) {
@@ -53,11 +53,11 @@ public class ZipTests {
                     }
 
                     // now we have streams of cluster+instanceId
-                }).flatMap(new Func1<GroupedObservable<String, Event>, Observable<Map<String, String>>>() {
+                }).flatMap(new Function<GroupedFlowable<String, Event>, Flowable<Map<String, String>>>() {
 
                     @Override
-                    public Observable<Map<String, String>> call(final GroupedObservable<String, Event> ge) {
-                        return ge.scan(new HashMap<String, String>(), new Func2<Map<String, String>, Event, Map<String, String>>() {
+                    public Flowable<Map<String, String>> call(final GroupedFlowable<String, Event> ge) {
+                        return ge.scan(new HashMap<String, String>(), new BiFunction<Map<String, String>, Event, Map<String, String>>() {
 
                             @Override
                             public Map<String, String> call(Map<String, String> accum, Event perInstanceEvent) {
@@ -86,16 +86,16 @@ public class ZipTests {
      */
     @Test
     public void testCovarianceOfZip() {
-        Observable<HorrorMovie> horrors = Observable.just(new HorrorMovie());
-        Observable<CoolRating> ratings = Observable.just(new CoolRating());
+        Flowable<HorrorMovie> horrors = Flowable.just(new HorrorMovie());
+        Flowable<CoolRating> ratings = Flowable.just(new CoolRating());
 
-        Observable.<Movie, CoolRating, Result> zip(horrors, ratings, combine).toBlocking().forEach(action);
-        Observable.<Movie, CoolRating, Result> zip(horrors, ratings, combine).toBlocking().forEach(action);
-        Observable.<Media, Rating, ExtendedResult> zip(horrors, ratings, combine).toBlocking().forEach(extendedAction);
-        Observable.<Media, Rating, Result> zip(horrors, ratings, combine).toBlocking().forEach(action);
-        Observable.<Media, Rating, ExtendedResult> zip(horrors, ratings, combine).toBlocking().forEach(action);
+        Flowable.<Movie, CoolRating, Result> zip(horrors, ratings, combine).toBlocking().forEach(action);
+        Flowable.<Movie, CoolRating, Result> zip(horrors, ratings, combine).toBlocking().forEach(action);
+        Flowable.<Media, Rating, ExtendedResult> zip(horrors, ratings, combine).toBlocking().forEach(extendedAction);
+        Flowable.<Media, Rating, Result> zip(horrors, ratings, combine).toBlocking().forEach(action);
+        Flowable.<Media, Rating, ExtendedResult> zip(horrors, ratings, combine).toBlocking().forEach(action);
 
-        Observable.<Movie, CoolRating, Result> zip(horrors, ratings, combine);
+        Flowable.<Movie, CoolRating, Result> zip(horrors, ratings, combine);
     }
 
     /**
@@ -105,13 +105,13 @@ public class ZipTests {
      * We now expect an NoSuchElementException since last() requires at least one value and nothing will be emitted.
      */
     @Test(expected = NoSuchElementException.class)
-    public void nonBlockingObservable() {
+    public void nonBlockingFlowable() {
 
         final Object invoked = new Object();
 
-        Collection<Observable<Object>> observables = Collections.emptyList();
+        Collection<Flowable<Object>> observables = Collections.emptyList();
 
-        Observable<Object> result = Observable.zip(observables, new FuncN<Object>() {
+        Flowable<Object> result = Flowable.zip(observables, new FuncN<Object>() {
             @Override
             public Object call(final Object... args) {
                 System.out.println("received: " + args);
@@ -123,7 +123,7 @@ public class ZipTests {
         assertSame(invoked, result.toBlocking().last());
     }
 
-    Func2<Media, Rating, ExtendedResult> combine = new Func2<Media, Rating, ExtendedResult>() {
+    BiFunction<Media, Rating, ExtendedResult> combine = new BiFunction<Media, Rating, ExtendedResult>() {
         @Override
         public ExtendedResult call(Media m, Rating r) {
             return new ExtendedResult();

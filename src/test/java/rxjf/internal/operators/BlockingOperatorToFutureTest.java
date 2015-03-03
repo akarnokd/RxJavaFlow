@@ -29,8 +29,8 @@ import java.util.concurrent.TimeUnit;
 
 import org.junit.Test;
 
-import rx.Observable;
-import rx.Observable.OnSubscribe;
+import rx.Flowable;
+import rx.Flowable.OnSubscribe;
 import rx.Subscriber;
 import rx.exceptions.TestException;
 
@@ -38,14 +38,14 @@ public class BlockingOperatorToFutureTest {
 
     @Test
     public void testToFuture() throws InterruptedException, ExecutionException {
-        Observable<String> obs = Observable.just("one");
+        Flowable<String> obs = Flowable.just("one");
         Future<String> f = toFuture(obs);
         assertEquals("one", f.get());
     }
 
     @Test
     public void testToFutureList() throws InterruptedException, ExecutionException {
-        Observable<String> obs = Observable.just("one", "two", "three");
+        Flowable<String> obs = Flowable.just("one", "two", "three");
         Future<List<String>> f = toFuture(obs.toList());
         assertEquals("one", f.get().get(0));
         assertEquals("two", f.get().get(1));
@@ -54,7 +54,7 @@ public class BlockingOperatorToFutureTest {
 
     @Test(expected = IllegalArgumentException.class)
     public void testExceptionWithMoreThanOneElement() throws Throwable {
-        Observable<String> obs = Observable.just("one", "two");
+        Flowable<String> obs = Flowable.just("one", "two");
         Future<String> f = toFuture(obs);
         try {
             // we expect an exception since there are more than 1 element
@@ -67,7 +67,7 @@ public class BlockingOperatorToFutureTest {
 
     @Test
     public void testToFutureWithException() {
-        Observable<String> obs = Observable.create(new OnSubscribe<String>() {
+        Flowable<String> obs = Flowable.create(new OnSubscribe<String>() {
 
             @Override
             public void call(Subscriber<? super String> observer) {
@@ -87,7 +87,7 @@ public class BlockingOperatorToFutureTest {
 
     @Test(expected=CancellationException.class)
     public void testGetAfterCancel() throws Exception {
-        Observable<String> obs = Observable.create(new OperationNeverComplete<String>());
+        Flowable<String> obs = Flowable.create(new OperationNeverComplete<String>());
         Future<String> f = toFuture(obs);
         boolean cancelled = f.cancel(true);
         assertTrue(cancelled);  // because OperationNeverComplete never does
@@ -96,7 +96,7 @@ public class BlockingOperatorToFutureTest {
 
     @Test(expected=CancellationException.class)
     public void testGetWithTimeoutAfterCancel() throws Exception {
-        Observable<String> obs = Observable.create(new OperationNeverComplete<String>());
+        Flowable<String> obs = Flowable.create(new OperationNeverComplete<String>());
         Future<String> f = toFuture(obs);
         boolean cancelled = f.cancel(true);
         assertTrue(cancelled);  // because OperationNeverComplete never does
@@ -106,7 +106,7 @@ public class BlockingOperatorToFutureTest {
     /**
      * Emits no observations. Used to simulate a long-running asynchronous operation.
      */
-    private static class OperationNeverComplete<T> implements Observable.OnSubscribe<T> {
+    private static class OperationNeverComplete<T> implements Flowable.OnSubscribe<T> {
         @Override
         public void call(Subscriber<? super T> unused) {
             // do nothing
@@ -114,8 +114,8 @@ public class BlockingOperatorToFutureTest {
     }
 
     @Test(expected = NoSuchElementException.class)
-    public void testGetWithEmptyObservable() throws Throwable {
-        Observable<String> obs = Observable.empty();
+    public void testGetWithEmptyFlowable() throws Throwable {
+        Flowable<String> obs = Flowable.empty();
         Future<String> f = obs.toBlocking().toFuture();
         try {
             f.get();
@@ -127,7 +127,7 @@ public class BlockingOperatorToFutureTest {
 
     @Test
     public void testGetWithASingleNullItem() throws Exception {
-        Observable<String> obs = Observable.just((String)null);
+        Flowable<String> obs = Flowable.just((String)null);
         Future<String> f = obs.toBlocking().toFuture();
         assertEquals(null, f.get());
     }

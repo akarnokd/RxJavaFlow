@@ -26,8 +26,8 @@ import org.junit.Before;
 import org.junit.Test;
 import org.mockito.InOrder;
 
-import rx.Observable;
-import rx.Observable.OnSubscribe;
+import rx.Flowable;
+import rx.Flowable.OnSubscribe;
 import rx.Observer;
 import rx.Scheduler;
 import rx.Subscriber;
@@ -52,7 +52,7 @@ public class OperatorThrottleFirstTest {
 
     @Test
     public void testThrottlingWithCompleted() {
-        Observable<String> source = Observable.create(new OnSubscribe<String>() {
+        Flowable<String> source = Flowable.create(new OnSubscribe<String>() {
             @Override
             public void call(Subscriber<? super String> observer) {
                 publishNext(observer, 100, "one");    // publish as it's first
@@ -63,7 +63,7 @@ public class OperatorThrottleFirstTest {
             }
         });
 
-        Observable<String> sampled = source.throttleFirst(400, TimeUnit.MILLISECONDS, scheduler);
+        Flowable<String> sampled = source.throttleFirst(400, TimeUnit.MILLISECONDS, scheduler);
         sampled.subscribe(observer);
 
         InOrder inOrder = inOrder(observer);
@@ -73,13 +73,13 @@ public class OperatorThrottleFirstTest {
         inOrder.verify(observer, times(0)).onNext("two");
         inOrder.verify(observer, times(1)).onNext("three");
         inOrder.verify(observer, times(0)).onNext("four");
-        inOrder.verify(observer, times(1)).onCompleted();
+        inOrder.verify(observer, times(1)).onComplete();
         inOrder.verifyNoMoreInteractions();
     }
 
     @Test
     public void testThrottlingWithError() {
-        Observable<String> source = Observable.create(new OnSubscribe<String>() {
+        Flowable<String> source = Flowable.create(new OnSubscribe<String>() {
             @Override
             public void call(Subscriber<? super String> observer) {
                 Exception error = new TestException();
@@ -89,7 +89,7 @@ public class OperatorThrottleFirstTest {
             }
         });
 
-        Observable<String> sampled = source.throttleFirst(400, TimeUnit.MILLISECONDS, scheduler);
+        Flowable<String> sampled = source.throttleFirst(400, TimeUnit.MILLISECONDS, scheduler);
         sampled.subscribe(observer);
 
         InOrder inOrder = inOrder(observer);
@@ -104,7 +104,7 @@ public class OperatorThrottleFirstTest {
         innerScheduler.schedule(new Action0() {
             @Override
             public void call() {
-                observer.onCompleted();
+                observer.onComplete();
             }
         }, delay, TimeUnit.MILLISECONDS);
     }
@@ -149,13 +149,13 @@ public class OperatorThrottleFirstTest {
         s.advanceTimeTo(1001, TimeUnit.MILLISECONDS);
         o.onNext(7); // deliver
         s.advanceTimeTo(1501, TimeUnit.MILLISECONDS);
-        o.onCompleted();
+        o.onComplete();
 
         InOrder inOrder = inOrder(observer);
         inOrder.verify(observer).onNext(1);
         inOrder.verify(observer).onNext(3);
         inOrder.verify(observer).onNext(7);
-        inOrder.verify(observer).onCompleted();
+        inOrder.verify(observer).onComplete();
         inOrder.verifyNoMoreInteractions();
     }
 }

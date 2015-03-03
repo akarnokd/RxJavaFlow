@@ -27,7 +27,7 @@ import java.util.concurrent.TimeUnit;
 import org.junit.Test;
 import org.mockito.InOrder;
 
-import rx.Observable;
+import rx.Flowable;
 import rx.Observer;
 import rx.exceptions.TestException;
 import rx.schedulers.TestScheduler;
@@ -37,7 +37,7 @@ public class OperatorTakeLastTimedTest {
 
     @Test(expected = IndexOutOfBoundsException.class)
     public void testTakeLastTimedWithNegativeCount() {
-        Observable.just("one").takeLast(-1, 1, TimeUnit.SECONDS);
+        Flowable.just("one").takeLast(-1, 1, TimeUnit.SECONDS);
     }
 
     @Test
@@ -46,7 +46,7 @@ public class OperatorTakeLastTimedTest {
 
         PublishSubject<Object> source = PublishSubject.create();
 
-        Observable<Object> result = source.takeLast(1, TimeUnit.SECONDS, scheduler);
+        Flowable<Object> result = source.takeLast(1, TimeUnit.SECONDS, scheduler);
 
         @SuppressWarnings("unchecked")
         Observer<Object> o = mock(Observer.class);
@@ -65,13 +65,13 @@ public class OperatorTakeLastTimedTest {
         scheduler.advanceTimeBy(250, TimeUnit.MILLISECONDS);
         source.onNext(5); // T: 1000ms
         scheduler.advanceTimeBy(250, TimeUnit.MILLISECONDS);
-        source.onCompleted(); // T: 1250ms
+        source.onComplete(); // T: 1250ms
 
         inOrder.verify(o, times(1)).onNext(2);
         inOrder.verify(o, times(1)).onNext(3);
         inOrder.verify(o, times(1)).onNext(4);
         inOrder.verify(o, times(1)).onNext(5);
-        inOrder.verify(o, times(1)).onCompleted();
+        inOrder.verify(o, times(1)).onComplete();
 
         verify(o, never()).onError(any(Throwable.class));
     }
@@ -82,7 +82,7 @@ public class OperatorTakeLastTimedTest {
 
         PublishSubject<Object> source = PublishSubject.create();
 
-        Observable<Object> result = source.takeLast(1, TimeUnit.SECONDS, scheduler);
+        Flowable<Object> result = source.takeLast(1, TimeUnit.SECONDS, scheduler);
 
         @SuppressWarnings("unchecked")
         Observer<Object> o = mock(Observer.class);
@@ -101,9 +101,9 @@ public class OperatorTakeLastTimedTest {
         scheduler.advanceTimeBy(250, TimeUnit.MILLISECONDS);
         source.onNext(5); // T: 1000ms
         scheduler.advanceTimeBy(1250, TimeUnit.MILLISECONDS);
-        source.onCompleted(); // T: 2250ms
+        source.onComplete(); // T: 2250ms
 
-        inOrder.verify(o, times(1)).onCompleted();
+        inOrder.verify(o, times(1)).onComplete();
 
         verify(o, never()).onNext(any());
         verify(o, never()).onError(any(Throwable.class));
@@ -115,7 +115,7 @@ public class OperatorTakeLastTimedTest {
 
         PublishSubject<Object> source = PublishSubject.create();
 
-        Observable<Object> result = source.takeLast(2, 1, TimeUnit.SECONDS, scheduler);
+        Flowable<Object> result = source.takeLast(2, 1, TimeUnit.SECONDS, scheduler);
 
         @SuppressWarnings("unchecked")
         Observer<Object> o = mock(Observer.class);
@@ -134,11 +134,11 @@ public class OperatorTakeLastTimedTest {
         scheduler.advanceTimeBy(250, TimeUnit.MILLISECONDS);
         source.onNext(5); // T: 1000ms
         scheduler.advanceTimeBy(250, TimeUnit.MILLISECONDS);
-        source.onCompleted(); // T: 1250ms
+        source.onComplete(); // T: 1250ms
 
         inOrder.verify(o, times(1)).onNext(4);
         inOrder.verify(o, times(1)).onNext(5);
-        inOrder.verify(o, times(1)).onCompleted();
+        inOrder.verify(o, times(1)).onComplete();
 
         verify(o, never()).onError(any(Throwable.class));
     }
@@ -149,7 +149,7 @@ public class OperatorTakeLastTimedTest {
 
         PublishSubject<Object> source = PublishSubject.create();
 
-        Observable<Object> result = source.takeLast(1, TimeUnit.SECONDS, scheduler);
+        Flowable<Object> result = source.takeLast(1, TimeUnit.SECONDS, scheduler);
 
         @SuppressWarnings("unchecked")
         Observer<Object> o = mock(Observer.class);
@@ -173,7 +173,7 @@ public class OperatorTakeLastTimedTest {
         inOrder.verify(o, times(1)).onError(any(TestException.class));
 
         verify(o, never()).onNext(any());
-        verify(o, never()).onCompleted();
+        verify(o, never()).onComplete();
     }
 
     @Test
@@ -182,7 +182,7 @@ public class OperatorTakeLastTimedTest {
 
         PublishSubject<Object> source = PublishSubject.create();
 
-        Observable<Object> result = source.takeLast(0, 1, TimeUnit.SECONDS, scheduler);
+        Flowable<Object> result = source.takeLast(0, 1, TimeUnit.SECONDS, scheduler);
 
         @SuppressWarnings("unchecked")
         Observer<Object> o = mock(Observer.class);
@@ -201,9 +201,9 @@ public class OperatorTakeLastTimedTest {
         scheduler.advanceTimeBy(250, TimeUnit.MILLISECONDS);
         source.onNext(5); // T: 1000ms
         scheduler.advanceTimeBy(250, TimeUnit.MILLISECONDS);
-        source.onCompleted(); // T: 1250ms
+        source.onComplete(); // T: 1250ms
 
-        inOrder.verify(o, times(1)).onCompleted();
+        inOrder.verify(o, times(1)).onComplete();
 
         verify(o, never()).onNext(any());
         verify(o, never()).onError(any(Throwable.class));

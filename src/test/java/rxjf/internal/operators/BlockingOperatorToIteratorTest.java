@@ -22,8 +22,8 @@ import java.util.Iterator;
 
 import org.junit.Test;
 
-import rx.Observable;
-import rx.Observable.OnSubscribe;
+import rx.Flowable;
+import rx.Flowable.OnSubscribe;
 import rx.Subscriber;
 import rx.exceptions.TestException;
 
@@ -31,7 +31,7 @@ public class BlockingOperatorToIteratorTest {
 
     @Test
     public void testToIterator() {
-        Observable<String> obs = Observable.just("one", "two", "three");
+        Flowable<String> obs = Flowable.just("one", "two", "three");
 
         Iterator<String> it = toIterator(obs);
 
@@ -50,7 +50,7 @@ public class BlockingOperatorToIteratorTest {
 
     @Test(expected = TestException.class)
     public void testToIteratorWithException() {
-        Observable<String> obs = Observable.create(new OnSubscribe<String>() {
+        Flowable<String> obs = Flowable.create(new OnSubscribe<String>() {
 
             @Override
             public void call(Subscriber<? super String> observer) {
@@ -70,7 +70,7 @@ public class BlockingOperatorToIteratorTest {
 
     @Test(expected = TestException.class)
     public void testExceptionThrownFromOnSubscribe() {
-        Iterable<String> strings = Observable.create(new Observable.OnSubscribe<String>() {
+        Iterable<String> strings = Flowable.create(new Flowable.OnSubscribe<String>() {
             @Override
             public void call(Subscriber<? super String> subscriber) {
                 throw new TestException("intentional");

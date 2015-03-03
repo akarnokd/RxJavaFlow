@@ -15,14 +15,14 @@
  */
 package rx.internal.operators;
 
-import rx.Observable;
-import rx.Observable.OnSubscribe;
+import rx.Flowable;
+import rx.Flowable.OnSubscribe;
 import rx.Subscriber;
 import rx.Subscription;
 import rx.functions.Action1;
 import rx.functions.Func0;
-import rx.functions.Func1;
-import rx.observables.ConnectableObservable;
+import rx.functions.Function;
+import rx.observables.ConnectableFlowable;
 import rx.observers.SafeSubscriber;
 import rx.subjects.Subject;
 
@@ -30,20 +30,20 @@ import rx.subjects.Subject;
  * Returns an observable sequence that contains the elements of a sequence
  * produced by multicasting the source sequence within a selector function.
  *
- * @see <a href='http://msdn.microsoft.com/en-us/library/hh229708(v=vs.103).aspx'>MSDN: Observable.Multicast</a>
+ * @see <a href='http://msdn.microsoft.com/en-us/library/hh229708(v=vs.103).aspx'>MSDN: Flowable.Multicast</a>
  *
  * @param <TInput> the input value type
  * @param <TIntermediate> the intermediate type
  * @param <TResult> the result type
  */
 public final class OnSubscribeMulticastSelector<TInput, TIntermediate, TResult> implements OnSubscribe<TResult> {
-    final Observable<? extends TInput> source;
+    final Flowable<? extends TInput> source;
     final Func0<? extends Subject<? super TInput, ? extends TIntermediate>> subjectFactory;
-    final Func1<? super Observable<TIntermediate>, ? extends Observable<TResult>> resultSelector;
+    final Function<? super Flowable<TIntermediate>, ? extends Flowable<TResult>> resultSelector;
     
-    public OnSubscribeMulticastSelector(Observable<? extends TInput> source,
+    public OnSubscribeMulticastSelector(Flowable<? extends TInput> source,
             Func0<? extends Subject<? super TInput, ? extends TIntermediate>> subjectFactory,
-            Func1<? super Observable<TIntermediate>, ? extends Observable<TResult>> resultSelector) {
+            Function<? super Flowable<TIntermediate>, ? extends Flowable<TResult>> resultSelector) {
         this.source = source;
         this.subjectFactory = subjectFactory;
         this.resultSelector = resultSelector;
@@ -51,8 +51,8 @@ public final class OnSubscribeMulticastSelector<TInput, TIntermediate, TResult> 
     
     @Override
     public void call(Subscriber<? super TResult> child) {
-        Observable<TResult> observable;
-        ConnectableObservable<TIntermediate> connectable;
+        Flowable<TResult> observable;
+        ConnectableFlowable<TIntermediate> connectable;
         try {
             connectable = new OperatorMulticast<TInput, TIntermediate>(source, subjectFactory);
             

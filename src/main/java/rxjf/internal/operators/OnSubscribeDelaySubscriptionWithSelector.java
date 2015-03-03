@@ -15,22 +15,22 @@
  */
 package rx.internal.operators;
 
-import rx.Observable;
-import rx.Observable.OnSubscribe;
+import rx.Flowable;
+import rx.Flowable.OnSubscribe;
 import rx.Subscriber;
 import rx.functions.Func0;
 
 /**
- * Delays the subscription until the Observable<U> emits an event.
+ * Delays the subscription until the Flowable<U> emits an event.
  * 
  * @param <T>
  *            the value type
  */
 public final class OnSubscribeDelaySubscriptionWithSelector<T, U> implements OnSubscribe<T> {
-    final Observable<? extends T> source;
-    final Func0<? extends Observable<U>> subscriptionDelay;
+    final Flowable<? extends T> source;
+    final Func0<? extends Flowable<U>> subscriptionDelay;
 
-    public OnSubscribeDelaySubscriptionWithSelector(Observable<? extends T> source, Func0<? extends Observable<U>> subscriptionDelay) {
+    public OnSubscribeDelaySubscriptionWithSelector(Flowable<? extends T> source, Func0<? extends Flowable<U>> subscriptionDelay) {
         this.source = source;
         this.subscriptionDelay = subscriptionDelay;
     }
@@ -41,7 +41,7 @@ public final class OnSubscribeDelaySubscriptionWithSelector<T, U> implements OnS
             subscriptionDelay.call().take(1).unsafeSubscribe(new Subscriber<U>() {
 
                 @Override
-                public void onCompleted() {
+                public void onComplete() {
                     // subscribe to actual source
                     source.unsafeSubscribe(child);
                 }

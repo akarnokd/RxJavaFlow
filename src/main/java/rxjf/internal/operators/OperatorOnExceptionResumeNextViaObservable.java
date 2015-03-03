@@ -15,30 +15,30 @@
  */
 package rx.internal.operators;
 
-import rx.Observable;
+import rx.Flowable;
 import rx.Producer;
-import rx.Observable.Operator;
+import rx.Flowable.Operator;
 import rx.Subscriber;
 import rx.exceptions.Exceptions;
 import rx.plugins.RxJavaPlugins;
 
 /**
- * Instruct an Observable to pass control to another Observable rather than invoking
+ * Instruct an Flowable to pass control to another Flowable rather than invoking
  * <code>onError</code> if it encounters an error of type {@link java.lang.Exception}.
  * <p>
- * This differs from {@link Observable#onErrorResumeNext} in that this one does not handle 
+ * This differs from {@link Flowable#onErrorResumeNext} in that this one does not handle 
  * {@link java.lang.Throwable} or {@link java.lang.Error} but lets those continue through.
  * <p>
  * <img width="640" src="https://github.com/ReactiveX/RxJava/wiki/images/rx-operators/onErrorResumeNext.png" alt="">
  * <p>
- * By default, when an Observable encounters an error that prevents it from emitting the expected
- * item to its Observer, the Observable invokes its Observer's <code>onError</code> method, and
+ * By default, when an Flowable encounters an error that prevents it from emitting the expected
+ * item to its Observer, the Flowable invokes its Observer's <code>onError</code> method, and
  * then quits without invoking any more of its Observer's methods. The onErrorResumeNext operation
- * changes this behavior. If you pass an Observable (resumeSequence) to onErrorResumeNext, if the
- * source Observable encounters an error, instead of invoking its Observer's <code>onError</code>
- * method, it will instead relinquish control to this new Observable, which will invoke the
+ * changes this behavior. If you pass an Flowable (resumeSequence) to onErrorResumeNext, if the
+ * source Flowable encounters an error, instead of invoking its Observer's <code>onError</code>
+ * method, it will instead relinquish control to this new Flowable, which will invoke the
  * Observer's <code>onNext</code> method if it is able to do so. In such a case, because no
- * Observable necessarily invokes <code>onError</code>, the Observer may never know that an error
+ * Flowable necessarily invokes <code>onError</code>, the Observer may never know that an error
  * happened.
  * <p>
  * You can use this to prevent errors from propagating or to supply fallback data should errors be
@@ -46,10 +46,10 @@ import rx.plugins.RxJavaPlugins;
  * 
  * @param <T> the value type
  */
-public final class OperatorOnExceptionResumeNextViaObservable<T> implements Operator<T, T> {
-    final Observable<? extends T> resumeSequence;
+public final class OperatorOnExceptionResumeNextViaFlowable<T> implements Operator<T, T> {
+    final Flowable<? extends T> resumeSequence;
 
-    public OperatorOnExceptionResumeNextViaObservable(Observable<? extends T> resumeSequence) {
+    public OperatorOnExceptionResumeNextViaFlowable(Flowable<? extends T> resumeSequence) {
         this.resumeSequence = resumeSequence;
     }
 
@@ -85,12 +85,12 @@ public final class OperatorOnExceptionResumeNextViaObservable<T> implements Oper
             }
 
             @Override
-            public void onCompleted() {
+            public void onComplete() {
                 if (done) {
                     return;
                 }
                 done = true;
-                child.onCompleted();
+                child.onComplete();
             }
             
             @Override

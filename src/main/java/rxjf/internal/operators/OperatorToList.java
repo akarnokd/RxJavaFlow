@@ -24,17 +24,17 @@ import rxjf.internal.Conformance;
 import rxjf.subscribers.AbstractSubscriber;
 
 /**
- * Returns an {@code Observable} that emits a single item, a list composed of all the items emitted by the
- * source {@code Observable}.
+ * Returns an {@code Flowable} that emits a single item, a list composed of all the items emitted by the
+ * source {@code Flowable}.
  * <p>
  * <img width="640" height="305" src="https://raw.githubusercontent.com/wiki/ReactiveX/RxJava/images/rx-operators/toList.png" alt="">
  * <p>
- * Normally, an {@code Observable} that returns multiple items will do so by invoking its subscriber's
+ * Normally, an {@code Flowable} that returns multiple items will do so by invoking its subscriber's
  * {@link Subscriber#onNext onNext} method for each such item. You can change this behavior, instructing the
- * {@code Observable} to compose a list of all of these multiple items and then to invoke the subscriber's
+ * {@code Flowable} to compose a list of all of these multiple items and then to invoke the subscriber's
  * {@code onNext} method once, passing it the entire list, by using this operator.
  * <p>
- * Be careful not to use this operator on {@code Observable}s that emit infinite or very large numbers of items,
+ * Be careful not to use this operator on {@code Flowable}s that emit infinite or very large numbers of items,
  * as you do not have the option to unsubscribe.
  */
 public final class OperatorToList<T> implements Operator<List<T>, T> {

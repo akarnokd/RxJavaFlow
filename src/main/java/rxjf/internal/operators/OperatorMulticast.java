@@ -19,13 +19,13 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicReference;
 
-import rx.Observable;
+import rx.Flowable;
 import rx.Subscriber;
 import rx.Subscription;
 import rx.functions.Action0;
 import rx.functions.Action1;
 import rx.functions.Func0;
-import rx.observables.ConnectableObservable;
+import rx.observables.ConnectableFlowable;
 import rx.subjects.Subject;
 import rx.subscriptions.Subscriptions;
 
@@ -37,8 +37,8 @@ import rx.subscriptions.Subscriptions;
  * @param <R>
  *            the result value type
  */
-public final class OperatorMulticast<T, R> extends ConnectableObservable<R> {
-    final Observable<? extends T> source;
+public final class OperatorMulticast<T, R> extends ConnectableFlowable<R> {
+    final Flowable<? extends T> source;
     final Object guard;
     final Func0<? extends Subject<? super T, ? extends R>> subjectFactory;
     final AtomicReference<Subject<? super T, ? extends R>> connectedSubject;
@@ -49,11 +49,11 @@ public final class OperatorMulticast<T, R> extends ConnectableObservable<R> {
     // wraps subscription above for unsubscription using guard
     private Subscription guardedSubscription;
 
-    public OperatorMulticast(Observable<? extends T> source, final Func0<? extends Subject<? super T, ? extends R>> subjectFactory) {
+    public OperatorMulticast(Flowable<? extends T> source, final Func0<? extends Subject<? super T, ? extends R>> subjectFactory) {
         this(new Object(), new AtomicReference<Subject<? super T, ? extends R>>(), new ArrayList<Subscriber<? super R>>(), source, subjectFactory);
     }
 
-    private OperatorMulticast(final Object guard, final AtomicReference<Subject<? super T, ? extends R>> connectedSubject, final List<Subscriber<? super R>> waitingForConnect, Observable<? extends T> source, final Func0<? extends Subject<? super T, ? extends R>> subjectFactory) {
+    private OperatorMulticast(final Object guard, final AtomicReference<Subject<? super T, ? extends R>> connectedSubject, final List<Subscriber<? super R>> waitingForConnect, Flowable<? extends T> source, final Func0<? extends Subject<? super T, ? extends R>> subjectFactory) {
         super(new OnSubscribe<R>() {
             @Override
             public void call(Subscriber<? super R> subscriber) {
@@ -92,8 +92,8 @@ public final class OperatorMulticast<T, R> extends ConnectableObservable<R> {
                 // we do this since it is also a Subscription whereas the Subject is not
                 subscription = new Subscriber<T>() {
                     @Override
-                    public void onCompleted() {
-                        subject.onCompleted();
+                    public void onComplete() {
+                        subject.onComplete();
                     }
 
                     @Override

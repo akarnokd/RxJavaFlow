@@ -25,8 +25,8 @@ import java.util.concurrent.atomic.AtomicReference;
 
 import org.junit.Test;
 
-import rx.Observable;
-import rx.Observable.OnSubscribe;
+import rx.Flowable;
+import rx.Flowable.OnSubscribe;
 import rx.Scheduler;
 import rx.Subscriber;
 import rx.Subscription;
@@ -43,7 +43,7 @@ public class OperatorUnsubscribeOnTest {
         try {
             final ThreadSubscription subscription = new ThreadSubscription();
             final AtomicReference<Thread> subscribeThread = new AtomicReference<Thread>();
-            Observable<Integer> w = Observable.create(new OnSubscribe<Integer>() {
+            Flowable<Integer> w = Flowable.create(new OnSubscribe<Integer>() {
 
                 @Override
                 public void call(Subscriber<? super Integer> t1) {
@@ -51,7 +51,7 @@ public class OperatorUnsubscribeOnTest {
                     t1.add(subscription);
                     t1.onNext(1);
                     t1.onNext(2);
-                    t1.onCompleted();
+                    t1.onComplete();
                 }
             });
 
@@ -84,7 +84,7 @@ public class OperatorUnsubscribeOnTest {
         try {
             final ThreadSubscription subscription = new ThreadSubscription();
             final AtomicReference<Thread> subscribeThread = new AtomicReference<Thread>();
-            Observable<Integer> w = Observable.create(new OnSubscribe<Integer>() {
+            Flowable<Integer> w = Flowable.create(new OnSubscribe<Integer>() {
 
                 @Override
                 public void call(Subscriber<? super Integer> t1) {
@@ -92,7 +92,7 @@ public class OperatorUnsubscribeOnTest {
                     t1.add(subscription);
                     t1.onNext(1);
                     t1.onNext(2);
-                    t1.onCompleted();
+                    t1.onComplete();
                 }
             });
 

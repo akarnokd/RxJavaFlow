@@ -22,7 +22,7 @@ import static org.mockito.Mockito.verify;
 
 import org.junit.Test;
 
-import rx.Observable;
+import rx.Flowable;
 import rx.Observer;
 import rx.Subscriber;
 import rx.exceptions.TestException;
@@ -31,8 +31,8 @@ public class OperatorDefaultIfEmptyTest {
 
     @Test
     public void testDefaultIfEmpty() {
-        Observable<Integer> source = Observable.just(1, 2, 3);
-        Observable<Integer> observable = source.defaultIfEmpty(10);
+        Flowable<Integer> source = Flowable.just(1, 2, 3);
+        Flowable<Integer> observable = source.defaultIfEmpty(10);
 
         @SuppressWarnings("unchecked")
         Observer<Integer> observer = mock(Observer.class);
@@ -41,21 +41,21 @@ public class OperatorDefaultIfEmptyTest {
         verify(observer).onNext(1);
         verify(observer).onNext(2);
         verify(observer).onNext(3);
-        verify(observer).onCompleted();
+        verify(observer).onComplete();
         verify(observer, never()).onError(any(Throwable.class));
     }
 
     @Test
     public void testDefaultIfEmptyWithEmpty() {
-        Observable<Integer> source = Observable.empty();
-        Observable<Integer> observable = source.defaultIfEmpty(10);
+        Flowable<Integer> source = Flowable.empty();
+        Flowable<Integer> observable = source.defaultIfEmpty(10);
 
         @SuppressWarnings("unchecked")
         Observer<Integer> observer = mock(Observer.class);
         observable.subscribe(observer);
         
         verify(observer).onNext(10);
-        verify(observer).onCompleted();
+        verify(observer).onComplete();
         verify(observer, never()).onError(any(Throwable.class));
     }
     
@@ -64,7 +64,7 @@ public class OperatorDefaultIfEmptyTest {
         @SuppressWarnings("unchecked")
         final Observer<Integer> o = mock(Observer.class);
         
-        Observable.<Integer>empty().defaultIfEmpty(1).subscribe(new Subscriber<Integer>() {
+        Flowable.<Integer>empty().defaultIfEmpty(1).subscribe(new Subscriber<Integer>() {
             @Override
             public void onNext(Integer t) {
                 throw new TestException();
@@ -76,13 +76,13 @@ public class OperatorDefaultIfEmptyTest {
             }
 
             @Override
-            public void onCompleted() {
-                o.onCompleted();
+            public void onComplete() {
+                o.onComplete();
             }
         });
         
         verify(o).onError(any(TestException.class));
         verify(o, never()).onNext(any(Integer.class));
-        verify(o, never()).onCompleted();
+        verify(o, never()).onComplete();
     }
 }

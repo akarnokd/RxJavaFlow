@@ -25,12 +25,12 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import org.junit.Test;
 
-import rx.Observable;
-import rx.Observable.OnSubscribe;
+import rx.Flowable;
+import rx.Flowable.OnSubscribe;
 import rx.Observer;
 import rx.Subscriber;
 import rx.exceptions.TestException;
-import rx.functions.Func1;
+import rx.functions.Function;
 import rx.observers.TestSubscriber;
 import rx.schedulers.Schedulers;
 
@@ -40,12 +40,12 @@ public class OperatorRepeatTest {
     public void testRepetition() {
         int NUM = 10;
         final AtomicInteger count = new AtomicInteger();
-        int value = Observable.create(new OnSubscribe<Integer>() {
+        int value = Flowable.create(new OnSubscribe<Integer>() {
 
             @Override
             public void call(final Subscriber<? super Integer> o) {
                 o.onNext(count.incrementAndGet());
-                o.onCompleted();
+                o.onComplete();
             }
         }).repeat(Schedulers.computation()).take(NUM).toBlocking().last();
 
@@ -54,32 +54,32 @@ public class OperatorRepeatTest {
 
     @Test(timeout = 2000)
     public void testRepeatTake() {
-        Observable<Integer> xs = Observable.just(1, 2);
+        Flowable<Integer> xs = Flowable.just(1, 2);
         Object[] ys = xs.repeat(Schedulers.newThread()).take(4).toList().toBlocking().last().toArray();
         assertArrayEquals(new Object[] { 1, 2, 1, 2 }, ys);
     }
 
     @Test(timeout = 20000)
     public void testNoStackOverFlow() {
-        Observable.just(1).repeat(Schedulers.newThread()).take(100000).toBlocking().last();
+        Flowable.just(1).repeat(Schedulers.newThread()).take(100000).toBlocking().last();
     }
 
     @Test
     public void testRepeatTakeWithSubscribeOn() throws InterruptedException {
 
         final AtomicInteger counter = new AtomicInteger();
-        Observable<Integer> oi = Observable.create(new OnSubscribe<Integer>() {
+        Flowable<Integer> oi = Flowable.create(new OnSubscribe<Integer>() {
 
             @Override
             public void call(Subscriber<? super Integer> sub) {
                 counter.incrementAndGet();
                 sub.onNext(1);
                 sub.onNext(2);
-                sub.onCompleted();
+                sub.onComplete();
             }
         }).subscribeOn(Schedulers.newThread());
 
-        Object[] ys = oi.repeat(Schedulers.newThread()).map(new Func1<Integer, Integer>() {
+        Object[] ys = oi.repeat(Schedulers.newThread()).map(new Function<Integer, Integer>() {
 
             @Override
             public Integer call(Integer t1) {
@@ -102,10 +102,10 @@ public class OperatorRepeatTest {
         @SuppressWarnings("unchecked")
                 Observer<Object> o = mock(Observer.class);
         
-        Observable.just(1).repeat().take(10).subscribe(o);
+        Flowable.just(1).repeat().take(10).subscribe(o);
         
         verify(o, times(10)).onNext(1);
-        verify(o).onCompleted();
+        verify(o).onComplete();
         verify(o, never()).onError(any(Throwable.class));
     }
 
@@ -114,10 +114,10 @@ public class OperatorRepeatTest {
         @SuppressWarnings("unchecked")
                 Observer<Object> o = mock(Observer.class);
         
-        Observable.just(1).repeat(10).subscribe(o);
+        Flowable.just(1).repeat(10).subscribe(o);
         
         verify(o, times(10)).onNext(1);
-        verify(o).onCompleted();
+        verify(o).onComplete();
         verify(o, never()).onError(any(Throwable.class));
     }
 
@@ -126,11 +126,11 @@ public class OperatorRepeatTest {
         @SuppressWarnings("unchecked")
                 Observer<Object> o = mock(Observer.class);
         
-        Observable.error(new TestException()).repeat(10).subscribe(o);
+        Flowable.error(new TestException()).repeat(10).subscribe(o);
         
         verify(o).onError(any(TestException.class));
         verify(o, never()).onNext(any());
-        verify(o, never()).onCompleted();
+        verify(o, never()).onComplete();
         
     }
 
@@ -139,9 +139,9 @@ public class OperatorRepeatTest {
         @SuppressWarnings("unchecked")
                 Observer<Object> o = mock(Observer.class);
         
-        Observable.just(1).repeat(0).subscribe(o);
+        Flowable.just(1).repeat(0).subscribe(o);
         
-        verify(o).onCompleted();
+        verify(o).onComplete();
         verify(o, never()).onNext(any());
         verify(o, never()).onError(any(Throwable.class));
     }
@@ -151,9 +151,9 @@ public class OperatorRepeatTest {
         @SuppressWarnings("unchecked")
                 Observer<Object> o = mock(Observer.class);
         
-        Observable.just(1).repeat(1).subscribe(o);
+        Flowable.just(1).repeat(1).subscribe(o);
         
-        verify(o).onCompleted();
+        verify(o).onComplete();
         verify(o, times(1)).onNext(any());
         verify(o, never()).onError(any(Throwable.class));
     }
@@ -161,7 +161,7 @@ public class OperatorRepeatTest {
     /** Issue #2587. */
     @Test
     public void testRepeatAndDistinctUnbounded() {
-        Observable<Integer> src = Observable.from(Arrays.asList(1, 2, 3, 4, 5))
+        Flowable<Integer> src = Flowable.from(Arrays.asList(1, 2, 3, 4, 5))
                 .take(3)
                 .repeat(3)
                 .distinct();

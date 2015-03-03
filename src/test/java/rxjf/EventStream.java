@@ -19,7 +19,7 @@ import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
-import rx.Observable.OnSubscribe;
+import rx.Flowable.OnSubscribe;
 import rx.Scheduler.Worker;
 import rx.functions.Action0;
 import rx.schedulers.Schedulers;
@@ -31,8 +31,8 @@ public final class EventStream {
     private EventStream() {
         throw new IllegalStateException("No instances!");
     }
-    public static Observable<Event> getEventStream(final String type, final int numInstances) {
-        return Observable.create(new OnSubscribe<Event>() {
+    public static Flowable<Event> getEventStream(final String type, final int numInstances) {
+        return Flowable.create(new OnSubscribe<Event>() {
 
             @Override
             public void call(final Subscriber<? super Event> subscriber) {
@@ -52,7 +52,7 @@ public final class EventStream {
                                 subscriber.onError(e);
                             }
                         }
-                        subscriber.onCompleted();
+                        subscriber.onComplete();
                     }
 
                 });

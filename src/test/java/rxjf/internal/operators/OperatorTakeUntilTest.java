@@ -21,7 +21,7 @@ import static org.mockito.Mockito.verify;
 
 import org.junit.Test;
 
-import rx.Observable;
+import rx.Flowable;
 import rx.Observer;
 import rx.Subscriber;
 import rx.Subscription;
@@ -33,18 +33,18 @@ public class OperatorTakeUntilTest {
     public void testTakeUntil() {
         Subscription sSource = mock(Subscription.class);
         Subscription sOther = mock(Subscription.class);
-        TestObservable source = new TestObservable(sSource);
-        TestObservable other = new TestObservable(sOther);
+        TestFlowable source = new TestFlowable(sSource);
+        TestFlowable other = new TestFlowable(sOther);
 
         Observer<String> result = mock(Observer.class);
-        Observable<String> stringObservable = Observable.create(source).takeUntil(Observable.create(other));
-        stringObservable.subscribe(result);
+        Flowable<String> stringFlowable = Flowable.create(source).takeUntil(Flowable.create(other));
+        stringFlowable.subscribe(result);
         source.sendOnNext("one");
         source.sendOnNext("two");
         other.sendOnNext("three");
         source.sendOnNext("four");
-        source.sendOnCompleted();
-        other.sendOnCompleted();
+        source.sendonComplete();
+        other.sendonComplete();
 
         verify(result, times(1)).onNext("one");
         verify(result, times(1)).onNext("two");
@@ -60,15 +60,15 @@ public class OperatorTakeUntilTest {
     public void testTakeUntilSourceCompleted() {
         Subscription sSource = mock(Subscription.class);
         Subscription sOther = mock(Subscription.class);
-        TestObservable source = new TestObservable(sSource);
-        TestObservable other = new TestObservable(sOther);
+        TestFlowable source = new TestFlowable(sSource);
+        TestFlowable other = new TestFlowable(sOther);
 
         Observer<String> result = mock(Observer.class);
-        Observable<String> stringObservable = Observable.create(source).takeUntil(Observable.create(other));
-        stringObservable.subscribe(result);
+        Flowable<String> stringFlowable = Flowable.create(source).takeUntil(Flowable.create(other));
+        stringFlowable.subscribe(result);
         source.sendOnNext("one");
         source.sendOnNext("two");
-        source.sendOnCompleted();
+        source.sendonComplete();
 
         verify(result, times(1)).onNext("one");
         verify(result, times(1)).onNext("two");
@@ -82,13 +82,13 @@ public class OperatorTakeUntilTest {
     public void testTakeUntilSourceError() {
         Subscription sSource = mock(Subscription.class);
         Subscription sOther = mock(Subscription.class);
-        TestObservable source = new TestObservable(sSource);
-        TestObservable other = new TestObservable(sOther);
+        TestFlowable source = new TestFlowable(sSource);
+        TestFlowable other = new TestFlowable(sOther);
         Throwable error = new Throwable();
 
         Observer<String> result = mock(Observer.class);
-        Observable<String> stringObservable = Observable.create(source).takeUntil(Observable.create(other));
-        stringObservable.subscribe(result);
+        Flowable<String> stringFlowable = Flowable.create(source).takeUntil(Flowable.create(other));
+        stringFlowable.subscribe(result);
         source.sendOnNext("one");
         source.sendOnNext("two");
         source.sendOnError(error);
@@ -108,13 +108,13 @@ public class OperatorTakeUntilTest {
     public void testTakeUntilOtherError() {
         Subscription sSource = mock(Subscription.class);
         Subscription sOther = mock(Subscription.class);
-        TestObservable source = new TestObservable(sSource);
-        TestObservable other = new TestObservable(sOther);
+        TestFlowable source = new TestFlowable(sSource);
+        TestFlowable other = new TestFlowable(sOther);
         Throwable error = new Throwable();
 
         Observer<String> result = mock(Observer.class);
-        Observable<String> stringObservable = Observable.create(source).takeUntil(Observable.create(other));
-        stringObservable.subscribe(result);
+        Flowable<String> stringFlowable = Flowable.create(source).takeUntil(Flowable.create(other));
+        stringFlowable.subscribe(result);
         source.sendOnNext("one");
         source.sendOnNext("two");
         other.sendOnError(error);
@@ -124,7 +124,7 @@ public class OperatorTakeUntilTest {
         verify(result, times(1)).onNext("two");
         verify(result, times(0)).onNext("three");
         verify(result, times(1)).onError(error);
-        verify(result, times(0)).onCompleted();
+        verify(result, times(0)).onComplete();
         verify(sSource, times(1)).unsubscribe();
         verify(sOther, times(1)).unsubscribe();
 
@@ -138,38 +138,38 @@ public class OperatorTakeUntilTest {
     public void testTakeUntilOtherCompleted() {
         Subscription sSource = mock(Subscription.class);
         Subscription sOther = mock(Subscription.class);
-        TestObservable source = new TestObservable(sSource);
-        TestObservable other = new TestObservable(sOther);
+        TestFlowable source = new TestFlowable(sSource);
+        TestFlowable other = new TestFlowable(sOther);
 
         Observer<String> result = mock(Observer.class);
-        Observable<String> stringObservable = Observable.create(source).takeUntil(Observable.create(other));
-        stringObservable.subscribe(result);
+        Flowable<String> stringFlowable = Flowable.create(source).takeUntil(Flowable.create(other));
+        stringFlowable.subscribe(result);
         source.sendOnNext("one");
         source.sendOnNext("two");
-        other.sendOnCompleted();
+        other.sendonComplete();
         source.sendOnNext("three");
 
         verify(result, times(1)).onNext("one");
         verify(result, times(1)).onNext("two");
         verify(result, times(0)).onNext("three");
-        verify(result, times(1)).onCompleted();
+        verify(result, times(1)).onComplete();
         verify(sSource, times(1)).unsubscribe();
         verify(sOther, times(1)).unsubscribe(); // unsubscribed since SafeSubscriber unsubscribes after onComplete
 
     }
 
-    private static class TestObservable implements Observable.OnSubscribe<String> {
+    private static class TestFlowable implements Flowable.OnSubscribe<String> {
 
         Observer<? super String> observer = null;
         Subscription s;
 
-        public TestObservable(Subscription s) {
+        public TestFlowable(Subscription s) {
             this.s = s;
         }
 
         /* used to simulate subscription */
-        public void sendOnCompleted() {
-            observer.onCompleted();
+        public void sendonComplete() {
+            observer.onComplete();
         }
 
         /* used to simulate subscription */

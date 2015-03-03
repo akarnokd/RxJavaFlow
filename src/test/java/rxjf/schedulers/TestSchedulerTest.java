@@ -29,13 +29,13 @@ import org.junit.Test;
 import org.mockito.InOrder;
 import org.mockito.Mockito;
 
-import rx.Observable;
-import rx.Observable.OnSubscribe;
+import rx.Flowable;
+import rx.Flowable.OnSubscribe;
 import rx.Scheduler;
 import rx.Subscriber;
 import rx.Subscription;
 import rx.functions.Action0;
-import rx.functions.Func1;
+import rx.functions.Function;
 
 public class TestSchedulerTest {
 
@@ -43,7 +43,7 @@ public class TestSchedulerTest {
     // mocking is unchecked, unfortunately
     @Test
     public final void testPeriodicScheduling() {
-        final Func1<Long, Void> calledOp = mock(Func1.class);
+        final Function<Long, Void> calledOp = mock(Function.class);
 
         final TestScheduler scheduler = new TestScheduler();
         final Scheduler.Worker inner = scheduler.createWorker();
@@ -89,7 +89,7 @@ public class TestSchedulerTest {
     // mocking is unchecked, unfortunately
     @Test
     public final void testPeriodicSchedulingUnsubscription() {
-        final Func1<Long, Void> calledOp = mock(Func1.class);
+        final Function<Long, Void> calledOp = mock(Function.class);
 
         final TestScheduler scheduler = new TestScheduler();
         final Scheduler.Worker inner = scheduler.createWorker();
@@ -187,8 +187,8 @@ public class TestSchedulerTest {
         try {
             final Action0 calledOp = mock(Action0.class);
     
-            Observable<Object> poller;
-            poller = Observable.create(new OnSubscribe<Object>() {
+            Flowable<Object> poller;
+            poller = Flowable.create(new OnSubscribe<Object>() {
                 @Override
                 public void call(final Subscriber<? super Object> aSubscriber) {
                     inner.schedule(new Action0() {

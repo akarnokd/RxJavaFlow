@@ -22,7 +22,7 @@ import static org.mockito.Mockito.verify;
 import org.junit.Before;
 import org.junit.Test;
 
-import rx.Observable;
+import rx.Flowable;
 import rx.Observer;
 import rx.functions.Action0;
 
@@ -39,18 +39,18 @@ public class OperatorFinallyTest {
         observer = mock(Observer.class);
     }
 
-    private void checkActionCalled(Observable<String> input) {
+    private void checkActionCalled(Flowable<String> input) {
         input.finallyDo(aAction0).subscribe(observer);
         verify(aAction0, times(1)).call();
     }
 
     @Test
     public void testFinallyCalledOnComplete() {
-        checkActionCalled(Observable.from(new String[] { "1", "2", "3" }));
+        checkActionCalled(Flowable.from(new String[] { "1", "2", "3" }));
     }
 
     @Test
     public void testFinallyCalledOnError() {
-        checkActionCalled(Observable.<String> error(new RuntimeException("expected")));
+        checkActionCalled(Flowable.<String> error(new RuntimeException("expected")));
     }
 }

@@ -15,13 +15,13 @@
  */
 package rx.internal.operators;
 
-import rx.Observable.Operator;
+import rx.Flowable.Operator;
 import rx.*;
 import rx.annotations.Experimental;
-import rx.functions.Func1;
+import rx.functions.Function;
 
 /**
- * Returns an Observable that emits items emitted by the source Observable until
+ * Returns an Flowable that emits items emitted by the source Flowable until
  * the provided predicate returns false
  * <p>
  */
@@ -51,15 +51,15 @@ public final class OperatorTakeUntilPredicate<T> implements Operator<T, T> {
             }
             if (stop) {
                 done = true;
-                child.onCompleted();
+                child.onComplete();
                 unsubscribe();
             }
         }
 
         @Override
-        public void onCompleted() {
+        public void onComplete() {
             if (!done) {
-                child.onCompleted();
+                child.onComplete();
             }
         }
 
@@ -74,9 +74,9 @@ public final class OperatorTakeUntilPredicate<T> implements Operator<T, T> {
         }
     }
 
-    private final Func1<? super T, Boolean> stopPredicate;
+    private final Function<? super T, Boolean> stopPredicate;
 
-    public OperatorTakeUntilPredicate(final Func1<? super T, Boolean> stopPredicate) {
+    public OperatorTakeUntilPredicate(final Function<? super T, Boolean> stopPredicate) {
         this.stopPredicate = stopPredicate;
     }
 

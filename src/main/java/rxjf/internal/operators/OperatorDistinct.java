@@ -17,20 +17,20 @@ package rx.internal.operators;
 
 import java.util.HashSet;
 import java.util.Set;
-import rx.Observable.Operator;
+import rx.Flowable.Operator;
 import rx.Subscriber;
-import rx.functions.Func1;
+import rx.functions.Function;
 
 /**
- * Returns an Observable that emits all distinct items emitted by the source.
+ * Returns an Flowable that emits all distinct items emitted by the source.
  * 
  * @param <T> the value type
  * @param <U> the key type
  */
 public final class OperatorDistinct<T, U> implements Operator<T, T> {
-    final Func1<? super T, ? extends U> keySelector;
+    final Function<? super T, ? extends U> keySelector;
 
-    public OperatorDistinct(Func1<? super T, ? extends U> keySelector) {
+    public OperatorDistinct(Function<? super T, ? extends U> keySelector) {
         this.keySelector = keySelector;
     }
 
@@ -56,9 +56,9 @@ public final class OperatorDistinct<T, U> implements Operator<T, T> {
             }
 
             @Override
-            public void onCompleted() {
+            public void onComplete() {
                 keyMemory = null;
-                child.onCompleted();
+                child.onComplete();
             }
             
         };

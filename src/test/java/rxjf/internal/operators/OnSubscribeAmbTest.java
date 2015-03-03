@@ -29,8 +29,8 @@ import org.junit.Before;
 import org.junit.Test;
 import org.mockito.InOrder;
 
-import rx.Observable;
-import rx.Observable.OnSubscribe;
+import rx.Flowable;
+import rx.Flowable.OnSubscribe;
 import rx.Observer;
 import rx.Producer;
 import rx.Scheduler;
@@ -53,9 +53,9 @@ public class OnSubscribeAmbTest {
         innerScheduler = scheduler.createWorker();
     }
 
-    private Observable<String> createObservable(final String[] values,
+    private Flowable<String> createFlowable(final String[] values,
             final long interval, final Throwable e) {
-        return Observable.create(new OnSubscribe<String>() {
+        return Flowable.create(new OnSubscribe<String>() {
 
             @Override
             public void call(final Subscriber<? super String> subscriber) {
@@ -75,7 +75,7 @@ public class OnSubscribeAmbTest {
                     @Override
                     public void call() {
                         if (e == null) {
-                            subscriber.onCompleted();
+                            subscriber.onComplete();
                         } else {
                             subscriber.onError(e);
                         }
@@ -87,14 +87,14 @@ public class OnSubscribeAmbTest {
 
     @Test
     public void testAmb() {
-        Observable<String> observable1 = createObservable(new String[] {
+        Flowable<String> observable1 = createFlowable(new String[] {
                 "1", "11", "111", "1111" }, 2000, null);
-        Observable<String> observable2 = createObservable(new String[] {
+        Flowable<String> observable2 = createFlowable(new String[] {
                 "2", "22", "222", "2222" }, 1000, null);
-        Observable<String> observable3 = createObservable(new String[] {
+        Flowable<String> observable3 = createFlowable(new String[] {
                 "3", "33", "333", "3333" }, 3000, null);
 
-        Observable<String> o = Observable.create(amb(observable1,
+        Flowable<String> o = Flowable.create(amb(observable1,
                 observable2, observable3));
 
         @SuppressWarnings("unchecked")
@@ -108,7 +108,7 @@ public class OnSubscribeAmbTest {
         inOrder.verify(observer, times(1)).onNext("22");
         inOrder.verify(observer, times(1)).onNext("222");
         inOrder.verify(observer, times(1)).onNext("2222");
-        inOrder.verify(observer, times(1)).onCompleted();
+        inOrder.verify(observer, times(1)).onComplete();
         inOrder.verifyNoMoreInteractions();
     }
 
@@ -116,14 +116,14 @@ public class OnSubscribeAmbTest {
     public void testAmb2() {
         IOException expectedException = new IOException(
                 "fake exception");
-        Observable<String> observable1 = createObservable(new String[] {},
+        Flowable<String> observable1 = createFlowable(new String[] {},
                 2000, new IOException("fake exception"));
-        Observable<String> observable2 = createObservable(new String[] {
+        Flowable<String> observable2 = createFlowable(new String[] {
                 "2", "22", "222", "2222" }, 1000, expectedException);
-        Observable<String> observable3 = createObservable(new String[] {},
+        Flowable<String> observable3 = createFlowable(new String[] {},
                 3000, new IOException("fake exception"));
 
-        Observable<String> o = Observable.create(amb(observable1,
+        Flowable<String> o = Flowable.create(amb(observable1,
                 observable2, observable3));
 
         @SuppressWarnings("unchecked")
@@ -143,14 +143,14 @@ public class OnSubscribeAmbTest {
 
     @Test
     public void testAmb3() {
-        Observable<String> observable1 = createObservable(new String[] {
+        Flowable<String> observable1 = createFlowable(new String[] {
                 "1" }, 2000, null);
-        Observable<String> observable2 = createObservable(new String[] {},
+        Flowable<String> observable2 = createFlowable(new String[] {},
                 1000, null);
-        Observable<String> observable3 = createObservable(new String[] {
+        Flowable<String> observable3 = createFlowable(new String[] {
                 "3" }, 3000, null);
 
-        Observable<String> o = Observable.create(amb(observable1,
+        Flowable<String> o = Flowable.create(amb(observable1,
                 observable2, observable3));
 
         @SuppressWarnings("unchecked")
@@ -159,7 +159,7 @@ public class OnSubscribeAmbTest {
 
         scheduler.advanceTimeBy(100000, TimeUnit.MILLISECONDS);
         InOrder inOrder = inOrder(observer);
-        inOrder.verify(observer, times(1)).onCompleted();
+        inOrder.verify(observer, times(1)).onComplete();
         inOrder.verifyNoMoreInteractions();
     }
 
@@ -169,7 +169,7 @@ public class OnSubscribeAmbTest {
         ts.requestMore(3);
         final AtomicLong requested1 = new AtomicLong();
         final AtomicLong requested2 = new AtomicLong();
-        Observable<Integer> o1 = Observable.create(new OnSubscribe<Integer>() {
+        Flowable<Integer> o1 = Flowable.create(new OnSubscribe<Integer>() {
 
             @Override
             public void call(Subscriber<? super Integer> s) {
@@ -185,7 +185,7 @@ public class OnSubscribeAmbTest {
             }
 
         });
-        Observable<Integer> o2 = Observable.create(new OnSubscribe<Integer>() {
+        Flowable<Integer> o2 = Flowable.create(new OnSubscribe<Integer>() {
 
             @Override
             public void call(Subscriber<? super Integer> s) {
@@ -201,7 +201,7 @@ public class OnSubscribeAmbTest {
             }
 
         });
-        Observable.amb(o1, o2).subscribe(ts);
+        Flowable.amb(o1, o2).subscribe(ts);
         assertEquals(3, requested1.get());
         assertEquals(3, requested2.get());
     }
@@ -209,8 +209,8 @@ public class OnSubscribeAmbTest {
     @Test
     public void testBackpressure() {
         TestSubscriber<Integer> ts = new TestSubscriber<Integer>();
-        Observable.range(0, RxRingBuffer.SIZE * 2)
-                .ambWith(Observable.range(0, RxRingBuffer.SIZE * 2))
+        Flowable.range(0, RxRingBuffer.SIZE * 2)
+                .ambWith(Flowable.range(0, RxRingBuffer.SIZE * 2))
                 .observeOn(Schedulers.computation()) // observeOn has a backpressured RxRingBuffer
                 .delay(1, TimeUnit.MICROSECONDS) // make it a slightly slow consumer
                 .subscribe(ts);

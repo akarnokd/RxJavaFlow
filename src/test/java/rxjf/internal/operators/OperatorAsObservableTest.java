@@ -24,17 +24,17 @@ import static org.mockito.Mockito.verify;
 
 import org.junit.Test;
 
-import rx.Observable;
+import rx.Flowable;
 import rx.Observer;
 import rx.exceptions.TestException;
 import rx.subjects.PublishSubject;
 
-public class OperatorAsObservableTest {
+public class OperatorAsFlowableTest {
     @Test
     public void testHiding() {
         PublishSubject<Integer> src = PublishSubject.create();
         
-        Observable<Integer> dst = src.asObservable();
+        Flowable<Integer> dst = src.asFlowable();
         
         assertFalse(dst instanceof PublishSubject);
         
@@ -44,17 +44,17 @@ public class OperatorAsObservableTest {
         dst.subscribe(o);
         
         src.onNext(1);
-        src.onCompleted();
+        src.onComplete();
         
         verify(o).onNext(1);
-        verify(o).onCompleted();
+        verify(o).onComplete();
         verify(o, never()).onError(any(Throwable.class));
     }
     @Test
     public void testHidingError() {
         PublishSubject<Integer> src = PublishSubject.create();
         
-        Observable<Integer> dst = src.asObservable();
+        Flowable<Integer> dst = src.asFlowable();
         
         assertFalse(dst instanceof PublishSubject);
         
@@ -66,7 +66,7 @@ public class OperatorAsObservableTest {
         src.onError(new TestException());
         
         verify(o, never()).onNext(any());
-        verify(o, never()).onCompleted();
+        verify(o, never()).onComplete();
         verify(o).onError(any(TestException.class));
     }
 }

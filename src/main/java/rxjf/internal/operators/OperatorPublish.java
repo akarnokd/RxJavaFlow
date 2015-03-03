@@ -19,23 +19,23 @@ import java.util.*;
 import java.util.concurrent.atomic.*;
 
 import rx.*;
-import rx.Observable;
+import rx.Flowable;
 import rx.exceptions.*;
 import rx.functions.*;
 import rx.internal.util.RxRingBuffer;
-import rx.observables.ConnectableObservable;
+import rx.observables.ConnectableFlowable;
 import rx.subscriptions.Subscriptions;
 
-public class OperatorPublish<T> extends ConnectableObservable<T> {
-    final Observable<? extends T> source;
+public class OperatorPublish<T> extends ConnectableFlowable<T> {
+    final Flowable<? extends T> source;
     private final RequestHandler<T> requestHandler;
 
-    public static <T> ConnectableObservable<T> create(Observable<? extends T> source) {
+    public static <T> ConnectableFlowable<T> create(Flowable<? extends T> source) {
         return new OperatorPublish<T>(source);
     }
 
-    public static <T, R> Observable<R> create(final Observable<? extends T> source, final Func1<? super Observable<T>, ? extends Observable<R>> selector) {
-        return Observable.create(new OnSubscribe<R>() {
+    public static <T, R> Flowable<R> create(final Flowable<? extends T> source, final Function<? super Flowable<T>, ? extends Flowable<R>> selector) {
+        return Flowable.create(new OnSubscribe<R>() {
 
             @Override
             public void call(final Subscriber<? super R> child) {
@@ -54,11 +54,11 @@ public class OperatorPublish<T> extends ConnectableObservable<T> {
         });
     }
 
-    private OperatorPublish(Observable<? extends T> source) {
+    private OperatorPublish(Flowable<? extends T> source) {
         this(source, new Object(), new RequestHandler<T>());
     }
 
-    private OperatorPublish(Observable<? extends T> source, final Object guard, final RequestHandler<T> requestHandler) {
+    private OperatorPublish(Flowable<? extends T> source, final Object guard, final RequestHandler<T> requestHandler) {
         super(new OnSubscribe<T>() {
             @Override
             public void call(final Subscriber<? super T> subscriber) {
@@ -142,7 +142,7 @@ public class OperatorPublish<T> extends ConnectableObservable<T> {
         }
 
         @Override
-        public void onCompleted() {
+        public void onComplete() {
             try {
                 requestHandler.emit(requestHandler.notifier.completed());
             } catch (MissingBackpressureException e) {
@@ -300,7 +300,7 @@ public class OperatorPublish<T> extends ConnectableObservable<T> {
                 return;
             }
             if (notifier.isCompleted(t)) {
-                originSubscriber.buffer.onCompleted();
+                originSubscriber.buffer.onComplete();
             } else {
                 originSubscriber.buffer.onNext(notifier.getValue(t));
             }

@@ -31,32 +31,32 @@ package rx.internal.operators;
  * limitations under the License.
  */
 
-import static rx.Observable.create;
+import static rx.Flowable.create;
 
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
 
 import rx.Notification;
-import rx.Observable;
-import rx.Observable.OnSubscribe;
-import rx.Observable.Operator;
+import rx.Flowable;
+import rx.Flowable.OnSubscribe;
+import rx.Flowable.Operator;
 import rx.Producer;
 import rx.Scheduler;
 import rx.Subscriber;
 import rx.functions.Action0;
-import rx.functions.Func1;
-import rx.functions.Func2;
+import rx.functions.Function;
+import rx.functions.BiFunction;
 import rx.schedulers.Schedulers;
 import rx.subjects.PublishSubject;
 import rx.subscriptions.SerialSubscription;
 
 public final class OnSubscribeRedo<T> implements OnSubscribe<T> {
 
-    static final Func1<Observable<? extends Notification<?>>, Observable<?>> REDO_INIFINITE = new Func1<Observable<? extends Notification<?>>, Observable<?>>() {
+    static final Function<Flowable<? extends Notification<?>>, Flowable<?>> REDO_INIFINITE = new Function<Flowable<? extends Notification<?>>, Flowable<?>>() {
         @Override
-        public Observable<?> call(Observable<? extends Notification<?>> ts) {
-            return ts.map(new Func1<Notification<?>, Notification<?>>() {
+        public Flowable<?> call(Flowable<? extends Notification<?>> ts) {
+            return ts.map(new Function<Notification<?>, Notification<?>>() {
                 @Override
                 public Notification<?> call(Notification<?> terminal) {
                     return Notification.createOnNext(null);
@@ -65,7 +65,7 @@ public final class OnSubscribeRedo<T> implements OnSubscribe<T> {
         }
     };
 
-    public static final class RedoFinite implements Func1<Observable<? extends Notification<?>>, Observable<?>> {
+    public static final class RedoFinite implements Function<Flowable<? extends Notification<?>>, Flowable<?>> {
         private final long count;
 
         public RedoFinite(long count) {
@@ -73,8 +73,8 @@ public final class OnSubscribeRedo<T> implements OnSubscribe<T> {
         }
 
         @Override
-        public Observable<?> call(Observable<? extends Notification<?>> ts) {
-            return ts.map(new Func1<Notification<?>, Notification<?>>() {
+        public Flowable<?> call(Flowable<? extends Notification<?>> ts) {
+            return ts.map(new Function<Notification<?>, Notification<?>>() {
 
                 int num=0;
                 
@@ -96,16 +96,16 @@ public final class OnSubscribeRedo<T> implements OnSubscribe<T> {
         }
     }
 
-    public static final class RetryWithPredicate implements Func1<Observable<? extends Notification<?>>, Observable<? extends Notification<?>>> {
-        private Func2<Integer, Throwable, Boolean> predicate;
+    public static final class RetryWithPredicate implements Function<Flowable<? extends Notification<?>>, Flowable<? extends Notification<?>>> {
+        private BiFunction<Integer, Throwable, Boolean> predicate;
 
-        public RetryWithPredicate(Func2<Integer, Throwable, Boolean> predicate) {
+        public RetryWithPredicate(BiFunction<Integer, Throwable, Boolean> predicate) {
             this.predicate = predicate;
         }
 
         @Override
-        public Observable<? extends Notification<?>> call(Observable<? extends Notification<?>> ts) {
-            return ts.scan(Notification.createOnNext(0), new Func2<Notification<Integer>, Notification<?>, Notification<Integer>>() {
+        public Flowable<? extends Notification<?>> call(Flowable<? extends Notification<?>> ts) {
+            return ts.scan(Notification.createOnNext(0), new BiFunction<Notification<Integer>, Notification<?>, Notification<Integer>>() {
                 @SuppressWarnings("unchecked")
                 @Override
                 public Notification<Integer> call(Notification<Integer> n, Notification<?> term) {
@@ -119,11 +119,11 @@ public final class OnSubscribeRedo<T> implements OnSubscribe<T> {
         }
     }
 
-    public static <T> Observable<T> retry(Observable<T> source) {
+    public static <T> Flowable<T> retry(Flowable<T> source) {
         return retry(source, REDO_INIFINITE);
     }
 
-    public static <T> Observable<T> retry(Observable<T> source, final long count) {
+    public static <T> Flowable<T> retry(Flowable<T> source, final long count) {
         if (count < 0)
             throw new IllegalArgumentException("count >= 0 expected");
         if (count == 0)
@@ -131,54 +131,54 @@ public final class OnSubscribeRedo<T> implements OnSubscribe<T> {
         return retry(source, new RedoFinite(count));
     }
 
-    public static <T> Observable<T> retry(Observable<T> source, Func1<? super Observable<? extends Notification<?>>, ? extends Observable<?>> notificationHandler) {
+    public static <T> Flowable<T> retry(Flowable<T> source, Function<? super Flowable<? extends Notification<?>>, ? extends Flowable<?>> notificationHandler) {
         return create(new OnSubscribeRedo<T>(source, notificationHandler, true, false, Schedulers.trampoline()));
     }
 
-    public static <T> Observable<T> retry(Observable<T> source, Func1<? super Observable<? extends Notification<?>>, ? extends Observable<?>> notificationHandler, Scheduler scheduler) {
+    public static <T> Flowable<T> retry(Flowable<T> source, Function<? super Flowable<? extends Notification<?>>, ? extends Flowable<?>> notificationHandler, Scheduler scheduler) {
         return create(new OnSubscribeRedo<T>(source, notificationHandler, true, false, scheduler));
     }
 
-    public static <T> Observable<T> repeat(Observable<T> source) {
+    public static <T> Flowable<T> repeat(Flowable<T> source) {
         return repeat(source, Schedulers.trampoline());
     }
 
-    public static <T> Observable<T> repeat(Observable<T> source, Scheduler scheduler) {
+    public static <T> Flowable<T> repeat(Flowable<T> source, Scheduler scheduler) {
         return repeat(source, REDO_INIFINITE, scheduler);
     }
 
-    public static <T> Observable<T> repeat(Observable<T> source, final long count) {
+    public static <T> Flowable<T> repeat(Flowable<T> source, final long count) {
         return repeat(source, count, Schedulers.trampoline());
     }
 
-    public static <T> Observable<T> repeat(Observable<T> source, final long count, Scheduler scheduler) {
+    public static <T> Flowable<T> repeat(Flowable<T> source, final long count, Scheduler scheduler) {
         if(count == 0) {
-            return Observable.empty();
+            return Flowable.empty();
         }
         if (count < 0)
             throw new IllegalArgumentException("count >= 0 expected");
         return repeat(source, new RedoFinite(count - 1), scheduler);
     }
 
-    public static <T> Observable<T> repeat(Observable<T> source, Func1<? super Observable<? extends Notification<?>>, ? extends Observable<?>> notificationHandler) {
+    public static <T> Flowable<T> repeat(Flowable<T> source, Function<? super Flowable<? extends Notification<?>>, ? extends Flowable<?>> notificationHandler) {
         return create(new OnSubscribeRedo<T>(source, notificationHandler, false, true, Schedulers.trampoline()));
     }
 
-    public static <T> Observable<T> repeat(Observable<T> source, Func1<? super Observable<? extends Notification<?>>, ? extends Observable<?>> notificationHandler, Scheduler scheduler) {
+    public static <T> Flowable<T> repeat(Flowable<T> source, Function<? super Flowable<? extends Notification<?>>, ? extends Flowable<?>> notificationHandler, Scheduler scheduler) {
         return create(new OnSubscribeRedo<T>(source, notificationHandler, false, true, scheduler));
     }
 
-    public static <T> Observable<T> redo(Observable<T> source, Func1<? super Observable<? extends Notification<?>>, ? extends Observable<?>> notificationHandler, Scheduler scheduler) {
+    public static <T> Flowable<T> redo(Flowable<T> source, Function<? super Flowable<? extends Notification<?>>, ? extends Flowable<?>> notificationHandler, Scheduler scheduler) {
         return create(new OnSubscribeRedo<T>(source, notificationHandler, false, false, scheduler));
     }
 
-    private Observable<T> source;
-    private final Func1<? super Observable<? extends Notification<?>>, ? extends Observable<?>> controlHandlerFunction;
+    private Flowable<T> source;
+    private final Function<? super Flowable<? extends Notification<?>>, ? extends Flowable<?>> controlHandlerFunction;
     private boolean stopOnComplete;
     private boolean stopOnError;
     private final Scheduler scheduler;
 
-    private OnSubscribeRedo(Observable<T> source, Func1<? super Observable<? extends Notification<?>>, ? extends Observable<?>> f, boolean stopOnComplete, boolean stopOnError,
+    private OnSubscribeRedo(Flowable<T> source, Function<? super Flowable<? extends Notification<?>>, ? extends Flowable<?>> f, boolean stopOnComplete, boolean stopOnError,
             Scheduler scheduler) {
         this.source = source;
         this.controlHandlerFunction = f;
@@ -212,9 +212,9 @@ public final class OnSubscribeRedo<T> implements OnSubscribe<T> {
 
                 Subscriber<T> terminalDelegatingSubscriber = new Subscriber<T>() {
                     @Override
-                    public void onCompleted() {
+                    public void onComplete() {
                         unsubscribe();
-                        terminals.onNext(Notification.createOnCompleted());
+                        terminals.onNext(Notification.createonComplete());
                     }
 
                     @Override
@@ -247,17 +247,17 @@ public final class OnSubscribeRedo<T> implements OnSubscribe<T> {
             }
         };
 
-        // the observable received by the control handler function will receive notifications of onCompleted in the case of 'repeat' 
+        // the observable received by the control handler function will receive notifications of onComplete() in the case of 'repeat' 
         // type operators or notifications of onError for 'retry' this is done by lifting in a custom operator to selectively divert 
         // the retry/repeat relevant values to the control handler
-        final Observable<?> restarts = controlHandlerFunction.call(
+        final Flowable<?> restarts = controlHandlerFunction.call(
                 terminals.lift(new Operator<Notification<?>, Notification<?>>() {
                     @Override
                     public Subscriber<? super Notification<?>> call(final Subscriber<? super Notification<?>> filteredTerminals) {
                         return new Subscriber<Notification<?>>(filteredTerminals) {
                             @Override
-                            public void onCompleted() {
-                                filteredTerminals.onCompleted();
+                            public void onComplete() {
+                                filteredTerminals.onComplete();
                             }
 
                             @Override
@@ -267,8 +267,8 @@ public final class OnSubscribeRedo<T> implements OnSubscribe<T> {
 
                             @Override
                             public void onNext(Notification<?> t) {
-                                if (t.isOnCompleted() && stopOnComplete)
-                                    child.onCompleted();
+                                if (t.isOnComplete() && stopOnComplete)
+                                    child.onComplete();
                                 else if (t.isOnError() && stopOnError)
                                     child.onError(t.getThrowable());
                                 else {
@@ -291,8 +291,8 @@ public final class OnSubscribeRedo<T> implements OnSubscribe<T> {
             public void call() {
                 restarts.unsafeSubscribe(new Subscriber<Object>(child) {
                     @Override
-                    public void onCompleted() {
-                        child.onCompleted();
+                    public void onComplete() {
+                        child.onComplete();
                     }
 
                     @Override

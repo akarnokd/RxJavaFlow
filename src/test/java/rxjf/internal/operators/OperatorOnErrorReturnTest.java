@@ -27,10 +27,10 @@ import java.util.concurrent.atomic.AtomicReference;
 import org.junit.Test;
 import org.mockito.Mockito;
 
-import rx.Observable;
+import rx.Flowable;
 import rx.Observer;
 import rx.Subscriber;
-import rx.functions.Func1;
+import rx.functions.Function;
 import rx.observers.TestSubscriber;
 import rx.schedulers.Schedulers;
 
@@ -38,11 +38,11 @@ public class OperatorOnErrorReturnTest {
 
     @Test
     public void testResumeNext() {
-        TestObservable f = new TestObservable("one");
-        Observable<String> w = Observable.create(f);
+        TestFlowable f = new TestFlowable("one");
+        Flowable<String> w = Flowable.create(f);
         final AtomicReference<Throwable> capturedException = new AtomicReference<Throwable>();
 
-        Observable<String> observable = w.onErrorReturn(new Func1<Throwable, String>() {
+        Flowable<String> observable = w.onErrorReturn(new Function<Throwable, String>() {
 
             @Override
             public String call(Throwable e) {
@@ -63,7 +63,7 @@ public class OperatorOnErrorReturnTest {
         }
 
         verify(observer, Mockito.never()).onError(any(Throwable.class));
-        verify(observer, times(1)).onCompleted();
+        verify(observer, times(1)).onComplete();
         verify(observer, times(1)).onNext("one");
         verify(observer, times(1)).onNext("failure");
         assertNotNull(capturedException.get());
@@ -74,11 +74,11 @@ public class OperatorOnErrorReturnTest {
      */
     @Test
     public void testFunctionThrowsError() {
-        TestObservable f = new TestObservable("one");
-        Observable<String> w = Observable.create(f);
+        TestFlowable f = new TestFlowable("one");
+        Flowable<String> w = Flowable.create(f);
         final AtomicReference<Throwable> capturedException = new AtomicReference<Throwable>();
 
-        Observable<String> observable = w.onErrorReturn(new Func1<Throwable, String>() {
+        Flowable<String> observable = w.onErrorReturn(new Function<Throwable, String>() {
 
             @Override
             public String call(Throwable e) {
@@ -103,18 +103,18 @@ public class OperatorOnErrorReturnTest {
 
         // we should have received an onError call on the Observer since the resume function threw an exception
         verify(observer, times(1)).onError(any(Throwable.class));
-        verify(observer, times(0)).onCompleted();
+        verify(observer, times(0)).onComplete();
         assertNotNull(capturedException.get());
     }
     
     @Test
     public void testMapResumeAsyncNext() {
         // Trigger multiple failures
-        Observable<String> w = Observable.just("one", "fail", "two", "three", "fail");
+        Flowable<String> w = Flowable.just("one", "fail", "two", "three", "fail");
 
         // Introduce map function that fails intermittently (Map does not prevent this when the observer is a
-        //  rx.operator incl onErrorResumeNextViaObservable)
-        w = w.map(new Func1<String, String>() {
+        //  rx.operator incl onErrorResumeNextViaFlowable)
+        w = w.map(new Function<String, String>() {
             @Override
             public String call(String s) {
                 if ("fail".equals(s))
@@ -124,7 +124,7 @@ public class OperatorOnErrorReturnTest {
             }
         });
 
-        Observable<String> observable = w.onErrorReturn(new Func1<Throwable, String>() {
+        Flowable<String> observable = w.onErrorReturn(new Function<Throwable, String>() {
 
             @Override
             public String call(Throwable t1) {
@@ -140,7 +140,7 @@ public class OperatorOnErrorReturnTest {
         ts.awaitTerminalEvent();
 
         verify(observer, Mockito.never()).onError(any(Throwable.class));
-        verify(observer, times(1)).onCompleted();
+        verify(observer, times(1)).onComplete();
         verify(observer, times(1)).onNext("one");
         verify(observer, Mockito.never()).onNext("two");
         verify(observer, Mockito.never()).onNext("three");
@@ -150,8 +150,8 @@ public class OperatorOnErrorReturnTest {
     @Test
     public void testBackpressure() {
         TestSubscriber<Integer> ts = new TestSubscriber<Integer>();
-        Observable.range(0, 100000)
-                .onErrorReturn(new Func1<Throwable, Integer>() {
+        Flowable.range(0, 100000)
+                .onErrorReturn(new Function<Throwable, Integer>() {
 
 					@Override
 					public Integer call(Throwable t1) {
@@ -160,7 +160,7 @@ public class OperatorOnErrorReturnTest {
                 	
                 })
                 .observeOn(Schedulers.computation())
-                .map(new Func1<Integer, Integer>() {
+                .map(new Function<Integer, Integer>() {
                     int c = 0;
 
                     @Override
@@ -182,26 +182,26 @@ public class OperatorOnErrorReturnTest {
         ts.assertNoErrors();
     }
 
-    private static class TestObservable implements Observable.OnSubscribe<String> {
+    private static class TestFlowable implements Flowable.OnSubscribe<String> {
 
         final String[] values;
         Thread t = null;
 
-        public TestObservable(String... values) {
+        public TestFlowable(String... values) {
             this.values = values;
         }
 
         @Override
         public void call(final Subscriber<? super String> subscriber) {
-            System.out.println("TestObservable subscribed to ...");
+            System.out.println("TestFlowable subscribed to ...");
             t = new Thread(new Runnable() {
 
                 @Override
                 public void run() {
                     try {
-                        System.out.println("running TestObservable thread");
+                        System.out.println("running TestFlowable thread");
                         for (String s : values) {
-                            System.out.println("TestObservable onNext: " + s);
+                            System.out.println("TestFlowable onNext: " + s);
                             subscriber.onNext(s);
                         }
                         throw new RuntimeException("Forced Failure");
@@ -211,9 +211,9 @@ public class OperatorOnErrorReturnTest {
                 }
 
             });
-            System.out.println("starting TestObservable thread");
+            System.out.println("starting TestFlowable thread");
             t.start();
-            System.out.println("done starting TestObservable thread");
+            System.out.println("done starting TestFlowable thread");
         }
     }
     

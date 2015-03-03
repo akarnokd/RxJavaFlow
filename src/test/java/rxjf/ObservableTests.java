@@ -45,27 +45,27 @@ import org.mockito.InOrder;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 
-import rx.Observable.OnSubscribe;
-import rx.Observable.Transformer;
+import rx.Flowable.OnSubscribe;
+import rx.Flowable.Transformer;
 import rx.exceptions.OnErrorNotImplementedException;
 import rx.functions.Action1;
 import rx.functions.Action2;
 import rx.functions.Func0;
-import rx.functions.Func1;
-import rx.functions.Func2;
-import rx.observables.ConnectableObservable;
+import rx.functions.Function;
+import rx.functions.BiFunction;
+import rx.observables.ConnectableFlowable;
 import rx.observers.TestSubscriber;
 import rx.schedulers.TestScheduler;
 import rx.subjects.ReplaySubject;
 import rx.subjects.Subject;
 import rx.subscriptions.BooleanSubscription;
 
-public class ObservableTests {
+public class FlowableTests {
 
     @Mock
     Observer<Integer> w;
 
-    private static final Func1<Integer, Boolean> IS_EVEN = new Func1<Integer, Boolean>() {
+    private static final Function<Integer, Boolean> IS_EVEN = new Function<Integer, Boolean>() {
         @Override
         public Boolean call(Integer value) {
             return value % 2 == 0;
@@ -80,9 +80,9 @@ public class ObservableTests {
     @Test
     public void fromArray() {
         String[] items = new String[] { "one", "two", "three" };
-        assertEquals(new Integer(3), Observable.from(items).count().toBlocking().single());
-        assertEquals("two", Observable.from(items).skip(1).take(1).toBlocking().single());
-        assertEquals("three", Observable.from(items).takeLast(1).toBlocking().single());
+        assertEquals(new Integer(3), Flowable.from(items).count().toBlocking().single());
+        assertEquals("two", Flowable.from(items).skip(1).take(1).toBlocking().single());
+        assertEquals("three", Flowable.from(items).takeLast(1).toBlocking().single());
     }
 
     @Test
@@ -92,14 +92,14 @@ public class ObservableTests {
         items.add("two");
         items.add("three");
 
-        assertEquals(new Integer(3), Observable.from(items).count().toBlocking().single());
-        assertEquals("two", Observable.from(items).skip(1).take(1).toBlocking().single());
-        assertEquals("three", Observable.from(items).takeLast(1).toBlocking().single());
+        assertEquals(new Integer(3), Flowable.from(items).count().toBlocking().single());
+        assertEquals("two", Flowable.from(items).skip(1).take(1).toBlocking().single());
+        assertEquals("three", Flowable.from(items).takeLast(1).toBlocking().single());
     }
 
     @Test
     public void fromArityArgs3() {
-        Observable<String> items = Observable.just("one", "two", "three");
+        Flowable<String> items = Flowable.just("one", "two", "three");
 
         assertEquals(new Integer(3), items.count().toBlocking().single());
         assertEquals("two", items.skip(1).take(1).toBlocking().single());
@@ -108,7 +108,7 @@ public class ObservableTests {
 
     @Test
     public void fromArityArgs1() {
-        Observable<String> items = Observable.just("one");
+        Flowable<String> items = Flowable.just("one");
 
         assertEquals(new Integer(1), items.count().toBlocking().single());
         assertEquals("one", items.takeLast(1).toBlocking().single());
@@ -117,14 +117,14 @@ public class ObservableTests {
     @Test
     public void testCreate() {
 
-        Observable<String> observable = Observable.create(new OnSubscribe<String>() {
+        Flowable<String> observable = Flowable.create(new OnSubscribe<String>() {
 
             @Override
             public void call(Subscriber<? super String> Observer) {
                 Observer.onNext("one");
                 Observer.onNext("two");
                 Observer.onNext("three");
-                Observer.onCompleted();
+                Observer.onComplete();
             }
 
         });
@@ -136,34 +136,34 @@ public class ObservableTests {
         verify(observer, times(1)).onNext("two");
         verify(observer, times(1)).onNext("three");
         verify(observer, never()).onError(any(Throwable.class));
-        verify(observer, times(1)).onCompleted();
+        verify(observer, times(1)).onComplete();
     }
 
     @Test
     public void testCountAFewItems() {
-        Observable<String> observable = Observable.just("a", "b", "c", "d");
+        Flowable<String> observable = Flowable.just("a", "b", "c", "d");
         observable.count().subscribe(w);
         // we should be called only once
         verify(w, times(1)).onNext(anyInt());
         verify(w).onNext(4);
         verify(w, never()).onError(any(Throwable.class));
-        verify(w, times(1)).onCompleted();
+        verify(w, times(1)).onComplete();
     }
 
     @Test
     public void testCountZeroItems() {
-        Observable<String> observable = Observable.empty();
+        Flowable<String> observable = Flowable.empty();
         observable.count().subscribe(w);
         // we should be called only once
         verify(w, times(1)).onNext(anyInt());
         verify(w).onNext(0);
         verify(w, never()).onError(any(Throwable.class));
-        verify(w, times(1)).onCompleted();
+        verify(w, times(1)).onComplete();
     }
 
     @Test
     public void testCountError() {
-        Observable<String> o = Observable.create(new OnSubscribe<String>() {
+        Flowable<String> o = Flowable.create(new OnSubscribe<String>() {
             @Override
             public void call(Subscriber<? super String> obsv) {
                 obsv.onError(new RuntimeException());
@@ -171,69 +171,69 @@ public class ObservableTests {
         });
         o.count().subscribe(w);
         verify(w, never()).onNext(anyInt());
-        verify(w, never()).onCompleted();
+        verify(w, never()).onComplete();
         verify(w, times(1)).onError(any(RuntimeException.class));
     }
 
     public void testTakeFirstWithPredicateOfSome() {
-        Observable<Integer> observable = Observable.just(1, 3, 5, 4, 6, 3);
+        Flowable<Integer> observable = Flowable.just(1, 3, 5, 4, 6, 3);
         observable.takeFirst(IS_EVEN).subscribe(w);
         verify(w, times(1)).onNext(anyInt());
         verify(w).onNext(4);
-        verify(w, times(1)).onCompleted();
+        verify(w, times(1)).onComplete();
         verify(w, never()).onError(any(Throwable.class));
     }
 
     @Test
     public void testTakeFirstWithPredicateOfNoneMatchingThePredicate() {
-        Observable<Integer> observable = Observable.just(1, 3, 5, 7, 9, 7, 5, 3, 1);
+        Flowable<Integer> observable = Flowable.just(1, 3, 5, 7, 9, 7, 5, 3, 1);
         observable.takeFirst(IS_EVEN).subscribe(w);
         verify(w, never()).onNext(anyInt());
-        verify(w, times(1)).onCompleted();
+        verify(w, times(1)).onComplete();
         verify(w, never()).onError(any(Throwable.class));
     }
 
     @Test
     public void testTakeFirstOfSome() {
-        Observable<Integer> observable = Observable.just(1, 2, 3);
+        Flowable<Integer> observable = Flowable.just(1, 2, 3);
         observable.take(1).subscribe(w);
         verify(w, times(1)).onNext(anyInt());
         verify(w).onNext(1);
-        verify(w, times(1)).onCompleted();
+        verify(w, times(1)).onComplete();
         verify(w, never()).onError(any(Throwable.class));
     }
 
     @Test
     public void testTakeFirstOfNone() {
-        Observable<Integer> observable = Observable.empty();
+        Flowable<Integer> observable = Flowable.empty();
         observable.take(1).subscribe(w);
         verify(w, never()).onNext(anyInt());
-        verify(w, times(1)).onCompleted();
+        verify(w, times(1)).onComplete();
         verify(w, never()).onError(any(Throwable.class));
     }
 
     @Test
     public void testFirstOfNone() {
-        Observable<Integer> observable = Observable.empty();
+        Flowable<Integer> observable = Flowable.empty();
         observable.first().subscribe(w);
         verify(w, never()).onNext(anyInt());
-        verify(w, never()).onCompleted();
+        verify(w, never()).onComplete();
         verify(w, times(1)).onError(isA(NoSuchElementException.class));
     }
 
     @Test
     public void testFirstWithPredicateOfNoneMatchingThePredicate() {
-        Observable<Integer> observable = Observable.just(1, 3, 5, 7, 9, 7, 5, 3, 1);
+        Flowable<Integer> observable = Flowable.just(1, 3, 5, 7, 9, 7, 5, 3, 1);
         observable.first(IS_EVEN).subscribe(w);
         verify(w, never()).onNext(anyInt());
-        verify(w, never()).onCompleted();
+        verify(w, never()).onComplete();
         verify(w, times(1)).onError(isA(NoSuchElementException.class));
     }
 
     @Test
     public void testReduce() {
-        Observable<Integer> observable = Observable.just(1, 2, 3, 4);
-        observable.reduce(new Func2<Integer, Integer, Integer>() {
+        Flowable<Integer> observable = Flowable.just(1, 2, 3, 4);
+        observable.reduce(new BiFunction<Integer, Integer, Integer>() {
 
             @Override
             public Integer call(Integer t1, Integer t2) {
@@ -247,12 +247,12 @@ public class ObservableTests {
     }
 
     /**
-     * A reduce should fail with an NoSuchElementException if done on an empty Observable.
+     * A reduce should fail with an NoSuchElementException if done on an empty Flowable.
      */
     @Test(expected = NoSuchElementException.class)
-    public void testReduceWithEmptyObservable() {
-        Observable<Integer> observable = Observable.range(1, 0);
-        observable.reduce(new Func2<Integer, Integer, Integer>() {
+    public void testReduceWithEmptyFlowable() {
+        Flowable<Integer> observable = Flowable.range(1, 0);
+        observable.reduce(new BiFunction<Integer, Integer, Integer>() {
 
             @Override
             public Integer call(Integer t1, Integer t2) {
@@ -271,14 +271,14 @@ public class ObservableTests {
     }
 
     /**
-     * A reduce on an empty Observable and a seed should just pass the seed through.
+     * A reduce on an empty Flowable and a seed should just pass the seed through.
      * 
      * This is confirmed at https://github.com/ReactiveX/RxJava/issues/423#issuecomment-27642456
      */
     @Test
-    public void testReduceWithEmptyObservableAndSeed() {
-        Observable<Integer> observable = Observable.range(1, 0);
-        int value = observable.reduce(1, new Func2<Integer, Integer, Integer>() {
+    public void testReduceWithEmptyFlowableAndSeed() {
+        Flowable<Integer> observable = Flowable.range(1, 0);
+        int value = observable.reduce(1, new BiFunction<Integer, Integer, Integer>() {
 
             @Override
             public Integer call(Integer t1, Integer t2) {
@@ -292,8 +292,8 @@ public class ObservableTests {
 
     @Test
     public void testReduceWithInitialValue() {
-        Observable<Integer> observable = Observable.just(1, 2, 3, 4);
-        observable.reduce(50, new Func2<Integer, Integer, Integer>() {
+        Flowable<Integer> observable = Flowable.just(1, 2, 3, 4);
+        observable.reduce(50, new BiFunction<Integer, Integer, Integer>() {
 
             @Override
             public Integer call(Integer t1, Integer t2) {
@@ -311,7 +311,7 @@ public class ObservableTests {
         @SuppressWarnings("unchecked")
         Observer<String> observer = mock(Observer.class);
         final RuntimeException re = new RuntimeException("bad impl");
-        Observable<String> o = Observable.create(new OnSubscribe<String>() {
+        Flowable<String> o = Flowable.create(new OnSubscribe<String>() {
 
             @Override
             public void call(Subscriber<? super String> t1) {
@@ -321,21 +321,21 @@ public class ObservableTests {
         });
         o.subscribe(observer);
         verify(observer, times(0)).onNext(anyString());
-        verify(observer, times(0)).onCompleted();
+        verify(observer, times(0)).onComplete();
         verify(observer, times(1)).onError(re);
     }
 
     @Test
     public void testMaterializeDematerializeChaining() {
-        Observable<Integer> obs = Observable.just(1);
-        Observable<Integer> chained = obs.materialize().dematerialize();
+        Flowable<Integer> obs = Flowable.just(1);
+        Flowable<Integer> chained = obs.materialize().dematerialize();
 
         @SuppressWarnings("unchecked")
         Observer<Integer> observer = mock(Observer.class);
         chained.subscribe(observer);
 
         verify(observer, times(1)).onNext(1);
-        verify(observer, times(1)).onCompleted();
+        verify(observer, times(1)).onComplete();
         verify(observer, times(0)).onError(any(Throwable.class));
     }
 
@@ -347,11 +347,11 @@ public class ObservableTests {
      * Result: Passes (if AtomicObserver functionality exists)
      */
     @Test
-    public void testCustomObservableWithErrorInObserverAsynchronous() throws InterruptedException {
+    public void testCustomFlowableWithErrorInObserverAsynchronous() throws InterruptedException {
         final CountDownLatch latch = new CountDownLatch(1);
         final AtomicInteger count = new AtomicInteger();
         final AtomicReference<Throwable> error = new AtomicReference<Throwable>();
-        Observable.create(new OnSubscribe<String>() {
+        Flowable.create(new OnSubscribe<String>() {
 
             @Override
             public void call(final Subscriber<? super String> observer) {
@@ -366,7 +366,7 @@ public class ObservableTests {
                                 observer.onNext("2");
                                 observer.onNext("three");
                                 observer.onNext("4");
-                                observer.onCompleted();
+                                observer.onComplete();
                             }
                         } finally {
                             latch.countDown();
@@ -376,7 +376,7 @@ public class ObservableTests {
             }
         }).subscribe(new Subscriber<String>() {
             @Override
-            public void onCompleted() {
+            public void onComplete() {
                 System.out.println("completed");
             }
 
@@ -413,10 +413,10 @@ public class ObservableTests {
      * Result: Passes
      */
     @Test
-    public void testCustomObservableWithErrorInObserverSynchronous() {
+    public void testCustomFlowableWithErrorInObserverSynchronous() {
         final AtomicInteger count = new AtomicInteger();
         final AtomicReference<Throwable> error = new AtomicReference<Throwable>();
-        Observable.create(new OnSubscribe<String>() {
+        Flowable.create(new OnSubscribe<String>() {
 
             @Override
             public void call(Subscriber<? super String> observer) {
@@ -424,12 +424,12 @@ public class ObservableTests {
                 observer.onNext("2");
                 observer.onNext("three");
                 observer.onNext("4");
-                observer.onCompleted();
+                observer.onComplete();
             }
         }).subscribe(new Subscriber<String>() {
 
             @Override
-            public void onCompleted() {
+            public void onComplete() {
                 System.out.println("completed");
             }
 
@@ -457,16 +457,16 @@ public class ObservableTests {
     }
 
     /**
-     * The error from the user provided Observable is handled by the subscribe try/catch because this is synchronous
+     * The error from the user provided Flowable is handled by the subscribe try/catch because this is synchronous
      * 
      * 
      * Result: Passes
      */
     @Test
-    public void testCustomObservableWithErrorInObservableSynchronous() {
+    public void testCustomFlowableWithErrorInFlowableSynchronous() {
         final AtomicInteger count = new AtomicInteger();
         final AtomicReference<Throwable> error = new AtomicReference<Throwable>();
-        Observable.create(new OnSubscribe<String>() {
+        Flowable.create(new OnSubscribe<String>() {
 
             @Override
             public void call(Subscriber<? super String> observer) {
@@ -477,7 +477,7 @@ public class ObservableTests {
         }).subscribe(new Subscriber<String>() {
 
             @Override
-            public void onCompleted() {
+            public void onComplete() {
                 System.out.println("completed");
             }
 
@@ -505,7 +505,7 @@ public class ObservableTests {
     @Test
     public void testPublishLast() throws InterruptedException {
         final AtomicInteger count = new AtomicInteger();
-        ConnectableObservable<String> connectable = Observable.create(new OnSubscribe<String>() {
+        ConnectableFlowable<String> connectable = Flowable.create(new OnSubscribe<String>() {
             @Override
             public void call(final Subscriber<? super String> observer) {
                 count.incrementAndGet();
@@ -514,7 +514,7 @@ public class ObservableTests {
                     public void run() {
                         observer.onNext("first");
                         observer.onNext("last");
-                        observer.onCompleted();
+                        observer.onComplete();
                     }
                 }).start();
             }
@@ -546,7 +546,7 @@ public class ObservableTests {
     @Test
     public void testReplay() throws InterruptedException {
         final AtomicInteger counter = new AtomicInteger();
-        ConnectableObservable<String> o = Observable.create(new OnSubscribe<String>() {
+        ConnectableFlowable<String> o = Flowable.create(new OnSubscribe<String>() {
 
             @Override
             public void call(final Subscriber<? super String> observer) {
@@ -556,7 +556,7 @@ public class ObservableTests {
                     public void run() {
                         counter.incrementAndGet();
                         observer.onNext("one");
-                        observer.onCompleted();
+                        observer.onComplete();
                     }
                 }).start();
             }
@@ -601,7 +601,7 @@ public class ObservableTests {
     @Test
     public void testCache() throws InterruptedException {
         final AtomicInteger counter = new AtomicInteger();
-        Observable<String> o = Observable.create(new OnSubscribe<String>() {
+        Flowable<String> o = Flowable.create(new OnSubscribe<String>() {
 
             @Override
             public void call(final Subscriber<? super String> observer) {
@@ -611,7 +611,7 @@ public class ObservableTests {
                     public void run() {
                         counter.incrementAndGet();
                         observer.onNext("one");
-                        observer.onCompleted();
+                        observer.onComplete();
                     }
                 }).start();
             }
@@ -649,7 +649,7 @@ public class ObservableTests {
     @Test
     public void testCacheWithCapacity() throws InterruptedException {
         final AtomicInteger counter = new AtomicInteger();
-        Observable<String> o = Observable.create(new OnSubscribe<String>() {
+        Flowable<String> o = Flowable.create(new OnSubscribe<String>() {
 
             @Override
             public void call(final Subscriber<? super String> observer) {
@@ -659,7 +659,7 @@ public class ObservableTests {
                     public void run() {
                         counter.incrementAndGet();
                         observer.onNext("one");
-                        observer.onCompleted();
+                        observer.onComplete();
                     }
                 }).start();
             }
@@ -700,13 +700,13 @@ public class ObservableTests {
      * Rx Design Guidelines 5.2
      * 
      * "when calling the Subscribe method that only has an onNext argument, the OnError behavior will be
-     * to rethrow the exception on the thread that the message comes out from the Observable.
-     * The OnCompleted behavior in this case is to do nothing."
+     * to rethrow the exception on the thread that the message comes out from the Flowable.
+     * The onComplete() behavior in this case is to do nothing."
      */
     @Test
     public void testErrorThrownWithoutErrorHandlerSynchronous() {
         try {
-            Observable.error(new RuntimeException("failure")).subscribe(new Action1<Object>() {
+            Flowable.error(new RuntimeException("failure")).subscribe(new Action1<Object>() {
 
                 @Override
                 public void call(Object t1) {
@@ -726,8 +726,8 @@ public class ObservableTests {
      * Rx Design Guidelines 5.2
      * 
      * "when calling the Subscribe method that only has an onNext argument, the OnError behavior will be
-     * to rethrow the exception on the thread that the message comes out from the Observable.
-     * The OnCompleted behavior in this case is to do nothing."
+     * to rethrow the exception on the thread that the message comes out from the Flowable.
+     * The onComplete() behavior in this case is to do nothing."
      * 
      * @throws InterruptedException
      */
@@ -735,7 +735,7 @@ public class ObservableTests {
     public void testErrorThrownWithoutErrorHandlerAsynchronous() throws InterruptedException {
         final CountDownLatch latch = new CountDownLatch(1);
         final AtomicReference<Throwable> exception = new AtomicReference<Throwable>();
-        Observable.create(new OnSubscribe<String>() {
+        Flowable.create(new OnSubscribe<String>() {
 
             @Override
             public void call(final Subscriber<? super String> observer) {
@@ -771,10 +771,10 @@ public class ObservableTests {
     public void testTakeWithErrorInObserver() {
         final AtomicInteger count = new AtomicInteger();
         final AtomicReference<Throwable> error = new AtomicReference<Throwable>();
-        Observable.just("1", "2", "three", "4").take(3).subscribe(new Subscriber<String>() {
+        Flowable.just("1", "2", "three", "4").take(3).subscribe(new Subscriber<String>() {
 
             @Override
-            public void onCompleted() {
+            public void onComplete() {
                 System.out.println("completed");
             }
 
@@ -803,7 +803,7 @@ public class ObservableTests {
 
     @Test
     public void testOfType() {
-        Observable<String> observable = Observable.just(1, "abc", false, 2L).ofType(String.class);
+        Flowable<String> observable = Flowable.just(1, "abc", false, 2L).ofType(String.class);
 
         @SuppressWarnings("unchecked")
         Observer<Object> observer = mock(Observer.class);
@@ -814,7 +814,7 @@ public class ObservableTests {
         verify(observer, never()).onNext(2L);
         verify(observer, never()).onError(
                 org.mockito.Matchers.any(Throwable.class));
-        verify(observer, times(1)).onCompleted();
+        verify(observer, times(1)).onComplete();
     }
 
     @Test
@@ -825,7 +825,7 @@ public class ObservableTests {
         l2.add(2);
 
         @SuppressWarnings("rawtypes")
-        Observable<List> observable = Observable.<Object> just(l1, l2, "123").ofType(List.class);
+        Flowable<List> observable = Flowable.<Object> just(l1, l2, "123").ofType(List.class);
 
         @SuppressWarnings("unchecked")
         Observer<Object> observer = mock(Observer.class);
@@ -835,12 +835,12 @@ public class ObservableTests {
         verify(observer, never()).onNext("123");
         verify(observer, never()).onError(
                 org.mockito.Matchers.any(Throwable.class));
-        verify(observer, times(1)).onCompleted();
+        verify(observer, times(1)).onComplete();
     }
 
     @Test
     public void testContains() {
-        Observable<Boolean> observable = Observable.just("a", "b", null).contains("b");
+        Flowable<Boolean> observable = Flowable.just("a", "b", null).contains("b");
 
         @SuppressWarnings("unchecked")
         Observer<Object> observer = mock(Observer.class);
@@ -849,12 +849,12 @@ public class ObservableTests {
         verify(observer, never()).onNext(false);
         verify(observer, never()).onError(
                 org.mockito.Matchers.any(Throwable.class));
-        verify(observer, times(1)).onCompleted();
+        verify(observer, times(1)).onComplete();
     }
 
     @Test
     public void testContainsWithInexistence() {
-        Observable<Boolean> observable = Observable.just("a", "b", null).contains("c");
+        Flowable<Boolean> observable = Flowable.just("a", "b", null).contains("c");
 
         @SuppressWarnings("unchecked")
         Observer<Object> observer = mock(Observer.class);
@@ -863,12 +863,12 @@ public class ObservableTests {
         verify(observer, never()).onNext(true);
         verify(observer, never()).onError(
                 org.mockito.Matchers.any(Throwable.class));
-        verify(observer, times(1)).onCompleted();
+        verify(observer, times(1)).onComplete();
     }
 
     @Test
     public void testContainsWithNull() {
-        Observable<Boolean> observable = Observable.just("a", "b", null).contains(null);
+        Flowable<Boolean> observable = Flowable.just("a", "b", null).contains(null);
 
         @SuppressWarnings("unchecked")
         Observer<Object> observer = mock(Observer.class);
@@ -877,12 +877,12 @@ public class ObservableTests {
         verify(observer, never()).onNext(false);
         verify(observer, never()).onError(
                 org.mockito.Matchers.any(Throwable.class));
-        verify(observer, times(1)).onCompleted();
+        verify(observer, times(1)).onComplete();
     }
 
     @Test
-    public void testContainsWithEmptyObservable() {
-        Observable<Boolean> observable = Observable.<String> empty().contains("a");
+    public void testContainsWithEmptyFlowable() {
+        Flowable<Boolean> observable = Flowable.<String> empty().contains("a");
 
         @SuppressWarnings("unchecked")
         Observer<Object> observer = mock(Observer.class);
@@ -891,25 +891,25 @@ public class ObservableTests {
         verify(observer, never()).onNext(true);
         verify(observer, never()).onError(
                 org.mockito.Matchers.any(Throwable.class));
-        verify(observer, times(1)).onCompleted();
+        verify(observer, times(1)).onComplete();
     }
 
     @Test
     public void testIgnoreElements() {
-        Observable<Integer> observable = Observable.just(1, 2, 3).ignoreElements();
+        Flowable<Integer> observable = Flowable.just(1, 2, 3).ignoreElements();
 
         @SuppressWarnings("unchecked")
         Observer<Integer> observer = mock(Observer.class);
         observable.subscribe(observer);
         verify(observer, never()).onNext(any(Integer.class));
         verify(observer, never()).onError(any(Throwable.class));
-        verify(observer, times(1)).onCompleted();
+        verify(observer, times(1)).onComplete();
     }
 
     @Test
             public void testJustWithScheduler() {
                 TestScheduler scheduler = new TestScheduler();
-                Observable<Integer> observable = Observable.from(Arrays.asList(1, 2)).subscribeOn(scheduler);
+                Flowable<Integer> observable = Flowable.from(Arrays.asList(1, 2)).subscribeOn(scheduler);
         
                 @SuppressWarnings("unchecked")
                 Observer<Integer> observer = mock(Observer.class);
@@ -920,14 +920,14 @@ public class ObservableTests {
                 InOrder inOrder = inOrder(observer);
                 inOrder.verify(observer, times(1)).onNext(1);
                 inOrder.verify(observer, times(1)).onNext(2);
-                inOrder.verify(observer, times(1)).onCompleted();
+                inOrder.verify(observer, times(1)).onComplete();
                 inOrder.verifyNoMoreInteractions();
             }
 
     @Test
     public void testStartWithWithScheduler() {
         TestScheduler scheduler = new TestScheduler();
-        Observable<Integer> observable = Observable.just(3, 4).startWith(Arrays.asList(1, 2)).subscribeOn(scheduler);
+        Flowable<Integer> observable = Flowable.just(3, 4).startWith(Arrays.asList(1, 2)).subscribeOn(scheduler);
 
         @SuppressWarnings("unchecked")
         Observer<Integer> observer = mock(Observer.class);
@@ -940,14 +940,14 @@ public class ObservableTests {
         inOrder.verify(observer, times(1)).onNext(2);
         inOrder.verify(observer, times(1)).onNext(3);
         inOrder.verify(observer, times(1)).onNext(4);
-        inOrder.verify(observer, times(1)).onCompleted();
+        inOrder.verify(observer, times(1)).onComplete();
         inOrder.verifyNoMoreInteractions();
     }
 
     @Test
     public void testRangeWithScheduler() {
         TestScheduler scheduler = new TestScheduler();
-        Observable<Integer> observable = Observable.range(3, 4, scheduler);
+        Flowable<Integer> observable = Flowable.range(3, 4, scheduler);
 
         @SuppressWarnings("unchecked")
         Observer<Integer> observer = mock(Observer.class);
@@ -960,13 +960,13 @@ public class ObservableTests {
         inOrder.verify(observer, times(1)).onNext(4);
         inOrder.verify(observer, times(1)).onNext(5);
         inOrder.verify(observer, times(1)).onNext(6);
-        inOrder.verify(observer, times(1)).onCompleted();
+        inOrder.verify(observer, times(1)).onComplete();
         inOrder.verifyNoMoreInteractions();
     }
 
     @Test
     public void testCollectToList() {
-        Observable<List<Integer>> o = Observable.just(1, 2, 3).collect(new Func0<List<Integer>>() {
+        Flowable<List<Integer>> o = Flowable.just(1, 2, 3).collect(new Func0<List<Integer>>() {
 
             @Override
             public List<Integer> call() {
@@ -999,7 +999,7 @@ public class ObservableTests {
 
     @Test
     public void testCollectToString() {
-        String value = Observable.just(1, 2, 3).collect(new Func0<StringBuilder>() {
+        String value = Flowable.just(1, 2, 3).collect(new Func0<StringBuilder>() {
 
             @Override
             public StringBuilder call() {
@@ -1023,30 +1023,30 @@ public class ObservableTests {
     @Test
     public void testMergeWith() {
         TestSubscriber<Integer> ts = new TestSubscriber<Integer>();
-        Observable.just(1).mergeWith(Observable.just(2)).subscribe(ts);
+        Flowable.just(1).mergeWith(Flowable.just(2)).subscribe(ts);
         ts.assertReceivedOnNext(Arrays.asList(1, 2));
     }
     
     @Test
     public void testConcatWith() {
         TestSubscriber<Integer> ts = new TestSubscriber<Integer>();
-        Observable.just(1).concatWith(Observable.just(2)).subscribe(ts);
+        Flowable.just(1).concatWith(Flowable.just(2)).subscribe(ts);
         ts.assertReceivedOnNext(Arrays.asList(1, 2));
     }
     
     @Test
     public void testAmbWith() {
         TestSubscriber<Integer> ts = new TestSubscriber<Integer>();
-        Observable.just(1).ambWith(Observable.just(2)).subscribe(ts);
+        Flowable.just(1).ambWith(Flowable.just(2)).subscribe(ts);
         ts.assertReceivedOnNext(Arrays.asList(1));
     }
 
     @Test(expected = OnErrorNotImplementedException.class)
     public void testSubscribeWithoutOnError() {
-        Observable<String> o = Observable.just("a", "b").flatMap(new Func1<String, Observable<String>>() {
+        Flowable<String> o = Flowable.just("a", "b").flatMap(new Function<String, Flowable<String>>() {
             @Override
-            public Observable<String> call(String s) {
-                return Observable.error(new Exception("test"));
+            public Flowable<String> call(String s) {
+                return Flowable.error(new Exception("test"));
             }
         });
         o.subscribe();
@@ -1057,9 +1057,9 @@ public class ObservableTests {
         int[] nums = {1, 2, 3};
         final AtomicInteger count = new AtomicInteger();
         for(final int n: nums) {
-            Observable
+            Flowable
                     .just(Boolean.TRUE, Boolean.FALSE)
-                    .takeWhile(new Func1<Boolean, Boolean>() {
+                    .takeWhile(new Function<Boolean, Boolean>() {
                         @Override
                         public Boolean call(Boolean value) {
                             return value;
@@ -1080,11 +1080,11 @@ public class ObservableTests {
     @Test
     public void testCompose() {
         TestSubscriber<String> ts = new TestSubscriber<String>();
-        Observable.just(1, 2, 3).compose(new Transformer<Integer, String>() {
+        Flowable.just(1, 2, 3).compose(new Transformer<Integer, String>() {
 
             @Override
-            public Observable<String> call(Observable<Integer> t1) {
-                return t1.map(new Func1<Integer, String>() {
+            public Flowable<String> call(Flowable<Integer> t1) {
+                return t1.map(new Function<Integer, String>() {
                     
                     @Override
                     public String call(Integer t1) {
@@ -1104,7 +1104,7 @@ public class ObservableTests {
     public void testErrorThrownIssue1685() {
         Subject<Object, Object> subject = ReplaySubject.create();
 
-        Observable.error(new RuntimeException("oops"))
+        Flowable.error(new RuntimeException("oops"))
             .materialize()
             .delay(1, TimeUnit.SECONDS)
             .dematerialize()
@@ -1118,14 +1118,14 @@ public class ObservableTests {
 
     @Test
     public void testEmptyIdentity() {
-        assertEquals(Observable.empty(), Observable.empty());
+        assertEquals(Flowable.empty(), Flowable.empty());
     }
     
     @Test
     public void testEmptyIsEmpty() {
-        Observable.<Integer>empty().subscribe(w);
+        Flowable.<Integer>empty().subscribe(w);
         
-        verify(w).onCompleted();
+        verify(w).onComplete();
         verify(w, never()).onNext(any(Integer.class));
         verify(w, never()).onError(any(Throwable.class));
     }
@@ -1133,7 +1133,7 @@ public class ObservableTests {
     @Test // cf. https://github.com/ReactiveX/RxJava/issues/2599
     public void testSubscribingSubscriberAsObserverMaintainsSubscriptionChain() {
         TestSubscriber<Object> subscriber = new TestSubscriber<Object>();
-        Subscription subscription = Observable.just("event").subscribe((Observer<Object>) subscriber);
+        Subscription subscription = Flowable.just("event").subscribe((Observer<Object>) subscriber);
         subscription.unsubscribe();
 
         subscriber.assertUnsubscribed();

@@ -284,7 +284,7 @@ public class ScalarBackpressureSubscriptionTest {
     }
     
     @Test
-    public void onCompleteDoesNotOverwriteValue() {
+    public void onComplete()oesNotOverwriteValue() {
         TestSubscriber<Integer> ts = new TestSubscriber<>(0);
         
         ScalarBackpressureSubscription<Integer> sbs = new ScalarBackpressureSubscription<>(ts);

@@ -19,8 +19,8 @@ import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.atomic.AtomicIntegerFieldUpdater;
 import java.util.concurrent.atomic.AtomicLongFieldUpdater;
 
-import rx.Observable;
-import rx.Observable.Operator;
+import rx.Flowable;
+import rx.Flowable.Operator;
 import rx.Producer;
 import rx.Subscriber;
 import rx.functions.Action0;
@@ -29,14 +29,14 @@ import rx.subscriptions.SerialSubscription;
 import rx.subscriptions.Subscriptions;
 
 /**
- * Returns an Observable that emits the items emitted by two or more Observables, one after the other.
+ * Returns an Flowable that emits the items emitted by two or more Flowables, one after the other.
  * <p>
  * <img width="640" src="https://github.com/ReactiveX/RxJava/wiki/images/rx-operators/concat.png" alt="">
  *
  * @param <T>
  *            the source and result value type
  */
-public final class OperatorConcat<T> implements Operator<T, Observable<? extends T>> {
+public final class OperatorConcat<T> implements Operator<T, Flowable<? extends T>> {
     /** Lazy initialization via inner-class holder. */
     private static final class Holder {
         /** A singleton instance. */
@@ -51,7 +51,7 @@ public final class OperatorConcat<T> implements Operator<T, Observable<? extends
     }
     private OperatorConcat() { }
     @Override
-    public Subscriber<? super Observable<? extends T>> call(final Subscriber<? super T> child) {
+    public Subscriber<? super Flowable<? extends T>> call(final Subscriber<? super T> child) {
         final SerializedSubscriber<T> s = new SerializedSubscriber<T>(child);
         final SerialSubscription current = new SerialSubscription();
         child.add(current);
@@ -75,8 +75,8 @@ public final class OperatorConcat<T> implements Operator<T, Observable<? extends
 
     }
 
-    static final class ConcatSubscriber<T> extends Subscriber<Observable<? extends T>> {
-        final NotificationLite<Observable<? extends T>> nl = NotificationLite.instance();
+    static final class ConcatSubscriber<T> extends Subscriber<Flowable<? extends T>> {
+        final NotificationLite<Flowable<? extends T>> nl = NotificationLite.instance();
         private final Subscriber<T> child;
         private final SerialSubscription current;
         final ConcurrentLinkedQueue<Object> queue;
@@ -135,7 +135,7 @@ public final class OperatorConcat<T> implements Operator<T, Observable<? extends
         }
 
         @Override
-        public void onNext(Observable<? extends T> t) {
+        public void onNext(Flowable<? extends T> t) {
             queue.add(nl.next(t));
             if (WIP_UPDATER.getAndIncrement(this) == 0) {
                 subscribeNext();
@@ -149,7 +149,7 @@ public final class OperatorConcat<T> implements Operator<T, Observable<? extends
         }
 
         @Override
-        public void onCompleted() {
+        public void onComplete() {
             queue.add(nl.completed());
             if (WIP_UPDATER.getAndIncrement(this) == 0) {
                 subscribeNext();
@@ -168,9 +168,9 @@ public final class OperatorConcat<T> implements Operator<T, Observable<? extends
             if (requested > 0) {
                 Object o = queue.poll();
                 if (nl.isCompleted(o)) {
-                    child.onCompleted();
+                    child.onComplete();
                 } else if (o != null) {
-                    Observable<? extends T> obs = nl.getValue(o);
+                    Flowable<? extends T> obs = nl.getValue(o);
                     currentSubscriber = new ConcatInnerSubscriber<T>(this, child, requested);
                     current.set(currentSubscriber);
                     obs.unsafeSubscribe(currentSubscriber);
@@ -179,7 +179,7 @@ public final class OperatorConcat<T> implements Operator<T, Observable<? extends
                 // requested == 0, so we'll peek to see if we are completed, otherwise wait until another request
                 Object o = queue.peek();
                 if (nl.isCompleted(o)) {
-                    child.onCompleted();
+                    child.onComplete();
                 }
             }
         }
@@ -219,7 +219,7 @@ public final class OperatorConcat<T> implements Operator<T, Observable<? extends
         }
 
         @Override
-        public void onCompleted() {
+        public void onComplete() {
             if (ONCE_UPDATER.compareAndSet(this, 0, 1)) {
                 // terminal completion to parent so it continues to the next
                 parent.completeInner();

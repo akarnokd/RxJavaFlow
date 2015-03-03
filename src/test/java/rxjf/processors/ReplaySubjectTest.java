@@ -38,14 +38,14 @@ import org.junit.Test;
 import org.mockito.InOrder;
 import org.mockito.Mockito;
 
-import rx.Observable;
+import rx.Flowable;
 import rx.Observer;
 import rx.Subscriber;
 import rx.Subscription;
 import rx.exceptions.CompositeException;
 import rx.exceptions.OnErrorNotImplementedException;
 import rx.exceptions.TestException;
-import rx.functions.Func1;
+import rx.functions.Function;
 import rx.observers.TestSubscriber;
 import rx.schedulers.Schedulers;
 import rx.schedulers.TestScheduler;
@@ -65,10 +65,10 @@ public class ReplaySubjectTest {
         subject.onNext("one");
         subject.onNext("two");
         subject.onNext("three");
-        subject.onCompleted();
+        subject.onComplete();
 
         subject.onNext("four");
-        subject.onCompleted();
+        subject.onComplete();
         subject.onError(new Throwable());
 
         assertCompletedObserver(o1);
@@ -115,17 +115,17 @@ public class ReplaySubjectTest {
         // only be should receive 4711 at this point
         inOrderB.verify(observerB).onNext(4711);
 
-        channel.onCompleted();
+        channel.onComplete();
 
-        // B is subscribed so should receive onCompleted
-        inOrderB.verify(observerB).onCompleted();
+        // B is subscribed so should receive onComplete()
+        inOrderB.verify(observerB).onComplete();
 
         channel.subscribe(observerC);
 
-        // when C subscribes it should receive 42, 4711, onCompleted
+        // when C subscribes it should receive 42, 4711, onComplete()
         inOrderC.verify(observerC).onNext(42);
         inOrderC.verify(observerC).onNext(4711);
-        inOrderC.verify(observerC).onCompleted();
+        inOrderC.verify(observerC).onComplete();
 
         // if further events are propagated they should be ignored
         channel.onNext(13);
@@ -133,12 +133,12 @@ public class ReplaySubjectTest {
         channel.onNext(15);
         channel.onError(new RuntimeException());
 
-        // a new subscription should only receive what was emitted prior to terminal state onCompleted
+        // a new subscription should only receive what was emitted prior to terminal state onComplete()
         channel.subscribe(observerD);
 
         inOrderD.verify(observerD).onNext(42);
         inOrderD.verify(observerD).onNext(4711);
-        inOrderD.verify(observerD).onCompleted();
+        inOrderD.verify(observerD).onComplete();
 
         Mockito.verifyNoMoreInteractions(observerA);
         Mockito.verifyNoMoreInteractions(observerB);
@@ -157,7 +157,7 @@ public class ReplaySubjectTest {
         subject.onNext("one");
         subject.onError(testException);
         subject.onNext("two");
-        subject.onCompleted();
+        subject.onComplete();
         subject.onError(new RuntimeException());
 
         subject.subscribe(observer);
@@ -173,7 +173,7 @@ public class ReplaySubjectTest {
         inOrder.verify(observer, times(1)).onNext("two");
         inOrder.verify(observer, times(1)).onNext("three");
         inOrder.verify(observer, Mockito.never()).onError(any(Throwable.class));
-        inOrder.verify(observer, times(1)).onCompleted();
+        inOrder.verify(observer, times(1)).onComplete();
         inOrder.verifyNoMoreInteractions();
     }
 
@@ -192,7 +192,7 @@ public class ReplaySubjectTest {
 
         subject.onNext("four");
         subject.onError(new Throwable());
-        subject.onCompleted();
+        subject.onComplete();
 
         assertErrorObserver(observer);
 
@@ -206,7 +206,7 @@ public class ReplaySubjectTest {
         verify(observer, times(1)).onNext("two");
         verify(observer, times(1)).onNext("three");
         verify(observer, times(1)).onError(testException);
-        verify(observer, Mockito.never()).onCompleted();
+        verify(observer, Mockito.never()).onComplete();
     }
 
     @SuppressWarnings("unchecked")
@@ -227,7 +227,7 @@ public class ReplaySubjectTest {
         assertObservedUntilTwo(anotherObserver);
 
         subject.onNext("three");
-        subject.onCompleted();
+        subject.onComplete();
 
         assertCompletedObserver(observer);
         assertCompletedObserver(anotherObserver);
@@ -252,7 +252,7 @@ public class ReplaySubjectTest {
         assertObservedUntilTwo(anotherObserver);
 
         subject.onNext("three");
-        subject.onCompleted();
+        subject.onComplete();
 
         assertObservedUntilTwo(observer);
         assertCompletedObserver(anotherObserver);
@@ -263,7 +263,7 @@ public class ReplaySubjectTest {
         verify(observer, times(1)).onNext("two");
         verify(observer, Mockito.never()).onNext("three");
         verify(observer, Mockito.never()).onError(any(Throwable.class));
-        verify(observer, Mockito.never()).onCompleted();
+        verify(observer, Mockito.never()).onComplete();
     }
 
     @Test(timeout = 2000)
@@ -273,7 +273,7 @@ public class ReplaySubjectTest {
         Subscriber<String> observer1 = new Subscriber<String>() {
 
             @Override
-            public void onCompleted() {
+            public void onComplete() {
 
             }
 
@@ -297,7 +297,7 @@ public class ReplaySubjectTest {
         Subscriber<String> observer2 = new Subscriber<String>() {
 
             @Override
-            public void onCompleted() {
+            public void onComplete() {
                 completed.countDown();
             }
 
@@ -347,9 +347,9 @@ public class ReplaySubjectTest {
         // if subscription blocked existing subscribers then 'makeSlow' would cause this to not be there yet 
         assertEquals("three", lastValueForObserver1.get());
         
-        System.out.println("about to send onCompleted");
+        System.out.println("about to send onComplete()");
         
-        subject.onCompleted();
+        subject.onComplete();
 
         System.out.println("completed subject");
         
@@ -387,11 +387,11 @@ public class ReplaySubjectTest {
             src.onNext(v);
             System.out.printf("Turn: %d%n", i);
             src.first()
-                .flatMap(new Func1<String, Observable<String>>() {
+                .flatMap(new Function<String, Flowable<String>>() {
 
                     @Override
-                    public Observable<String> call(String t1) {
-                        return Observable.just(t1 + ", " + t1);
+                    public Flowable<String> call(String t1) {
+                        return Flowable.just(t1 + ", " + t1);
                     }
                 })
                 .subscribe(new Observer<String>() {
@@ -407,12 +407,12 @@ public class ReplaySubjectTest {
                     }
 
                     @Override
-                    public void onCompleted() {
-                        o.onCompleted();
+                    public void onComplete() {
+                        o.onComplete();
                     }
                 });
             inOrder.verify(o).onNext("0, 0");
-            inOrder.verify(o).onCompleted();
+            inOrder.verify(o).onComplete();
             verify(o, never()).onError(any(Throwable.class));
         }
     }
@@ -421,7 +421,7 @@ public class ReplaySubjectTest {
         ReplaySubject<Integer> source = ReplaySubject.create();
         source.onNext(1);
         source.onNext(2);
-        source.onCompleted();
+        source.onComplete();
         
         @SuppressWarnings("unchecked")
         final Observer<Integer> o = mock(Observer.class);
@@ -439,14 +439,14 @@ public class ReplaySubjectTest {
             }
 
             @Override
-            public void onCompleted() {
-                o.onCompleted();
+            public void onComplete() {
+                o.onComplete();
             }
         });
         
         verify(o).onNext(1);
         verify(o).onNext(2);
-        verify(o).onCompleted();
+        verify(o).onComplete();
         verify(o, never()).onError(any(Throwable.class));
     }
     @Test
@@ -501,7 +501,7 @@ public class ReplaySubjectTest {
         
         source.onNext(1);
         source.onNext(2);
-        source.onCompleted();
+        source.onComplete();
         
         for (int i = 0; i < 1; i++) {
             @SuppressWarnings("unchecked")
@@ -511,7 +511,7 @@ public class ReplaySubjectTest {
 
             verify(o, never()).onNext(1);
             verify(o).onNext(2);
-            verify(o).onCompleted();
+            verify(o).onComplete();
             verify(o, never()).onError(any(Throwable.class));
         }
     }
@@ -528,12 +528,12 @@ public class ReplaySubjectTest {
         source.subscribe(o);
 
         source.onNext(3);
-        source.onCompleted();
+        source.onComplete();
 
         verify(o, never()).onNext(1);
         verify(o).onNext(2);
         verify(o).onNext(3);
-        verify(o).onCompleted();
+        verify(o).onComplete();
         verify(o, never()).onError(any(Throwable.class));
     }
     
@@ -551,7 +551,7 @@ public class ReplaySubjectTest {
         scheduler.advanceTimeBy(1, TimeUnit.SECONDS);
 
         source.onNext(3);
-        source.onCompleted();
+        source.onComplete();
 
         scheduler.advanceTimeBy(1, TimeUnit.SECONDS);
 
@@ -563,7 +563,7 @@ public class ReplaySubjectTest {
         verify(o, never()).onNext(1);
         verify(o, never()).onNext(2);
         verify(o).onNext(3);
-        verify(o).onCompleted();
+        verify(o).onComplete();
         verify(o, never()).onError(any(Throwable.class));
     }
     
@@ -589,7 +589,7 @@ public class ReplaySubjectTest {
         
         scheduler.advanceTimeBy(1, TimeUnit.SECONDS);
         
-        source.onCompleted();
+        source.onComplete();
         
         scheduler.advanceTimeBy(1, TimeUnit.SECONDS);
         
@@ -597,7 +597,7 @@ public class ReplaySubjectTest {
         verify(o, never()).onNext(1);
         verify(o).onNext(2);
         verify(o).onNext(3);
-        verify(o).onCompleted();
+        verify(o).onComplete();
     }
     
     @Test
@@ -658,7 +658,7 @@ public class ReplaySubjectTest {
         assertFalse(as.hasCompleted());
         assertNull(as.getThrowable());
         
-        as.onCompleted();
+        as.onComplete();
         
         assertFalse(as.hasThrowable());
         assertTrue(as.hasCompleted());
@@ -673,7 +673,7 @@ public class ReplaySubjectTest {
         assertFalse(as.hasCompleted());
         assertNull(as.getThrowable());
         
-        as.onCompleted();
+        as.onComplete();
         
         assertFalse(as.hasThrowable());
         assertTrue(as.hasCompleted());
@@ -710,7 +710,7 @@ public class ReplaySubjectTest {
         assertEquals(2, rs.size());
         assertTrue(rs.hasAnyValue());
         
-        rs.onCompleted();
+        rs.onComplete();
 
         assertEquals(2, rs.size());
         assertTrue(rs.hasAnyValue());
@@ -732,7 +732,7 @@ public class ReplaySubjectTest {
         assertEquals(2, rs.size());
         assertTrue(rs.hasAnyValue());
         
-        rs.onCompleted();
+        rs.onComplete();
 
         assertEquals(2, rs.size());
         assertTrue(rs.hasAnyValue());
@@ -806,7 +806,7 @@ public class ReplaySubjectTest {
     public void testSizeAndHasAnyValueUnboundedEmptyCompleted() {
         ReplaySubject<Object> rs = ReplaySubject.create();
         
-        rs.onCompleted();
+        rs.onComplete();
 
         assertEquals(0, rs.size());
         assertFalse(rs.hasAnyValue());
@@ -815,7 +815,7 @@ public class ReplaySubjectTest {
     public void testSizeAndHasAnyValueEffectivelyUnboundedEmptyCompleted() {
         ReplaySubject<Object> rs = ReplaySubject.createUnbounded();
         
-        rs.onCompleted();
+        rs.onComplete();
 
         assertEquals(0, rs.size());
         assertFalse(rs.hasAnyValue());
@@ -835,7 +835,7 @@ public class ReplaySubjectTest {
             assertTrue(rs.hasAnyValue());
         }
         
-        rs.onCompleted();
+        rs.onComplete();
 
         assertEquals(1, rs.size());
         assertTrue(rs.hasAnyValue());
@@ -856,7 +856,7 @@ public class ReplaySubjectTest {
             assertTrue(rs.hasAnyValue());
         }
         
-        rs.onCompleted();
+        rs.onComplete();
 
         assertEquals(0, rs.size());
         assertFalse(rs.hasAnyValue());
@@ -870,7 +870,7 @@ public class ReplaySubjectTest {
             rs.onNext(i);
             assertArrayEquals(Arrays.copyOf(expected, i + 1), rs.getValues());
         }
-        rs.onCompleted();
+        rs.onComplete();
         
         assertArrayEquals(expected, rs.getValues());
         
@@ -884,7 +884,7 @@ public class ReplaySubjectTest {
             rs.onNext(i);
             assertArrayEquals(Arrays.copyOf(expected, i + 1), rs.getValues());
         }
-        rs.onCompleted();
+        rs.onComplete();
         
         assertArrayEquals(expected, rs.getValues());
         

@@ -18,7 +18,7 @@ package rx.internal.operators;
 import java.util.concurrent.TimeUnit;
 
 import rx.*;
-import rx.Observable.Operator;
+import rx.Flowable.Operator;
 
 /**
  * Throttle by windowing a stream and returning the first value in each window.
@@ -54,8 +54,8 @@ public final class OperatorThrottleFirst<T> implements Operator<T, T> {
             }
 
             @Override
-            public void onCompleted() {
-                subscriber.onCompleted();
+            public void onComplete() {
+                subscriber.onComplete();
             }
 
             @Override

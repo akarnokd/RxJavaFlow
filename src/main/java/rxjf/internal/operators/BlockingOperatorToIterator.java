@@ -75,7 +75,7 @@ public final class BlockingOperatorToIterator {
                 if (buf.isOnError()) {
                     throw Exceptions.propagate(buf.getThrowable());
                 }
-                return !buf.isOnCompleted();
+                return !buf.isOnComplete();
             }
 
             @Override

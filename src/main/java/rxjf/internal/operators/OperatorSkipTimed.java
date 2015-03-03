@@ -17,7 +17,7 @@ package rx.internal.operators;
 
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
-import rx.Observable.Operator;
+import rx.Flowable.Operator;
 import rx.Scheduler;
 import rx.Scheduler.Worker;
 import rx.Subscriber;
@@ -68,9 +68,9 @@ public final class OperatorSkipTimed<T> implements Operator<T, T> {
             }
 
             @Override
-            public void onCompleted() {
+            public void onComplete() {
                 try {
-                    child.onCompleted();
+                    child.onComplete();
                 } finally {
                     unsubscribe();
                 }

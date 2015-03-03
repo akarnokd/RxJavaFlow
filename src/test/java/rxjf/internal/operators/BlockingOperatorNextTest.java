@@ -31,11 +31,11 @@ import java.util.concurrent.atomic.AtomicInteger;
 import org.junit.Assert;
 import org.junit.Test;
 
-import rx.Observable;
+import rx.Flowable;
 import rx.Subscriber;
 import rx.exceptions.TestException;
 import rx.internal.operators.BlockingOperatorNext;
-import rx.observables.BlockingObservable;
+import rx.observables.BlockingFlowable;
 import rx.schedulers.Schedulers;
 import rx.subjects.BehaviorSubject;
 import rx.subjects.PublishSubject;
@@ -83,7 +83,7 @@ public class BlockingOperatorNextTest {
         assertTrue(it.hasNext());
         assertEquals("two", it.next());
 
-        obs.onCompleted();
+        obs.onComplete();
         assertFalse(it.hasNext());
         try {
             it.next();
@@ -115,12 +115,12 @@ public class BlockingOperatorNextTest {
         } catch (TestException e) {
         }
 
-        assertErrorAfterObservableFail(it);
+        assertErrorAfterFlowableFail(it);
     }
 
     @Test
     public void testNextWithEmpty() {
-        Observable<String> obs = Observable.<String> empty().observeOn(Schedulers.newThread());
+        Flowable<String> obs = Flowable.<String> empty().observeOn(Schedulers.newThread());
         Iterator<String> it = next(obs).iterator();
 
         assertFalse(it.hasNext());
@@ -152,7 +152,7 @@ public class BlockingOperatorNextTest {
             // successful
         }
 
-        assertErrorAfterObservableFail(it);
+        assertErrorAfterFlowableFail(it);
     }
 
     @Test
@@ -169,10 +169,10 @@ public class BlockingOperatorNextTest {
             // successful
         }
 
-        assertErrorAfterObservableFail(it);
+        assertErrorAfterFlowableFail(it);
     }
 
-    private void assertErrorAfterObservableFail(Iterator<String> it) {
+    private void assertErrorAfterFlowableFail(Iterator<String> it) {
         // After the observable fails, hasNext and next always throw the exception.
         try {
             it.hasNext();
@@ -196,7 +196,7 @@ public class BlockingOperatorNextTest {
         fireOnNextInNewThread(obs, "two");
         assertEquals("two", it.next());
 
-        obs.onCompleted();
+        obs.onComplete();
         try {
             it.next();
             fail("At the end of an iterator should throw a NoSuchElementException");
@@ -215,7 +215,7 @@ public class BlockingOperatorNextTest {
         assertTrue(it.hasNext());
         assertEquals("one", it.next());
 
-        obs.onCompleted();
+        obs.onComplete();
         try {
             it.next();
             fail("At the end of an iterator should throw a NoSuchElementException");
@@ -224,7 +224,7 @@ public class BlockingOperatorNextTest {
     }
 
     /**
-     * Confirm that no buffering or blocking of the Observable onNext calls occurs and it just grabs the next emitted value.
+     * Confirm that no buffering or blocking of the Flowable onNext calls occurs and it just grabs the next emitted value.
      * <p/>
      * This results in output such as => a: 1 b: 2 c: 89
      * 
@@ -237,7 +237,7 @@ public class BlockingOperatorNextTest {
         final CountDownLatch timeHasPassed = new CountDownLatch(COUNT);
         final AtomicBoolean running = new AtomicBoolean(true);
         final AtomicInteger count = new AtomicInteger(0);
-        final Observable<Integer> obs = Observable.create(new Observable.OnSubscribe<Integer>() {
+        final Flowable<Integer> obs = Flowable.create(new Flowable.OnSubscribe<Integer>() {
 
             @Override
             public void call(final Subscriber<? super Integer> o) {
@@ -250,7 +250,7 @@ public class BlockingOperatorNextTest {
                                 o.onNext(count.incrementAndGet());
                                 timeHasPassed.countDown();
                             }
-                            o.onCompleted();
+                            o.onComplete();
                         } catch (Throwable e) {
                             o.onError(e);
                         } finally {
@@ -296,9 +296,9 @@ public class BlockingOperatorNextTest {
 
     @Test /* (timeout = 8000) */
     public void testSingleSourceManyIterators() throws InterruptedException {
-        Observable<Long> o = Observable.interval(100, TimeUnit.MILLISECONDS);
+        Flowable<Long> o = Flowable.interval(100, TimeUnit.MILLISECONDS);
         PublishSubject<Void> terminal = PublishSubject.create();
-        BlockingObservable<Long> source = o.takeUntil(terminal).toBlocking();
+        BlockingFlowable<Long> source = o.takeUntil(terminal).toBlocking();
 
         Iterable<Long> iter = source.next();
 

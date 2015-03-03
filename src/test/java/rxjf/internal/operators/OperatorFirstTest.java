@@ -32,16 +32,16 @@ import org.junit.Test;
 import org.mockito.InOrder;
 import org.mockito.Mock;
 
-import rx.Observable;
+import rx.Flowable;
 import rx.Observer;
-import rx.functions.Func1;
+import rx.functions.Function;
 
 public class OperatorFirstTest {
 
     @Mock
     Observer<String> w;
 
-    private static final Func1<String, Boolean> IS_D = new Func1<String, Boolean>() {
+    private static final Function<String, Boolean> IS_D = new Function<String, Boolean>() {
         @Override
         public Boolean call(String value) {
             return "d".equals(value);
@@ -55,51 +55,51 @@ public class OperatorFirstTest {
 
     @Test
     public void testFirstOrElseOfNone() {
-        Observable<String> src = Observable.empty();
+        Flowable<String> src = Flowable.empty();
         src.firstOrDefault("default").subscribe(w);
 
         verify(w, times(1)).onNext(anyString());
         verify(w, times(1)).onNext("default");
         verify(w, never()).onError(any(Throwable.class));
-        verify(w, times(1)).onCompleted();
+        verify(w, times(1)).onComplete();
     }
 
     @Test
     public void testFirstOrElseOfSome() {
-        Observable<String> src = Observable.just("a", "b", "c");
+        Flowable<String> src = Flowable.just("a", "b", "c");
         src.firstOrDefault("default").subscribe(w);
 
         verify(w, times(1)).onNext(anyString());
         verify(w, times(1)).onNext("a");
         verify(w, never()).onError(any(Throwable.class));
-        verify(w, times(1)).onCompleted();
+        verify(w, times(1)).onComplete();
     }
 
     @Test
     public void testFirstOrElseWithPredicateOfNoneMatchingThePredicate() {
-        Observable<String> src = Observable.just("a", "b", "c");
+        Flowable<String> src = Flowable.just("a", "b", "c");
         src.firstOrDefault("default", IS_D).subscribe(w);
 
         verify(w, times(1)).onNext(anyString());
         verify(w, times(1)).onNext("default");
         verify(w, never()).onError(any(Throwable.class));
-        verify(w, times(1)).onCompleted();
+        verify(w, times(1)).onComplete();
     }
 
     @Test
     public void testFirstOrElseWithPredicateOfSome() {
-        Observable<String> src = Observable.just("a", "b", "c", "d", "e", "f");
+        Flowable<String> src = Flowable.just("a", "b", "c", "d", "e", "f");
         src.firstOrDefault("default", IS_D).subscribe(w);
 
         verify(w, times(1)).onNext(anyString());
         verify(w, times(1)).onNext("d");
         verify(w, never()).onError(any(Throwable.class));
-        verify(w, times(1)).onCompleted();
+        verify(w, times(1)).onComplete();
     }
 
     @Test
     public void testFirst() {
-        Observable<Integer> observable = Observable.just(1, 2, 3).first();
+        Flowable<Integer> observable = Flowable.just(1, 2, 3).first();
 
         @SuppressWarnings("unchecked")
         Observer<Integer> observer = mock(Observer.class);
@@ -107,13 +107,13 @@ public class OperatorFirstTest {
 
         InOrder inOrder = inOrder(observer);
         inOrder.verify(observer, times(1)).onNext(1);
-        inOrder.verify(observer, times(1)).onCompleted();
+        inOrder.verify(observer, times(1)).onComplete();
         inOrder.verifyNoMoreInteractions();
     }
 
     @Test
     public void testFirstWithOneElement() {
-        Observable<Integer> observable = Observable.just(1).first();
+        Flowable<Integer> observable = Flowable.just(1).first();
 
         @SuppressWarnings("unchecked")
         Observer<Integer> observer = mock(Observer.class);
@@ -121,13 +121,13 @@ public class OperatorFirstTest {
 
         InOrder inOrder = inOrder(observer);
         inOrder.verify(observer, times(1)).onNext(1);
-        inOrder.verify(observer, times(1)).onCompleted();
+        inOrder.verify(observer, times(1)).onComplete();
         inOrder.verifyNoMoreInteractions();
     }
 
     @Test
     public void testFirstWithEmpty() {
-        Observable<Integer> observable = Observable.<Integer> empty().first();
+        Flowable<Integer> observable = Flowable.<Integer> empty().first();
 
         @SuppressWarnings("unchecked")
         Observer<Integer> observer = mock(Observer.class);
@@ -141,8 +141,8 @@ public class OperatorFirstTest {
 
     @Test
     public void testFirstWithPredicate() {
-        Observable<Integer> observable = Observable.just(1, 2, 3, 4, 5, 6)
-                .first(new Func1<Integer, Boolean>() {
+        Flowable<Integer> observable = Flowable.just(1, 2, 3, 4, 5, 6)
+                .first(new Function<Integer, Boolean>() {
 
                     @Override
                     public Boolean call(Integer t1) {
@@ -156,14 +156,14 @@ public class OperatorFirstTest {
 
         InOrder inOrder = inOrder(observer);
         inOrder.verify(observer, times(1)).onNext(2);
-        inOrder.verify(observer, times(1)).onCompleted();
+        inOrder.verify(observer, times(1)).onComplete();
         inOrder.verifyNoMoreInteractions();
     }
 
     @Test
     public void testFirstWithPredicateAndOneElement() {
-        Observable<Integer> observable = Observable.just(1, 2).first(
-                new Func1<Integer, Boolean>() {
+        Flowable<Integer> observable = Flowable.just(1, 2).first(
+                new Function<Integer, Boolean>() {
 
                     @Override
                     public Boolean call(Integer t1) {
@@ -177,14 +177,14 @@ public class OperatorFirstTest {
 
         InOrder inOrder = inOrder(observer);
         inOrder.verify(observer, times(1)).onNext(2);
-        inOrder.verify(observer, times(1)).onCompleted();
+        inOrder.verify(observer, times(1)).onComplete();
         inOrder.verifyNoMoreInteractions();
     }
 
     @Test
     public void testFirstWithPredicateAndEmpty() {
-        Observable<Integer> observable = Observable.just(1).first(
-                new Func1<Integer, Boolean>() {
+        Flowable<Integer> observable = Flowable.just(1).first(
+                new Function<Integer, Boolean>() {
 
                     @Override
                     public Boolean call(Integer t1) {
@@ -203,7 +203,7 @@ public class OperatorFirstTest {
 
     @Test
     public void testFirstOrDefault() {
-        Observable<Integer> observable = Observable.just(1, 2, 3)
+        Flowable<Integer> observable = Flowable.just(1, 2, 3)
                 .firstOrDefault(4);
 
         @SuppressWarnings("unchecked")
@@ -212,13 +212,13 @@ public class OperatorFirstTest {
 
         InOrder inOrder = inOrder(observer);
         inOrder.verify(observer, times(1)).onNext(1);
-        inOrder.verify(observer, times(1)).onCompleted();
+        inOrder.verify(observer, times(1)).onComplete();
         inOrder.verifyNoMoreInteractions();
     }
 
     @Test
     public void testFirstOrDefaultWithOneElement() {
-        Observable<Integer> observable = Observable.just(1).firstOrDefault(2);
+        Flowable<Integer> observable = Flowable.just(1).firstOrDefault(2);
 
         @SuppressWarnings("unchecked")
         Observer<Integer> observer = mock(Observer.class);
@@ -226,13 +226,13 @@ public class OperatorFirstTest {
 
         InOrder inOrder = inOrder(observer);
         inOrder.verify(observer, times(1)).onNext(1);
-        inOrder.verify(observer, times(1)).onCompleted();
+        inOrder.verify(observer, times(1)).onComplete();
         inOrder.verifyNoMoreInteractions();
     }
 
     @Test
     public void testFirstOrDefaultWithEmpty() {
-        Observable<Integer> observable = Observable.<Integer> empty()
+        Flowable<Integer> observable = Flowable.<Integer> empty()
                 .firstOrDefault(1);
 
         @SuppressWarnings("unchecked")
@@ -241,14 +241,14 @@ public class OperatorFirstTest {
 
         InOrder inOrder = inOrder(observer);
         inOrder.verify(observer, times(1)).onNext(1);
-        inOrder.verify(observer, times(1)).onCompleted();
+        inOrder.verify(observer, times(1)).onComplete();
         inOrder.verifyNoMoreInteractions();
     }
 
     @Test
     public void testFirstOrDefaultWithPredicate() {
-        Observable<Integer> observable = Observable.just(1, 2, 3, 4, 5, 6)
-                .firstOrDefault(8, new Func1<Integer, Boolean>() {
+        Flowable<Integer> observable = Flowable.just(1, 2, 3, 4, 5, 6)
+                .firstOrDefault(8, new Function<Integer, Boolean>() {
 
                     @Override
                     public Boolean call(Integer t1) {
@@ -262,14 +262,14 @@ public class OperatorFirstTest {
 
         InOrder inOrder = inOrder(observer);
         inOrder.verify(observer, times(1)).onNext(2);
-        inOrder.verify(observer, times(1)).onCompleted();
+        inOrder.verify(observer, times(1)).onComplete();
         inOrder.verifyNoMoreInteractions();
     }
 
     @Test
     public void testFirstOrDefaultWithPredicateAndOneElement() {
-        Observable<Integer> observable = Observable.just(1, 2).firstOrDefault(
-                4, new Func1<Integer, Boolean>() {
+        Flowable<Integer> observable = Flowable.just(1, 2).firstOrDefault(
+                4, new Function<Integer, Boolean>() {
 
                     @Override
                     public Boolean call(Integer t1) {
@@ -283,14 +283,14 @@ public class OperatorFirstTest {
 
         InOrder inOrder = inOrder(observer);
         inOrder.verify(observer, times(1)).onNext(2);
-        inOrder.verify(observer, times(1)).onCompleted();
+        inOrder.verify(observer, times(1)).onComplete();
         inOrder.verifyNoMoreInteractions();
     }
 
     @Test
     public void testFirstOrDefaultWithPredicateAndEmpty() {
-        Observable<Integer> observable = Observable.just(1).firstOrDefault(2,
-                new Func1<Integer, Boolean>() {
+        Flowable<Integer> observable = Flowable.just(1).firstOrDefault(2,
+                new Function<Integer, Boolean>() {
 
                     @Override
                     public Boolean call(Integer t1) {
@@ -304,7 +304,7 @@ public class OperatorFirstTest {
 
         InOrder inOrder = inOrder(observer);
         inOrder.verify(observer, times(1)).onNext(2);
-        inOrder.verify(observer, times(1)).onCompleted();
+        inOrder.verify(observer, times(1)).onComplete();
         inOrder.verifyNoMoreInteractions();
     }
 }

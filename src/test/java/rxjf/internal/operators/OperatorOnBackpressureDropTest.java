@@ -22,8 +22,8 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import org.junit.Test;
 
-import rx.Observable;
-import rx.Observable.OnSubscribe;
+import rx.Flowable;
+import rx.Flowable.OnSubscribe;
 import rx.Observer;
 import rx.Subscriber;
 import rx.internal.util.RxRingBuffer;
@@ -47,7 +47,7 @@ public class OperatorOnBackpressureDropTest {
     @Test(timeout = 500)
     public void testWithObserveOn() throws InterruptedException {
         TestSubscriber<Integer> ts = new TestSubscriber<Integer>();
-        Observable.range(0, RxRingBuffer.SIZE * 10).onBackpressureDrop().onBackpressureDrop().observeOn(Schedulers.io()).subscribe(ts);
+        Flowable.range(0, RxRingBuffer.SIZE * 10).onBackpressureDrop().onBackpressureDrop().observeOn(Schedulers.io()).subscribe(ts);
         ts.awaitTerminalEvent();
     }
 
@@ -58,7 +58,7 @@ public class OperatorOnBackpressureDropTest {
         TestSubscriber<Long> ts = new TestSubscriber<Long>(new Observer<Long>() {
 
             @Override
-            public void onCompleted() {
+            public void onComplete() {
             }
 
             @Override
@@ -101,7 +101,7 @@ public class OperatorOnBackpressureDropTest {
             }
             
             @Override
-            public void onCompleted() {
+            public void onComplete() {
             }
 
             @Override
@@ -118,7 +118,7 @@ public class OperatorOnBackpressureDropTest {
         assertEquals(n, count.get());
     }
 
-    static final Observable<Long> infinite = Observable.create(new OnSubscribe<Long>() {
+    static final Flowable<Long> infinite = Flowable.create(new OnSubscribe<Long>() {
 
         @Override
         public void call(Subscriber<? super Long> s) {
@@ -130,8 +130,8 @@ public class OperatorOnBackpressureDropTest {
 
     });
     
-    private static final Observable<Long> range(final long n) {
-        return Observable.create(new OnSubscribe<Long>() {
+    private static final Flowable<Long> range(final long n) {
+        return Flowable.create(new OnSubscribe<Long>() {
 
             @Override
             public void call(Subscriber<? super Long> s) {
@@ -141,7 +141,7 @@ public class OperatorOnBackpressureDropTest {
                     }
                     s.onNext(i);
                 }
-                s.onCompleted();
+                s.onComplete();
             }
     
         });

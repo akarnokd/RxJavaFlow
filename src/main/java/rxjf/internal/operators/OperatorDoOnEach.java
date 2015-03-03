@@ -56,7 +56,7 @@ public final class OperatorDoOnEach<T> implements Operator<T, T> {
                     onError(e);
                     return;
                 }
-                // Set `done` here so that the error in `doOnEachObserver.onCompleted()` can be noticed by observer
+                // Set `done` here so that the error in `doOnEachObserver.onComplete()` can be noticed by observer
                 done = true;
                 child.onComplete();
             }

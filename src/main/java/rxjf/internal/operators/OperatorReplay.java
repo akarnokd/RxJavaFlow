@@ -16,8 +16,8 @@
 package rx.internal.operators;
 
 
-import rx.Observable;
-import rx.Observable.OnSubscribe;
+import rx.Flowable;
+import rx.Flowable.OnSubscribe;
 import rx.Scheduler;
 import rx.Subscriber;
 import rx.subjects.Subject;
@@ -26,7 +26,7 @@ import rx.subjects.Subject;
  * Replay with limited buffer and/or time constraints.
  * 
  * 
- * @see <a href='http://msdn.microsoft.com/en-us/library/system.reactive.linq.observable.replay.aspx'>MSDN: Observable.Replay overloads</a>
+ * @see <a href='http://msdn.microsoft.com/en-us/library/system.reactive.linq.observable.replay.aspx'>MSDN: Flowable.Replay overloads</a>
  */
 public final class OperatorReplay {
     /** Utility class. */
@@ -43,7 +43,7 @@ public final class OperatorReplay {
      * @return the created subject
      */
     public static <T> Subject<T, T> createScheduledSubject(Subject<T, T> subject, Scheduler scheduler) {
-        final Observable<T> observedOn = subject.observeOn(scheduler);
+        final Flowable<T> observedOn = subject.observeOn(scheduler);
         SubjectWrapper<T> s = new SubjectWrapper<T>(new OnSubscribe<T>() {
 
             @Override
@@ -62,7 +62,7 @@ public final class OperatorReplay {
      * @param target the target observable
      * @return the function that delegates the subscription to the target
      */
-    public static <T> OnSubscribe<T> subscriberOf(final Observable<T> target) {
+    public static <T> OnSubscribe<T> subscriberOf(final Flowable<T> target) {
         return new OnSubscribe<T>() {
             @Override
             public void call(Subscriber<? super T> t1) {
@@ -95,8 +95,8 @@ public final class OperatorReplay {
         }
 
         @Override
-        public void onCompleted() {
-            subject.onCompleted();
+        public void onComplete() {
+            subject.onComplete();
         }
 
         @Override

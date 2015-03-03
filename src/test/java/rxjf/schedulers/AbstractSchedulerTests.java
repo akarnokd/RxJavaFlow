@@ -308,7 +308,7 @@ public abstract class AbstractSchedulerTests {
                     @Override
                     public void call() {
                         if (i > 42) {
-                            observer.onCompleted();
+                            observer.onComplete();
                             return;
                         }
 
@@ -403,7 +403,7 @@ public abstract class AbstractSchedulerTests {
                             @Override
                             public void call(Subscriber<? super String> observer) {
                                 observer.onNext("value_after_map-" + v);
-                                observer.onCompleted();
+                                observer.onComplete();
                             }
                         }).subscribeOn(scheduler);
                     }
@@ -435,7 +435,7 @@ public abstract class AbstractSchedulerTests {
         final CountDownLatch completed = new CountDownLatch(1);
 
         @Override
-        public void onCompleted() {
+        public void onComplete() {
             completed.countDown();
         }
 

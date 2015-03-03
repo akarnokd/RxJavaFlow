@@ -34,10 +34,10 @@ import org.junit.Test;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 
-import rx.Observable;
+import rx.Flowable;
 import rx.Observer;
 import rx.functions.Func0;
-import rx.functions.Func1;
+import rx.functions.Function;
 import rx.internal.operators.OperatorToMultimap.DefaultMultimapCollectionFactory;
 import rx.internal.operators.OperatorToMultimap.DefaultToMultimapFactory;
 import rx.internal.util.UtilityFunctions;
@@ -51,13 +51,13 @@ public class OperatorToMultimapTest {
         MockitoAnnotations.initMocks(this);
     }
 
-    Func1<String, Integer> lengthFunc = new Func1<String, Integer>() {
+    Function<String, Integer> lengthFunc = new Function<String, Integer>() {
         @Override
         public Integer call(String t1) {
             return t1.length();
         }
     };
-    Func1<String, String> duplicate = new Func1<String, String>() {
+    Function<String, String> duplicate = new Function<String, String>() {
         @Override
         public String call(String t1) {
             return t1 + t1;
@@ -66,9 +66,9 @@ public class OperatorToMultimapTest {
 
     @Test
     public void testToMultimap() {
-        Observable<String> source = Observable.just("a", "b", "cc", "dd");
+        Flowable<String> source = Flowable.just("a", "b", "cc", "dd");
 
-        Observable<Map<Integer, Collection<String>>> mapped = source.toMultimap(lengthFunc);
+        Flowable<Map<Integer, Collection<String>>> mapped = source.toMultimap(lengthFunc);
 
         Map<Integer, Collection<String>> expected = new HashMap<Integer, Collection<String>>();
         expected.put(1, Arrays.asList("a", "b"));
@@ -78,14 +78,14 @@ public class OperatorToMultimapTest {
 
         verify(objectObserver, never()).onError(any(Throwable.class));
         verify(objectObserver, times(1)).onNext(expected);
-        verify(objectObserver, times(1)).onCompleted();
+        verify(objectObserver, times(1)).onComplete();
     }
 
     @Test
     public void testToMultimapWithValueSelector() {
-        Observable<String> source = Observable.just("a", "b", "cc", "dd");
+        Flowable<String> source = Flowable.just("a", "b", "cc", "dd");
 
-        Observable<Map<Integer, Collection<String>>> mapped = source.toMultimap(lengthFunc, duplicate);
+        Flowable<Map<Integer, Collection<String>>> mapped = source.toMultimap(lengthFunc, duplicate);
 
         Map<Integer, Collection<String>> expected = new HashMap<Integer, Collection<String>>();
         expected.put(1, Arrays.asList("aa", "bb"));
@@ -95,12 +95,12 @@ public class OperatorToMultimapTest {
 
         verify(objectObserver, never()).onError(any(Throwable.class));
         verify(objectObserver, times(1)).onNext(expected);
-        verify(objectObserver, times(1)).onCompleted();
+        verify(objectObserver, times(1)).onComplete();
     }
 
     @Test
     public void testToMultimapWithMapFactory() {
-        Observable<String> source = Observable.just("a", "b", "cc", "dd", "eee", "fff");
+        Flowable<String> source = Flowable.just("a", "b", "cc", "dd", "eee", "fff");
 
         Func0<Map<Integer, Collection<String>>> mapFactory = new Func0<Map<Integer, Collection<String>>>() {
             @Override
@@ -117,7 +117,7 @@ public class OperatorToMultimapTest {
             }
         };
 
-        Observable<Map<Integer, Collection<String>>> mapped = source.toMultimap(
+        Flowable<Map<Integer, Collection<String>>> mapped = source.toMultimap(
                 lengthFunc, UtilityFunctions.<String>identity(),
                 mapFactory, new DefaultMultimapCollectionFactory<Integer, String>());
 
@@ -129,14 +129,14 @@ public class OperatorToMultimapTest {
 
         verify(objectObserver, never()).onError(any(Throwable.class));
         verify(objectObserver, times(1)).onNext(expected);
-        verify(objectObserver, times(1)).onCompleted();
+        verify(objectObserver, times(1)).onComplete();
     }
 
     @Test
     public void testToMultimapWithCollectionFactory() {
-        Observable<String> source = Observable.just("cc", "dd", "eee", "eee");
+        Flowable<String> source = Flowable.just("cc", "dd", "eee", "eee");
 
-        Func1<Integer, Collection<String>> collectionFactory = new Func1<Integer, Collection<String>>() {
+        Function<Integer, Collection<String>> collectionFactory = new Function<Integer, Collection<String>>() {
 
             @Override
             public Collection<String> call(Integer t1) {
@@ -148,7 +148,7 @@ public class OperatorToMultimapTest {
             }
         };
 
-        Observable<Map<Integer, Collection<String>>> mapped = source.toMultimap(
+        Flowable<Map<Integer, Collection<String>>> mapped = source.toMultimap(
                 lengthFunc, UtilityFunctions.<String>identity(),
                 new DefaultToMultimapFactory<Integer, String>(), collectionFactory);
 
@@ -160,14 +160,14 @@ public class OperatorToMultimapTest {
 
         verify(objectObserver, never()).onError(any(Throwable.class));
         verify(objectObserver, times(1)).onNext(expected);
-        verify(objectObserver, times(1)).onCompleted();
+        verify(objectObserver, times(1)).onComplete();
     }
 
     @Test
     public void testToMultimapWithError() {
-        Observable<String> source = Observable.just("a", "b", "cc", "dd");
+        Flowable<String> source = Flowable.just("a", "b", "cc", "dd");
 
-        Func1<String, Integer> lengthFuncErr = new Func1<String, Integer>() {
+        Function<String, Integer> lengthFuncErr = new Function<String, Integer>() {
             @Override
             public Integer call(String t1) {
                 if ("b".equals(t1)) {
@@ -177,7 +177,7 @@ public class OperatorToMultimapTest {
             }
         };
 
-        Observable<Map<Integer, Collection<String>>> mapped = source.toMultimap(lengthFuncErr);
+        Flowable<Map<Integer, Collection<String>>> mapped = source.toMultimap(lengthFuncErr);
 
         Map<Integer, Collection<String>> expected = new HashMap<Integer, Collection<String>>();
         expected.put(1, Arrays.asList("a", "b"));
@@ -187,14 +187,14 @@ public class OperatorToMultimapTest {
 
         verify(objectObserver, times(1)).onError(any(Throwable.class));
         verify(objectObserver, never()).onNext(expected);
-        verify(objectObserver, never()).onCompleted();
+        verify(objectObserver, never()).onComplete();
     }
 
     @Test
     public void testToMultimapWithErrorInValueSelector() {
-        Observable<String> source = Observable.just("a", "b", "cc", "dd");
+        Flowable<String> source = Flowable.just("a", "b", "cc", "dd");
 
-        Func1<String, String> duplicateErr = new Func1<String, String>() {
+        Function<String, String> duplicateErr = new Function<String, String>() {
             @Override
             public String call(String t1) {
                 if ("b".equals(t1)) {
@@ -204,7 +204,7 @@ public class OperatorToMultimapTest {
             }
         };
 
-        Observable<Map<Integer, Collection<String>>> mapped = source.toMultimap(lengthFunc, duplicateErr);
+        Flowable<Map<Integer, Collection<String>>> mapped = source.toMultimap(lengthFunc, duplicateErr);
 
         Map<Integer, Collection<String>> expected = new HashMap<Integer, Collection<String>>();
         expected.put(1, Arrays.asList("aa", "bb"));
@@ -214,12 +214,12 @@ public class OperatorToMultimapTest {
 
         verify(objectObserver, times(1)).onError(any(Throwable.class));
         verify(objectObserver, never()).onNext(expected);
-        verify(objectObserver, never()).onCompleted();
+        verify(objectObserver, never()).onComplete();
     }
 
     @Test
     public void testToMultimapWithMapThrowingFactory() {
-        Observable<String> source = Observable.just("a", "b", "cc", "dd", "eee", "fff");
+        Flowable<String> source = Flowable.just("a", "b", "cc", "dd", "eee", "fff");
 
         Func0<Map<Integer, Collection<String>>> mapFactory = new Func0<Map<Integer, Collection<String>>>() {
             @Override
@@ -228,7 +228,7 @@ public class OperatorToMultimapTest {
             }
         };
 
-        Observable<Map<Integer, Collection<String>>> mapped = source.toMultimap(lengthFunc, UtilityFunctions.<String>identity(), mapFactory);
+        Flowable<Map<Integer, Collection<String>>> mapped = source.toMultimap(lengthFunc, UtilityFunctions.<String>identity(), mapFactory);
 
         Map<Integer, Collection<String>> expected = new HashMap<Integer, Collection<String>>();
         expected.put(2, Arrays.asList("cc", "dd"));
@@ -238,14 +238,14 @@ public class OperatorToMultimapTest {
 
         verify(objectObserver, times(1)).onError(any(Throwable.class));
         verify(objectObserver, never()).onNext(expected);
-        verify(objectObserver, never()).onCompleted();
+        verify(objectObserver, never()).onComplete();
     }
 
     @Test
     public void testToMultimapWithThrowingCollectionFactory() {
-        Observable<String> source = Observable.just("cc", "cc", "eee", "eee");
+        Flowable<String> source = Flowable.just("cc", "cc", "eee", "eee");
 
-        Func1<Integer, Collection<String>> collectionFactory = new Func1<Integer, Collection<String>>() {
+        Function<Integer, Collection<String>> collectionFactory = new Function<Integer, Collection<String>>() {
 
             @Override
             public Collection<String> call(Integer t1) {
@@ -257,7 +257,7 @@ public class OperatorToMultimapTest {
             }
         };
 
-        Observable<Map<Integer, Collection<String>>> mapped = source.toMultimap(lengthFunc, UtilityFunctions.<String>identity(), new DefaultToMultimapFactory<Integer, String>(), collectionFactory);
+        Flowable<Map<Integer, Collection<String>>> mapped = source.toMultimap(lengthFunc, UtilityFunctions.<String>identity(), new DefaultToMultimapFactory<Integer, String>(), collectionFactory);
 
         Map<Integer, Collection<String>> expected = new HashMap<Integer, Collection<String>>();
         expected.put(2, Arrays.asList("cc", "dd"));
@@ -267,6 +267,6 @@ public class OperatorToMultimapTest {
 
         verify(objectObserver, times(1)).onError(any(Throwable.class));
         verify(objectObserver, never()).onNext(expected);
-        verify(objectObserver, never()).onCompleted();
+        verify(objectObserver, never()).onComplete();
     }
 }

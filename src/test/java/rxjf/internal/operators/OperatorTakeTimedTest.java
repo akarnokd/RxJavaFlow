@@ -26,7 +26,7 @@ import java.util.concurrent.TimeUnit;
 import org.junit.Test;
 import org.mockito.InOrder;
 
-import rx.Observable;
+import rx.Flowable;
 import rx.Observer;
 import rx.exceptions.TestException;
 import rx.schedulers.TestScheduler;
@@ -40,7 +40,7 @@ public class OperatorTakeTimedTest {
 
         PublishSubject<Integer> source = PublishSubject.create();
 
-        Observable<Integer> result = source.take(1, TimeUnit.SECONDS, scheduler);
+        Flowable<Integer> result = source.take(1, TimeUnit.SECONDS, scheduler);
 
         @SuppressWarnings("unchecked")
         Observer<Object> o = mock(Observer.class);
@@ -59,7 +59,7 @@ public class OperatorTakeTimedTest {
         inOrder.verify(o).onNext(1);
         inOrder.verify(o).onNext(2);
         inOrder.verify(o).onNext(3);
-        inOrder.verify(o).onCompleted();
+        inOrder.verify(o).onComplete();
         inOrder.verifyNoMoreInteractions();
 
         verify(o, never()).onNext(4);
@@ -72,7 +72,7 @@ public class OperatorTakeTimedTest {
 
         PublishSubject<Integer> source = PublishSubject.create();
 
-        Observable<Integer> result = source.take(1, TimeUnit.SECONDS, scheduler);
+        Flowable<Integer> result = source.take(1, TimeUnit.SECONDS, scheduler);
 
         @SuppressWarnings("unchecked")
         Observer<Object> o = mock(Observer.class);
@@ -95,7 +95,7 @@ public class OperatorTakeTimedTest {
         inOrder.verify(o).onError(any(TestException.class));
         inOrder.verifyNoMoreInteractions();
 
-        verify(o, never()).onCompleted();
+        verify(o, never()).onComplete();
         verify(o, never()).onNext(4);
     }
 
@@ -105,7 +105,7 @@ public class OperatorTakeTimedTest {
 
         PublishSubject<Integer> source = PublishSubject.create();
 
-        Observable<Integer> result = source.take(1, TimeUnit.SECONDS, scheduler);
+        Flowable<Integer> result = source.take(1, TimeUnit.SECONDS, scheduler);
 
         @SuppressWarnings("unchecked")
         Observer<Object> o = mock(Observer.class);
@@ -125,7 +125,7 @@ public class OperatorTakeTimedTest {
         inOrder.verify(o).onNext(1);
         inOrder.verify(o).onNext(2);
         inOrder.verify(o).onNext(3);
-        inOrder.verify(o).onCompleted();
+        inOrder.verify(o).onComplete();
         inOrder.verifyNoMoreInteractions();
 
         verify(o, never()).onNext(4);

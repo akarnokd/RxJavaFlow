@@ -19,7 +19,7 @@ package rx.internal.operators;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
 
-import rx.Observable.Operator;
+import rx.Flowable.Operator;
 import rx.Subscriber;
 import rx.internal.util.BackpressureDrainManager;
 
@@ -68,7 +68,7 @@ public class OperatorOnBackpressureBlock<T> implements Operator<T, T> {
             manager.terminateAndDrain(e);
         }
         @Override
-        public void onCompleted() {
+        public void onComplete() {
             manager.terminateAndDrain();
         }
         @Override
@@ -80,7 +80,7 @@ public class OperatorOnBackpressureBlock<T> implements Operator<T, T> {
             if (exception != null) {
                 child.onError(exception);
             } else {
-                child.onCompleted();
+                child.onComplete();
             }
         }
         @Override

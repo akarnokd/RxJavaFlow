@@ -35,13 +35,13 @@ import org.mockito.InOrder;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
 
-import rx.Observable;
-import rx.Observable.OnSubscribe;
+import rx.Flowable;
+import rx.Flowable.OnSubscribe;
 import rx.Observer;
 import rx.Subscriber;
 import rx.exceptions.TestException;
 import rx.functions.Func0;
-import rx.functions.Func1;
+import rx.functions.Function;
 import rx.observers.TestSubscriber;
 import rx.schedulers.Schedulers;
 import rx.subjects.PublishSubject;
@@ -52,21 +52,21 @@ public class OperatorTimeoutWithSelectorTest {
         PublishSubject<Integer> source = PublishSubject.create();
         final PublishSubject<Integer> timeout = PublishSubject.create();
 
-        Func1<Integer, Observable<Integer>> timeoutFunc = new Func1<Integer, Observable<Integer>>() {
+        Function<Integer, Flowable<Integer>> timeoutFunc = new Function<Integer, Flowable<Integer>>() {
             @Override
-            public Observable<Integer> call(Integer t1) {
+            public Flowable<Integer> call(Integer t1) {
                 return timeout;
             }
         };
 
-        Func0<Observable<Integer>> firstTimeoutFunc = new Func0<Observable<Integer>>() {
+        Func0<Flowable<Integer>> firstTimeoutFunc = new Func0<Flowable<Integer>>() {
             @Override
-            public Observable<Integer> call() {
+            public Flowable<Integer> call() {
                 return timeout;
             }
         };
 
-        Observable<Integer> other = Observable.from(Arrays.asList(100));
+        Flowable<Integer> other = Flowable.from(Arrays.asList(100));
 
         @SuppressWarnings("unchecked")
         Observer<Object> o = mock(Observer.class);
@@ -83,31 +83,31 @@ public class OperatorTimeoutWithSelectorTest {
         inOrder.verify(o).onNext(2);
         inOrder.verify(o).onNext(3);
         inOrder.verify(o).onNext(100);
-        inOrder.verify(o).onCompleted();
+        inOrder.verify(o).onComplete();
         verify(o, never()).onError(any(Throwable.class));
 
     }
 
     @Test
     public void testTimeoutSelectorTimeoutFirst() throws InterruptedException {
-        Observable<Integer> source = Observable.<Integer>never();
+        Flowable<Integer> source = Flowable.<Integer>never();
         final PublishSubject<Integer> timeout = PublishSubject.create();
 
-        Func1<Integer, Observable<Integer>> timeoutFunc = new Func1<Integer, Observable<Integer>>() {
+        Function<Integer, Flowable<Integer>> timeoutFunc = new Function<Integer, Flowable<Integer>>() {
             @Override
-            public Observable<Integer> call(Integer t1) {
+            public Flowable<Integer> call(Integer t1) {
                 return timeout;
             }
         };
 
-        Func0<Observable<Integer>> firstTimeoutFunc = new Func0<Observable<Integer>>() {
+        Func0<Flowable<Integer>> firstTimeoutFunc = new Func0<Flowable<Integer>>() {
             @Override
-            public Observable<Integer> call() {
+            public Flowable<Integer> call() {
                 return timeout;
             }
         };
 
-        Observable<Integer> other = Observable.from(Arrays.asList(100));
+        Flowable<Integer> other = Flowable.from(Arrays.asList(100));
 
         @SuppressWarnings("unchecked")
         Observer<Object> o = mock(Observer.class);
@@ -118,31 +118,31 @@ public class OperatorTimeoutWithSelectorTest {
         timeout.onNext(1);
         
         inOrder.verify(o).onNext(100);
-        inOrder.verify(o).onCompleted();
+        inOrder.verify(o).onComplete();
         verify(o, never()).onError(any(Throwable.class));
 
     }
 
     @Test
     public void testTimeoutSelectorFirstThrows() {
-        Observable<Integer> source = Observable.<Integer>never();
+        Flowable<Integer> source = Flowable.<Integer>never();
         final PublishSubject<Integer> timeout = PublishSubject.create();
 
-        Func1<Integer, Observable<Integer>> timeoutFunc = new Func1<Integer, Observable<Integer>>() {
+        Function<Integer, Flowable<Integer>> timeoutFunc = new Function<Integer, Flowable<Integer>>() {
             @Override
-            public Observable<Integer> call(Integer t1) {
+            public Flowable<Integer> call(Integer t1) {
                 return timeout;
             }
         };
 
-        Func0<Observable<Integer>> firstTimeoutFunc = new Func0<Observable<Integer>>() {
+        Func0<Flowable<Integer>> firstTimeoutFunc = new Func0<Flowable<Integer>>() {
             @Override
-            public Observable<Integer> call() {
+            public Flowable<Integer> call() {
                 throw new TestException();
             }
         };
 
-        Observable<Integer> other = Observable.from(Arrays.asList(100));
+        Flowable<Integer> other = Flowable.from(Arrays.asList(100));
 
         @SuppressWarnings("unchecked")
         Observer<Object> o = mock(Observer.class);
@@ -151,7 +151,7 @@ public class OperatorTimeoutWithSelectorTest {
 
         verify(o).onError(any(TestException.class));
         verify(o, never()).onNext(any());
-        verify(o, never()).onCompleted();
+        verify(o, never()).onComplete();
 
     }
 
@@ -160,21 +160,21 @@ public class OperatorTimeoutWithSelectorTest {
         PublishSubject<Integer> source = PublishSubject.create();
         final PublishSubject<Integer> timeout = PublishSubject.create();
 
-        Func1<Integer, Observable<Integer>> timeoutFunc = new Func1<Integer, Observable<Integer>>() {
+        Function<Integer, Flowable<Integer>> timeoutFunc = new Function<Integer, Flowable<Integer>>() {
             @Override
-            public Observable<Integer> call(Integer t1) {
+            public Flowable<Integer> call(Integer t1) {
                 throw new TestException();
             }
         };
 
-        Func0<Observable<Integer>> firstTimeoutFunc = new Func0<Observable<Integer>>() {
+        Func0<Flowable<Integer>> firstTimeoutFunc = new Func0<Flowable<Integer>>() {
             @Override
-            public Observable<Integer> call() {
+            public Flowable<Integer> call() {
                 return timeout;
             }
         };
 
-        Observable<Integer> other = Observable.from(Arrays.asList(100));
+        Flowable<Integer> other = Flowable.from(Arrays.asList(100));
 
         @SuppressWarnings("unchecked")
         Observer<Object> o = mock(Observer.class);
@@ -186,30 +186,30 @@ public class OperatorTimeoutWithSelectorTest {
 
         inOrder.verify(o).onNext(1);
         inOrder.verify(o).onError(any(TestException.class));
-        verify(o, never()).onCompleted();
+        verify(o, never()).onComplete();
 
     }
 
     @Test
-    public void testTimeoutSelectorFirstObservableThrows() {
+    public void testTimeoutSelectorFirstFlowableThrows() {
         PublishSubject<Integer> source = PublishSubject.create();
         final PublishSubject<Integer> timeout = PublishSubject.create();
 
-        Func1<Integer, Observable<Integer>> timeoutFunc = new Func1<Integer, Observable<Integer>>() {
+        Function<Integer, Flowable<Integer>> timeoutFunc = new Function<Integer, Flowable<Integer>>() {
             @Override
-            public Observable<Integer> call(Integer t1) {
+            public Flowable<Integer> call(Integer t1) {
                 return timeout;
             }
         };
 
-        Func0<Observable<Integer>> firstTimeoutFunc = new Func0<Observable<Integer>>() {
+        Func0<Flowable<Integer>> firstTimeoutFunc = new Func0<Flowable<Integer>>() {
             @Override
-            public Observable<Integer> call() {
-                return Observable.<Integer> error(new TestException());
+            public Flowable<Integer> call() {
+                return Flowable.<Integer> error(new TestException());
             }
         };
 
-        Observable<Integer> other = Observable.from(Arrays.asList(100));
+        Flowable<Integer> other = Flowable.from(Arrays.asList(100));
 
         @SuppressWarnings("unchecked")
         Observer<Object> o = mock(Observer.class);
@@ -218,30 +218,30 @@ public class OperatorTimeoutWithSelectorTest {
 
         verify(o).onError(any(TestException.class));
         verify(o, never()).onNext(any());
-        verify(o, never()).onCompleted();
+        verify(o, never()).onComplete();
 
     }
 
     @Test
-    public void testTimeoutSelectorSubsequentObservableThrows() {
+    public void testTimeoutSelectorSubsequentFlowableThrows() {
         PublishSubject<Integer> source = PublishSubject.create();
         final PublishSubject<Integer> timeout = PublishSubject.create();
 
-        Func1<Integer, Observable<Integer>> timeoutFunc = new Func1<Integer, Observable<Integer>>() {
+        Function<Integer, Flowable<Integer>> timeoutFunc = new Function<Integer, Flowable<Integer>>() {
             @Override
-            public Observable<Integer> call(Integer t1) {
-                return Observable.<Integer> error(new TestException());
+            public Flowable<Integer> call(Integer t1) {
+                return Flowable.<Integer> error(new TestException());
             }
         };
 
-        Func0<Observable<Integer>> firstTimeoutFunc = new Func0<Observable<Integer>>() {
+        Func0<Flowable<Integer>> firstTimeoutFunc = new Func0<Flowable<Integer>>() {
             @Override
-            public Observable<Integer> call() {
+            public Flowable<Integer> call() {
                 return timeout;
             }
         };
 
-        Observable<Integer> other = Observable.from(Arrays.asList(100));
+        Flowable<Integer> other = Flowable.from(Arrays.asList(100));
 
         @SuppressWarnings("unchecked")
         Observer<Object> o = mock(Observer.class);
@@ -253,25 +253,25 @@ public class OperatorTimeoutWithSelectorTest {
 
         inOrder.verify(o).onNext(1);
         inOrder.verify(o).onError(any(TestException.class));
-        verify(o, never()).onCompleted();
+        verify(o, never()).onComplete();
 
     }
 
     @Test
-    public void testTimeoutSelectorWithFirstTimeoutFirstAndNoOtherObservable() {
+    public void testTimeoutSelectorWithFirstTimeoutFirstAndNoOtherFlowable() {
         PublishSubject<Integer> source = PublishSubject.create();
         final PublishSubject<Integer> timeout = PublishSubject.create();
 
-        Func0<Observable<Integer>> firstTimeoutFunc = new Func0<Observable<Integer>>() {
+        Func0<Flowable<Integer>> firstTimeoutFunc = new Func0<Flowable<Integer>>() {
             @Override
-            public Observable<Integer> call() {
+            public Flowable<Integer> call() {
                 return timeout;
             }
         };
 
-        Func1<Integer, Observable<Integer>> timeoutFunc = new Func1<Integer, Observable<Integer>>() {
+        Function<Integer, Flowable<Integer>> timeoutFunc = new Function<Integer, Flowable<Integer>>() {
             @Override
-            public Observable<Integer> call(Integer t1) {
+            public Flowable<Integer> call(Integer t1) {
                 return PublishSubject.create();
             }
         };
@@ -288,20 +288,20 @@ public class OperatorTimeoutWithSelectorTest {
     }
 
     @Test
-    public void testTimeoutSelectorWithTimeoutFirstAndNoOtherObservable() {
+    public void testTimeoutSelectorWithTimeoutFirstAndNoOtherFlowable() {
         PublishSubject<Integer> source = PublishSubject.create();
         final PublishSubject<Integer> timeout = PublishSubject.create();
 
-        Func0<Observable<Integer>> firstTimeoutFunc = new Func0<Observable<Integer>>() {
+        Func0<Flowable<Integer>> firstTimeoutFunc = new Func0<Flowable<Integer>>() {
             @Override
-            public Observable<Integer> call() {
+            public Flowable<Integer> call() {
                 return PublishSubject.create();
             }
         };
 
-        Func1<Integer, Observable<Integer>> timeoutFunc = new Func1<Integer, Observable<Integer>>() {
+        Function<Integer, Flowable<Integer>> timeoutFunc = new Function<Integer, Flowable<Integer>>() {
             @Override
-            public Observable<Integer> call(Integer t1) {
+            public Flowable<Integer> call(Integer t1) {
                 return timeout;
             }
         };
@@ -339,12 +339,12 @@ public class OperatorTimeoutWithSelectorTest {
         final CountDownLatch enteredTimeoutOne = new CountDownLatch(1);
         final AtomicBoolean latchTimeout = new AtomicBoolean(false);
 
-        final Func1<Integer, Observable<Integer>> timeoutFunc = new Func1<Integer, Observable<Integer>>() {
+        final Function<Integer, Flowable<Integer>> timeoutFunc = new Function<Integer, Flowable<Integer>>() {
             @Override
-            public Observable<Integer> call(Integer t1) {
+            public Flowable<Integer> call(Integer t1) {
                 if (t1 == 1) {
                     // Force "unsubscribe" run on another thread
-                    return Observable.create(new OnSubscribe<Integer>() {
+                    return Flowable.create(new OnSubscribe<Integer>() {
                         @Override
                         public void call(Subscriber<? super Integer> subscriber) {
                             enteredTimeoutOne.countDown();
@@ -391,7 +391,7 @@ public class OperatorTimeoutWithSelectorTest {
                 return null;
             }
 
-        }).when(o).onCompleted();
+        }).when(o).onComplete();
 
         final TestSubscriber<Integer> ts = new TestSubscriber<Integer>(o);
 
@@ -400,7 +400,7 @@ public class OperatorTimeoutWithSelectorTest {
             @Override
             public void run() {
                 PublishSubject<Integer> source = PublishSubject.create();
-                source.timeout(timeoutFunc, Observable.just(3)).subscribe(ts);
+                source.timeout(timeoutFunc, Flowable.just(3)).subscribe(ts);
                 source.onNext(1); // start timeout
                 try {
                     if(!enteredTimeoutOne.await(30, TimeUnit.SECONDS)) {
@@ -417,7 +417,7 @@ public class OperatorTimeoutWithSelectorTest {
                 } catch (InterruptedException e) {
                     e.printStackTrace();
                 }
-                source.onCompleted();
+                source.onComplete();
             }
 
         }).start();
@@ -432,7 +432,7 @@ public class OperatorTimeoutWithSelectorTest {
         inOrder.verify(o).onNext(1);
         inOrder.verify(o).onNext(2);
         inOrder.verify(o, never()).onNext(3);
-        inOrder.verify(o).onCompleted();
+        inOrder.verify(o).onComplete();
         inOrder.verifyNoMoreInteractions();
     }
 }

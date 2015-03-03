@@ -19,7 +19,7 @@ import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 
-import rx.Observable.Operator;
+import rx.Flowable.Operator;
 import rx.Producer;
 import rx.Subscriber;
 import rx.exceptions.MissingBackpressureException;
@@ -85,7 +85,7 @@ public class OperatorOnBackpressureBuffer<T> implements Operator<T, T> {
         }
 
         @Override
-        public void onCompleted() {
+        public void onComplete() {
             if (!saturated.get()) {
                 manager.terminateAndDrain();
             }
@@ -116,7 +116,7 @@ public class OperatorOnBackpressureBuffer<T> implements Operator<T, T> {
             if (exception != null) {
                 child.onError(exception);
             } else {
-                child.onCompleted();
+                child.onComplete();
             }
         }
         @Override

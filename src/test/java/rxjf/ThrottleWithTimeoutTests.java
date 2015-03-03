@@ -50,13 +50,13 @@ public class ThrottleWithTimeoutTests {
         s.advanceTimeTo(1300, TimeUnit.MILLISECONDS);
         o.onNext(7); // deliver
         s.advanceTimeTo(1800, TimeUnit.MILLISECONDS);
-        o.onCompleted();
+        o.onComplete();
 
         InOrder inOrder = inOrder(observer);
         inOrder.verify(observer).onNext(2);
         inOrder.verify(observer).onNext(6);
         inOrder.verify(observer).onNext(7);
-        inOrder.verify(observer).onCompleted();
+        inOrder.verify(observer).onComplete();
         inOrder.verifyNoMoreInteractions();
     }
 }

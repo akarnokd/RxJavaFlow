@@ -26,20 +26,20 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import org.junit.Test;
 
-import rx.Observable;
+import rx.Flowable;
 import rx.functions.Action1;
-import rx.functions.Func1;
+import rx.functions.Function;
 import rx.observers.TestSubscriber;
 import rx.schedulers.Schedulers;
 
 public class OperatorWindowWithSizeTest {
 
-    private static <T> List<List<T>> toLists(Observable<Observable<T>> observables) {
+    private static <T> List<List<T>> toLists(Flowable<Flowable<T>> observables) {
 
         final List<List<T>> lists = new ArrayList<List<T>>();
-        Observable.concat(observables.map(new Func1<Observable<T>, Observable<List<T>>>() {
+        Flowable.concat(observables.map(new Function<Flowable<T>, Flowable<List<T>>>() {
             @Override
-            public Observable<List<T>> call(Observable<T> xs) {
+            public Flowable<List<T>> call(Flowable<T> xs) {
                 return xs.toList();
             }
         }))
@@ -55,8 +55,8 @@ public class OperatorWindowWithSizeTest {
 
     @Test
     public void testNonOverlappingWindows() {
-        Observable<String> subject = Observable.just("one", "two", "three", "four", "five");
-        Observable<Observable<String>> windowed = subject.window(3);
+        Flowable<String> subject = Flowable.just("one", "two", "three", "four", "five");
+        Flowable<Flowable<String>> windowed = subject.window(3);
 
         List<List<String>> windows = toLists(windowed);
 
@@ -67,8 +67,8 @@ public class OperatorWindowWithSizeTest {
 
     @Test
     public void testSkipAndCountGaplessWindows() {
-        Observable<String> subject = Observable.just("one", "two", "three", "four", "five");
-        Observable<Observable<String>> windowed = subject.window(3, 3);
+        Flowable<String> subject = Flowable.just("one", "two", "three", "four", "five");
+        Flowable<Flowable<String>> windowed = subject.window(3, 3);
 
         List<List<String>> windows = toLists(windowed);
 
@@ -79,8 +79,8 @@ public class OperatorWindowWithSizeTest {
 
     @Test
     public void testOverlappingWindows() {
-        Observable<String> subject = Observable.from(new String[] { "zero", "one", "two", "three", "four", "five" });
-        Observable<Observable<String>> windowed = subject.window(3, 1);
+        Flowable<String> subject = Flowable.from(new String[] { "zero", "one", "two", "three", "four", "five" });
+        Flowable<Flowable<String>> windowed = subject.window(3, 1);
 
         List<List<String>> windows = toLists(windowed);
 
@@ -95,8 +95,8 @@ public class OperatorWindowWithSizeTest {
 
     @Test
     public void testSkipAndCountWindowsWithGaps() {
-        Observable<String> subject = Observable.just("one", "two", "three", "four", "five");
-        Observable<Observable<String>> windowed = subject.window(2, 3);
+        Flowable<String> subject = Flowable.just("one", "two", "three", "four", "five");
+        Flowable<Flowable<String>> windowed = subject.window(2, 3);
 
         List<List<String>> windows = toLists(windowed);
 
@@ -109,7 +109,7 @@ public class OperatorWindowWithSizeTest {
     public void testWindowUnsubscribeNonOverlapping() {
         TestSubscriber<Integer> ts = new TestSubscriber<Integer>();
         final AtomicInteger count = new AtomicInteger();
-        Observable.merge(Observable.range(1, 10000).doOnNext(new Action1<Integer>() {
+        Flowable.merge(Flowable.range(1, 10000).doOnNext(new Action1<Integer>() {
 
             @Override
             public void call(Integer t1) {
@@ -128,7 +128,7 @@ public class OperatorWindowWithSizeTest {
     public void testWindowUnsubscribeNonOverlappingAsyncSource() {
         TestSubscriber<Integer> ts = new TestSubscriber<Integer>();
         final AtomicInteger count = new AtomicInteger();
-        Observable.merge(Observable.range(1, 100000)
+        Flowable.merge(Flowable.range(1, 100000)
                 .doOnNext(new Action1<Integer>() {
 
                     @Override
@@ -152,7 +152,7 @@ public class OperatorWindowWithSizeTest {
     public void testWindowUnsubscribeOverlapping() {
         TestSubscriber<Integer> ts = new TestSubscriber<Integer>();
         final AtomicInteger count = new AtomicInteger();
-        Observable.merge(Observable.range(1, 10000).doOnNext(new Action1<Integer>() {
+        Flowable.merge(Flowable.range(1, 10000).doOnNext(new Action1<Integer>() {
 
             @Override
             public void call(Integer t1) {
@@ -171,7 +171,7 @@ public class OperatorWindowWithSizeTest {
     public void testWindowUnsubscribeOverlappingAsyncSource() {
         TestSubscriber<Integer> ts = new TestSubscriber<Integer>();
         final AtomicInteger count = new AtomicInteger();
-        Observable.merge(Observable.range(1, 100000)
+        Flowable.merge(Flowable.range(1, 100000)
                 .doOnNext(new Action1<Integer>() {
 
                     @Override

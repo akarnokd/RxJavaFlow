@@ -16,7 +16,7 @@
 package rx.internal.operators;
 
 import java.util.concurrent.TimeUnit;
-import rx.Observable.Operator;
+import rx.Flowable.Operator;
 import rx.Scheduler;
 import rx.Scheduler.Worker;
 import rx.Subscriber;
@@ -82,7 +82,7 @@ public final class OperatorDebounceWithTime<T> implements Operator<T, T> {
             }
             
             @Override
-            public void onCompleted() {
+            public void onComplete() {
                 state.emitAndComplete(s, this);
             }
         };
@@ -140,7 +140,7 @@ public final class OperatorDebounceWithTime<T> implements Operator<T, T> {
                 }
             }
             
-            onNextAndComplete.onCompleted();
+            onNextAndComplete.onComplete();
         }
         public void emitAndComplete(Subscriber<T> onNextAndComplete, Subscriber<?> onError) {
             T localValue;
@@ -168,7 +168,7 @@ public final class OperatorDebounceWithTime<T> implements Operator<T, T> {
                     return;
                 }
             }
-            onNextAndComplete.onCompleted();
+            onNextAndComplete.onComplete();
         }
         public synchronized void clear() {
             ++index;

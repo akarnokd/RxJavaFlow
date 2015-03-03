@@ -34,7 +34,7 @@ import org.junit.Test;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 
-import rx.Observable;
+import rx.Flowable;
 import rx.Observer;
 import rx.Subscriber;
 
@@ -50,8 +50,8 @@ public class OperatorSerializeTest {
 
     @Test
     public void testSingleThreadedBasic() {
-        TestSingleThreadedObservable onSubscribe = new TestSingleThreadedObservable("one", "two", "three");
-        Observable<String> w = Observable.create(onSubscribe);
+        TestSingleThreadedFlowable onSubscribe = new TestSingleThreadedFlowable("one", "two", "three");
+        Flowable<String> w = Flowable.create(onSubscribe);
 
         w.serialize().subscribe(observer);
         onSubscribe.waitToFinish();
@@ -60,7 +60,7 @@ public class OperatorSerializeTest {
         verify(observer, times(1)).onNext("two");
         verify(observer, times(1)).onNext("three");
         verify(observer, never()).onError(any(Throwable.class));
-        verify(observer, times(1)).onCompleted();
+        verify(observer, times(1)).onComplete();
         // non-deterministic because unsubscribe happens after 'waitToFinish' releases
         // so commenting out for now as this is not a critical thing to test here
         //            verify(s, times(1)).unsubscribe();
@@ -68,8 +68,8 @@ public class OperatorSerializeTest {
 
     @Test
     public void testMultiThreadedBasic() {
-        TestMultiThreadedObservable onSubscribe = new TestMultiThreadedObservable("one", "two", "three");
-        Observable<String> w = Observable.create(onSubscribe);
+        TestMultiThreadedFlowable onSubscribe = new TestMultiThreadedFlowable("one", "two", "three");
+        Flowable<String> w = Flowable.create(onSubscribe);
 
         BusyObserver busyobserver = new BusyObserver();
 
@@ -78,7 +78,7 @@ public class OperatorSerializeTest {
 
         assertEquals(3, busyobserver.onNextCount.get());
         assertFalse(busyobserver.onError);
-        assertTrue(busyobserver.onCompleted);
+        assertTrue(busyobserver.onComplete());
         // non-deterministic because unsubscribe happens after 'waitToFinish' releases
         // so commenting out for now as this is not a critical thing to test here
         //            verify(s, times(1)).unsubscribe();
@@ -91,8 +91,8 @@ public class OperatorSerializeTest {
 
     @Test
     public void testMultiThreadedWithNPE() {
-        TestMultiThreadedObservable onSubscribe = new TestMultiThreadedObservable("one", "two", "three", null);
-        Observable<String> w = Observable.create(onSubscribe);
+        TestMultiThreadedFlowable onSubscribe = new TestMultiThreadedFlowable("one", "two", "three", null);
+        Flowable<String> w = Flowable.create(onSubscribe);
 
         BusyObserver busyobserver = new BusyObserver();
 
@@ -106,8 +106,8 @@ public class OperatorSerializeTest {
         // assertEquals(3, busyobserver.onNextCount.get());
         assertTrue(busyobserver.onNextCount.get() < 4);
         assertTrue(busyobserver.onError);
-        // no onCompleted because onError was invoked
-        assertFalse(busyobserver.onCompleted);
+        // no onComplete() because onError was invoked
+        assertFalse(busyobserver.onComplete());
         // non-deterministic because unsubscribe happens after 'waitToFinish' releases
         // so commenting out for now as this is not a critical thing to test here
         //verify(s, times(1)).unsubscribe();
@@ -120,8 +120,8 @@ public class OperatorSerializeTest {
 
     @Test
     public void testMultiThreadedWithNPEinMiddle() {
-        TestMultiThreadedObservable onSubscribe = new TestMultiThreadedObservable("one", "two", "three", null, "four", "five", "six", "seven", "eight", "nine");
-        Observable<String> w = Observable.create(onSubscribe);
+        TestMultiThreadedFlowable onSubscribe = new TestMultiThreadedFlowable("one", "two", "three", null, "four", "five", "six", "seven", "eight", "nine");
+        Flowable<String> w = Flowable.create(onSubscribe);
 
         BusyObserver busyobserver = new BusyObserver();
 
@@ -133,8 +133,8 @@ public class OperatorSerializeTest {
         System.out.println("onNext count: " + busyobserver.onNextCount.get());
         assertTrue(busyobserver.onNextCount.get() < 9);
         assertTrue(busyobserver.onError);
-        // no onCompleted because onError was invoked
-        assertFalse(busyobserver.onCompleted);
+        // no onComplete() because onError was invoked
+        assertFalse(busyobserver.onComplete());
         // non-deterministic because unsubscribe happens after 'waitToFinish' releases
         // so commenting out for now as this is not a critical thing to test here
         // verify(s, times(1)).unsubscribe();
@@ -197,55 +197,55 @@ public class OperatorSerializeTest {
             /* send the event */
             if (event == TestConcurrencyobserverEvent.onError) {
                 observer.onError(new RuntimeException("mocked exception"));
-            } else if (event == TestConcurrencyobserverEvent.onCompleted) {
-                observer.onCompleted();
+            } else if (event == TestConcurrencyobserverEvent.onComplete()) {
+                observer.onComplete();
 
             } else {
-                throw new IllegalArgumentException("Expecting either onError or onCompleted");
+                throw new IllegalArgumentException("Expecting either onError or onComplete()");
             }
         }
     }
 
     private static enum TestConcurrencyobserverEvent {
-        onCompleted, onError, onNext
+        onComplete(), onError, onNext
     }
 
     /**
      * This spawns a single thread for the subscribe execution
      */
-    private static class TestSingleThreadedObservable implements Observable.OnSubscribe<String> {
+    private static class TestSingleThreadedFlowable implements Flowable.OnSubscribe<String> {
 
         final String[] values;
         private Thread t = null;
 
-        public TestSingleThreadedObservable(final String... values) {
+        public TestSingleThreadedFlowable(final String... values) {
             this.values = values;
 
         }
 
         @Override
         public void call(final Subscriber<? super String> observer) {
-            System.out.println("TestSingleThreadedObservable subscribed to ...");
+            System.out.println("TestSingleThreadedFlowable subscribed to ...");
             t = new Thread(new Runnable() {
 
                 @Override
                 public void run() {
                     try {
-                        System.out.println("running TestSingleThreadedObservable thread");
+                        System.out.println("running TestSingleThreadedFlowable thread");
                         for (String s : values) {
-                            System.out.println("TestSingleThreadedObservable onNext: " + s);
+                            System.out.println("TestSingleThreadedFlowable onNext: " + s);
                             observer.onNext(s);
                         }
-                        observer.onCompleted();
+                        observer.onComplete();
                     } catch (Throwable e) {
                         throw new RuntimeException(e);
                     }
                 }
 
             });
-            System.out.println("starting TestSingleThreadedObservable thread");
+            System.out.println("starting TestSingleThreadedFlowable thread");
             t.start();
-            System.out.println("done starting TestSingleThreadedObservable thread");
+            System.out.println("done starting TestSingleThreadedFlowable thread");
         }
 
         public void waitToFinish() {
@@ -261,27 +261,27 @@ public class OperatorSerializeTest {
     /**
      * This spawns a thread for the subscription, then a separate thread for each onNext call.
      */
-    private static class TestMultiThreadedObservable implements Observable.OnSubscribe<String> {
+    private static class TestMultiThreadedFlowable implements Flowable.OnSubscribe<String> {
         final String[] values;
         Thread t = null;
         AtomicInteger threadsRunning = new AtomicInteger();
         AtomicInteger maxConcurrentThreads = new AtomicInteger();
         ExecutorService threadPool;
 
-        public TestMultiThreadedObservable(String... values) {
+        public TestMultiThreadedFlowable(String... values) {
             this.values = values;
             this.threadPool = Executors.newCachedThreadPool();
         }
 
         @Override
         public void call(final Subscriber<? super String> observer) {
-            System.out.println("TestMultiThreadedObservable subscribed to ...");
+            System.out.println("TestMultiThreadedFlowable subscribed to ...");
             t = new Thread(new Runnable() {
 
                 @Override
                 public void run() {
                     try {
-                        System.out.println("running TestMultiThreadedObservable thread");
+                        System.out.println("running TestMultiThreadedFlowable thread");
                         for (final String s : values) {
                             threadPool.execute(new Runnable() {
 
@@ -290,7 +290,7 @@ public class OperatorSerializeTest {
                                     threadsRunning.incrementAndGet();
                                     try {
                                         // perform onNext call
-                                        System.out.println("TestMultiThreadedObservable onNext: " + s);
+                                        System.out.println("TestMultiThreadedFlowable onNext: " + s);
                                         if (s == null) {
                                             // force an error
                                             throw new NullPointerException();
@@ -323,12 +323,12 @@ public class OperatorSerializeTest {
                     } catch (InterruptedException e) {
                         throw new RuntimeException(e);
                     }
-                    observer.onCompleted();
+                    observer.onComplete();
                 }
             });
-            System.out.println("starting TestMultiThreadedObservable thread");
+            System.out.println("starting TestMultiThreadedFlowable thread");
             t.start();
-            System.out.println("done starting TestMultiThreadedObservable thread");
+            System.out.println("done starting TestMultiThreadedFlowable thread");
         }
 
         public void waitToFinish() {
@@ -341,18 +341,18 @@ public class OperatorSerializeTest {
     }
 
     private static class BusyObserver extends Subscriber<String> {
-        volatile boolean onCompleted = false;
+        volatile boolean onComplete() = false;
         volatile boolean onError = false;
         AtomicInteger onNextCount = new AtomicInteger();
         AtomicInteger threadsRunning = new AtomicInteger();
         AtomicInteger maxConcurrentThreads = new AtomicInteger();
 
         @Override
-        public void onCompleted() {
+        public void onComplete() {
             threadsRunning.incrementAndGet();
 
-            System.out.println(">>> Busyobserver received onCompleted");
-            onCompleted = true;
+            System.out.println(">>> Busyobserver received onComplete()");
+            onComplete() = true;
 
             int concurrentThreads = threadsRunning.get();
             int maxThreads = maxConcurrentThreads.get();

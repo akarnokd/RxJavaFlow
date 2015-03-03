@@ -16,10 +16,10 @@
 package rxjf.exceptions;
 
 /**
- * Represents a {@code Throwable} that an {@code Observable} might notify its subscribers of, but that then can
+ * Represents a {@code Throwable} that an {@code Flowable} might notify its subscribers of, but that then can
  * be handled by an operator that is designed to recover from or react appropriately to such an error. You can
  * recover more information from an {@code OnErrorThrowable} than is found in a typical {@code Throwable}, such
- * as the item the {@code Observable} was trying to emit at the time the error was encountered.
+ * as the item the {@code Flowable} was trying to emit at the time the error was encountered.
  */
 public final class OnErrorThrowable extends RuntimeException {
 
@@ -100,7 +100,7 @@ public final class OnErrorThrowable extends RuntimeException {
     }
 
     /**
-     * Represents an exception that was encountered while trying to emit an item from an Observable, and
+     * Represents an exception that was encountered while trying to emit an item from an Flowable, and
      * tries to preserve that item for future use and/or reporting.
      */
     public static class OnNextValue extends RuntimeException {
@@ -113,7 +113,7 @@ public final class OnErrorThrowable extends RuntimeException {
          * the item that was intended to be emitted at the time the exception was handled.
          *
          * @param value
-         *         the item that the Observable was trying to emit at the time of the exception
+         *         the item that the Flowable was trying to emit at the time of the exception
          */
         public OnNextValue(Object value) {
             super("OnError while emitting onNext value: " + renderValue(value));
@@ -121,9 +121,9 @@ public final class OnErrorThrowable extends RuntimeException {
         }
 
         /**
-         * Retrieve the item that the Observable was trying to emit at the time this exception occurred.
+         * Retrieve the item that the Flowable was trying to emit at the time this exception occurred.
          *
-         * @return the item that the Observable was trying to emit at the time of the exception
+         * @return the item that the Flowable was trying to emit at the time of the exception
          */
         public Object getValue() {
             return value;
@@ -134,7 +134,7 @@ public final class OnErrorThrowable extends RuntimeException {
          * or calls to toString() which may throw exceptions. See PR #1401 for details.
          *
          * @param value
-         *        the item that the Observable was trying to emit at the time of the exception
+         *        the item that the Flowable was trying to emit at the time of the exception
          * @return a string version of the object if primitive, otherwise the classname of the object
          */
         private static String renderValue(Object value){

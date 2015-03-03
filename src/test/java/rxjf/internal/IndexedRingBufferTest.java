@@ -30,7 +30,7 @@ import org.junit.Test;
 import rx.Scheduler;
 import rx.Subscription;
 import rx.functions.Action0;
-import rx.functions.Func1;
+import rx.functions.Function;
 import rx.schedulers.Schedulers;
 
 public class IndexedRingBufferTest {
@@ -177,7 +177,7 @@ public class IndexedRingBufferTest {
         assertEquals(3, nextIndex); // 3, 0, 1, 2
 
         list.clear();
-        nextIndex = buffer.forEach(new Func1<String, Boolean>() {
+        nextIndex = buffer.forEach(new Function<String, Boolean>() {
 
             @Override
             public Boolean call(String t1) {
@@ -191,7 +191,7 @@ public class IndexedRingBufferTest {
         assertEquals(3, nextIndex); // we ended early so we'll go back to this index again next time
 
         list.clear();
-        nextIndex = buffer.forEach(new Func1<String, Boolean>() {
+        nextIndex = buffer.forEach(new Function<String, Boolean>() {
             int i = 0;
 
             @Override
@@ -374,8 +374,8 @@ public class IndexedRingBufferTest {
         assertEquals(0, exceptions.size());
     }
 
-    private <T> Func1<T, Boolean> accumulate(final ArrayList<T> list) {
-        return new Func1<T, Boolean>() {
+    private <T> Function<T, Boolean> accumulate(final ArrayList<T> list) {
+        return new Function<T, Boolean>() {
 
             @Override
             public Boolean call(T t1) {
@@ -387,8 +387,8 @@ public class IndexedRingBufferTest {
     }
 
     @SuppressWarnings("unused")
-    private Func1<Object, Boolean> print() {
-        return new Func1<Object, Boolean>() {
+    private Function<Object, Boolean> print() {
+        return new Function<Object, Boolean>() {
 
             @Override
             public Boolean call(Object t1) {
@@ -399,8 +399,8 @@ public class IndexedRingBufferTest {
         };
     }
 
-    private Func1<Object, Boolean> newCounterAction(final AtomicInteger c) {
-        return new Func1<Object, Boolean>() {
+    private Function<Object, Boolean> newCounterAction(final AtomicInteger c) {
+        return new Function<Object, Boolean>() {
 
             @Override
             public Boolean call(Object t1) {

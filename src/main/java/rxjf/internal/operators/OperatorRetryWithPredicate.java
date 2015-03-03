@@ -16,22 +16,22 @@
 package rx.internal.operators;
 
 import java.util.concurrent.atomic.AtomicIntegerFieldUpdater;
-import rx.Observable;
+import rx.Flowable;
 import rx.Scheduler;
 import rx.Subscriber;
 import rx.functions.Action0;
-import rx.functions.Func2;
+import rx.functions.BiFunction;
 import rx.schedulers.Schedulers;
 import rx.subscriptions.SerialSubscription;
 
-public final class OperatorRetryWithPredicate<T> implements Observable.Operator<T, Observable<T>> {
-    final Func2<Integer, Throwable, Boolean> predicate;
-    public OperatorRetryWithPredicate(Func2<Integer, Throwable, Boolean> predicate) {
+public final class OperatorRetryWithPredicate<T> implements Flowable.Operator<T, Flowable<T>> {
+    final BiFunction<Integer, Throwable, Boolean> predicate;
+    public OperatorRetryWithPredicate(BiFunction<Integer, Throwable, Boolean> predicate) {
         this.predicate = predicate;
     }
 
     @Override
-    public Subscriber<? super Observable<T>> call(final Subscriber<? super T> child) {
+    public Subscriber<? super Flowable<T>> call(final Subscriber<? super T> child) {
         final Scheduler.Worker inner = Schedulers.trampoline().createWorker();
         child.add(inner);
         
@@ -42,9 +42,9 @@ public final class OperatorRetryWithPredicate<T> implements Observable.Operator<
         return new SourceSubscriber<T>(child, predicate, inner, serialSubscription);
     }
     
-    static final class SourceSubscriber<T> extends Subscriber<Observable<T>> {
+    static final class SourceSubscriber<T> extends Subscriber<Flowable<T>> {
         final Subscriber<? super T> child;
-        final Func2<Integer, Throwable, Boolean> predicate;
+        final BiFunction<Integer, Throwable, Boolean> predicate;
         final Scheduler.Worker inner;
         final SerialSubscription serialSubscription;
         
@@ -53,7 +53,7 @@ public final class OperatorRetryWithPredicate<T> implements Observable.Operator<
         static final AtomicIntegerFieldUpdater<SourceSubscriber> ATTEMPTS_UPDATER
                 = AtomicIntegerFieldUpdater.newUpdater(SourceSubscriber.class, "attempts");
 
-        public SourceSubscriber(Subscriber<? super T> child, final Func2<Integer, Throwable, Boolean> predicate, Scheduler.Worker inner, 
+        public SourceSubscriber(Subscriber<? super T> child, final BiFunction<Integer, Throwable, Boolean> predicate, Scheduler.Worker inner, 
                 SerialSubscription serialSubscription) {
             this.child = child;
             this.predicate = predicate;
@@ -63,8 +63,8 @@ public final class OperatorRetryWithPredicate<T> implements Observable.Operator<
         
         
         @Override
-            public void onCompleted() {
-                // ignore as we expect a single nested Observable<T>
+            public void onComplete() {
+                // ignore as we expect a single nested Flowable<T>
             }
 
             @Override
@@ -73,7 +73,7 @@ public final class OperatorRetryWithPredicate<T> implements Observable.Operator<
             }
 
             @Override
-            public void onNext(final Observable<T> o) {
+            public void onNext(final Flowable<T> o) {
                 inner.schedule(new Action0() {
 
                     @Override
@@ -86,8 +86,8 @@ public final class OperatorRetryWithPredicate<T> implements Observable.Operator<
                         Subscriber<T> subscriber = new Subscriber<T>() {
 
                             @Override
-                            public void onCompleted() {
-                                child.onCompleted();
+                            public void onComplete() {
+                                child.onComplete();
                             }
 
                             @Override

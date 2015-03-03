@@ -23,7 +23,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import org.junit.Test;
 
 import rx.*;
-import rx.Observable;
+import rx.Flowable;
 import rx.functions.Action0;
 import rx.observers.TestSubscriber;
 import rx.subscriptions.Subscriptions;
@@ -33,7 +33,7 @@ public class OperatorSwitchIfEmptyTest {
     @Test
     public void testSwitchWhenNotEmpty() throws Exception {
         final AtomicBoolean subscribed = new AtomicBoolean(false);
-        final Observable<Integer> observable = Observable.just(4).switchIfEmpty(Observable.just(2)
+        final Flowable<Integer> observable = Flowable.just(4).switchIfEmpty(Flowable.just(2)
                 .doOnSubscribe(new Action0() {
                     @Override
                     public void call() {
@@ -47,7 +47,7 @@ public class OperatorSwitchIfEmptyTest {
 
     @Test
     public void testSwitchWhenEmpty() throws Exception {
-        final Observable<Integer> observable = Observable.<Integer>empty().switchIfEmpty(Observable.from(Arrays.asList(42)));
+        final Flowable<Integer> observable = Flowable.<Integer>empty().switchIfEmpty(Flowable.from(Arrays.asList(42)));
 
         assertEquals(42, observable.toBlocking().single().intValue());
     }
@@ -55,7 +55,7 @@ public class OperatorSwitchIfEmptyTest {
     @Test
     public void testSwitchWithProducer() throws Exception {
         final AtomicBoolean emitted = new AtomicBoolean(false);
-        Observable<Long> withProducer = Observable.create(new Observable.OnSubscribe<Long>() {
+        Flowable<Long> withProducer = Flowable.create(new Flowable.OnSubscribe<Long>() {
             @Override
             public void call(final Subscriber<? super Long> subscriber) {
                 subscriber.setProducer(new Producer() {
@@ -64,14 +64,14 @@ public class OperatorSwitchIfEmptyTest {
                         if (n > 0 && !emitted.get()) {
                             emitted.set(true);
                             subscriber.onNext(42L);
-                            subscriber.onCompleted();
+                            subscriber.onComplete();
                         }
                     }
                 });
             }
         });
 
-        final Observable<Long> observable = Observable.<Long>empty().switchIfEmpty(withProducer);
+        final Flowable<Long> observable = Flowable.<Long>empty().switchIfEmpty(withProducer);
         assertEquals(42, observable.toBlocking().single().intValue());
     }
 
@@ -79,7 +79,7 @@ public class OperatorSwitchIfEmptyTest {
     public void testSwitchTriggerUnsubscribe() throws Exception {
         final Subscription empty = Subscriptions.empty();
 
-        Observable<Long> withProducer = Observable.create(new Observable.OnSubscribe<Long>() {
+        Flowable<Long> withProducer = Flowable.create(new Flowable.OnSubscribe<Long>() {
             @Override
             public void call(final Subscriber<? super Long> subscriber) {
                 subscriber.add(empty);
@@ -87,12 +87,12 @@ public class OperatorSwitchIfEmptyTest {
             }
         });
 
-        final Subscription sub = Observable.<Long>empty().switchIfEmpty(withProducer).lift(new Observable.Operator<Long, Long>() {
+        final Subscription sub = Flowable.<Long>empty().switchIfEmpty(withProducer).lift(new Flowable.Operator<Long, Long>() {
             @Override
             public Subscriber<? super Long> call(final Subscriber<? super Long> child) {
                 return new Subscriber<Long>(child) {
                     @Override
-                    public void onCompleted() {
+                    public void onComplete() {
 
                     }
 
@@ -118,18 +118,18 @@ public class OperatorSwitchIfEmptyTest {
     public void testSwitchShouldTriggerUnsubscribe() {
         final Subscription s = Subscriptions.empty();
 
-        Observable.create(new Observable.OnSubscribe<Long>() {
+        Flowable.create(new Flowable.OnSubscribe<Long>() {
             @Override
             public void call(final Subscriber<? super Long> subscriber) {
                 subscriber.add(s);
-                subscriber.onCompleted();
+                subscriber.onComplete();
             }
-        }).switchIfEmpty(Observable.<Long>never()).subscribe();
+        }).switchIfEmpty(Flowable.<Long>never()).subscribe();
         assertTrue(s.isUnsubscribed());
     }
 
     @Test
-    public void testSwitchRequestAlternativeObservableWithBackpressure() {
+    public void testSwitchRequestAlternativeFlowableWithBackpressure() {
 
         TestSubscriber<Integer> ts = new TestSubscriber<Integer>() {
 
@@ -138,7 +138,7 @@ public class OperatorSwitchIfEmptyTest {
                 request(1);
             }
         };
-        Observable.<Integer>empty().switchIfEmpty(Observable.just(1, 2, 3)).subscribe(ts);
+        Flowable.<Integer>empty().switchIfEmpty(Flowable.just(1, 2, 3)).subscribe(ts);
         
         assertEquals(Arrays.asList(1), ts.getOnNextEvents());
         ts.assertNoErrors();
@@ -152,7 +152,7 @@ public class OperatorSwitchIfEmptyTest {
                 request(0);
             }
         };
-        Observable.<Integer>empty().switchIfEmpty(Observable.just(1, 2, 3)).subscribe(ts);
+        Flowable.<Integer>empty().switchIfEmpty(Flowable.just(1, 2, 3)).subscribe(ts);
         
         assertTrue(ts.getOnNextEvents().isEmpty());
         ts.assertNoErrors();

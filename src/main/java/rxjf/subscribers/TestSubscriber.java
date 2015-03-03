@@ -168,6 +168,18 @@ public class TestSubscriber<T> implements Subscriber<T> {
         }
     }
     
+    public final void assertError(Throwable throwable) {
+        if (errors.isEmpty()) {
+            throw new AssertionError("No errors");
+        } else
+        if (errors.size() > 1) {
+            throw new AssertionError("More than one error: " + errors, new CompositeException(errors));
+        } else 
+        if (!Objects.equals(throwable, errors.get(0))) {
+            throw new AssertionError("Expected: " + throwable + ", Actual: " + errors.get(0), errors.get(0));
+        }
+    }
+    
     public final void assertNoErrors() {
         if (errors.size() == 1) {
             throw new AssertionError("One error present: " + errors.get(0), errors.get(0));

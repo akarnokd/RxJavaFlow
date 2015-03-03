@@ -15,10 +15,10 @@
  */
 package rx.internal.operators;
 
-import rx.Observable;
-import rx.Observable.Operator;
+import rx.Flowable;
+import rx.Flowable.Operator;
 import rx.Subscriber;
-import rx.functions.Func1;
+import rx.functions.Function;
 import rx.observers.SerializedSubscriber;
 import rx.subjects.PublishSubject;
 
@@ -31,10 +31,10 @@ import rx.subjects.PublishSubject;
  *            the value type of the item-delaying observable
  */
 public final class OperatorDelayWithSelector<T, V> implements Operator<T, T> {
-    final Observable<? extends T> source;
-    final Func1<? super T, ? extends Observable<V>> itemDelay;
+    final Flowable<? extends T> source;
+    final Function<? super T, ? extends Flowable<V>> itemDelay;
 
-    public OperatorDelayWithSelector(Observable<? extends T> source, Func1<? super T, ? extends Observable<V>> itemDelay) {
+    public OperatorDelayWithSelector(Flowable<? extends T> source, Function<? super T, ? extends Flowable<V>> itemDelay) {
         this.source = source;
         this.itemDelay = itemDelay;
     }
@@ -42,13 +42,13 @@ public final class OperatorDelayWithSelector<T, V> implements Operator<T, T> {
     @Override
     public Subscriber<? super T> call(final Subscriber<? super T> _child) {
         final SerializedSubscriber<T> child = new SerializedSubscriber<T>(_child);
-        final PublishSubject<Observable<T>> delayedEmissions = PublishSubject.create();
+        final PublishSubject<Flowable<T>> delayedEmissions = PublishSubject.create();
 
-        _child.add(Observable.merge(delayedEmissions).unsafeSubscribe(new Subscriber<T>() {
+        _child.add(Flowable.merge(delayedEmissions).unsafeSubscribe(new Subscriber<T>() {
 
             @Override
-            public void onCompleted() {
-                child.onCompleted();
+            public void onComplete() {
+                child.onComplete();
             }
 
             @Override
@@ -66,8 +66,8 @@ public final class OperatorDelayWithSelector<T, V> implements Operator<T, T> {
         return new Subscriber<T>(_child) {
 
             @Override
-            public void onCompleted() {
-                delayedEmissions.onCompleted();
+            public void onComplete() {
+                delayedEmissions.onComplete();
             }
 
             @Override
@@ -78,7 +78,7 @@ public final class OperatorDelayWithSelector<T, V> implements Operator<T, T> {
             @Override
             public void onNext(final T t) {
                 try {
-                    delayedEmissions.onNext(itemDelay.call(t).take(1).defaultIfEmpty(null).map(new Func1<V, T>() {
+                    delayedEmissions.onNext(itemDelay.call(t).take(1).defaultIfEmpty(null).map(new Function<V, T>() {
 
                         @Override
                         public T call(V v) {

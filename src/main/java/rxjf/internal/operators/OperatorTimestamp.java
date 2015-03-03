@@ -15,13 +15,13 @@
  */
 package rx.internal.operators;
 
-import rx.Observable.Operator;
+import rx.Flowable.Operator;
 import rx.Scheduler;
 import rx.Subscriber;
 import rx.schedulers.Timestamped;
 
 /**
- * Wraps each item emitted by a source {@code Observable} in a {@link Timestamped} object.
+ * Wraps each item emitted by a source {@code Flowable} in a {@link Timestamped} object.
  * <p>
  * <img width="640" height="310" src="https://raw.githubusercontent.com/wiki/ReactiveX/RxJava/images/rx-operators/timestamp.png" alt="">
  */
@@ -41,8 +41,8 @@ public final class OperatorTimestamp<T> implements Operator<Timestamped<T>, T> {
         return new Subscriber<T>(o) {
 
             @Override
-            public void onCompleted() {
-                o.onCompleted();
+            public void onComplete() {
+                o.onComplete();
             }
 
             @Override

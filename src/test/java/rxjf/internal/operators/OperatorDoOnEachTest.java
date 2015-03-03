@@ -26,12 +26,12 @@ import org.junit.Test;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 
-import rx.Observable;
+import rx.Flowable;
 import rx.Observer;
 import rx.Subscriber;
 import rx.exceptions.OnErrorNotImplementedException;
 import rx.functions.Action1;
-import rx.functions.Func1;
+import rx.functions.Function;
 
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -50,8 +50,8 @@ public class OperatorDoOnEachTest {
 
     @Test
     public void testDoOnEach() {
-        Observable<String> base = Observable.just("a", "b", "c");
-        Observable<String> doOnEach = base.doOnEach(sideEffectObserver);
+        Flowable<String> base = Flowable.just("a", "b", "c");
+        Flowable<String> doOnEach = base.doOnEach(sideEffectObserver);
 
         doOnEach.subscribe(subscribedObserver);
 
@@ -60,20 +60,20 @@ public class OperatorDoOnEachTest {
         verify(subscribedObserver, times(1)).onNext("a");
         verify(subscribedObserver, times(1)).onNext("b");
         verify(subscribedObserver, times(1)).onNext("c");
-        verify(subscribedObserver, times(1)).onCompleted();
+        verify(subscribedObserver, times(1)).onComplete();
 
         // ensure our injected observer is getting called
         verify(sideEffectObserver, never()).onError(any(Throwable.class));
         verify(sideEffectObserver, times(1)).onNext("a");
         verify(sideEffectObserver, times(1)).onNext("b");
         verify(sideEffectObserver, times(1)).onNext("c");
-        verify(sideEffectObserver, times(1)).onCompleted();
+        verify(sideEffectObserver, times(1)).onComplete();
     }
 
     @Test
     public void testDoOnEachWithError() {
-        Observable<String> base = Observable.just("one", "fail", "two", "three", "fail");
-        Observable<String> errs = base.map(new Func1<String, String>() {
+        Flowable<String> base = Flowable.just("one", "fail", "two", "three", "fail");
+        Flowable<String> errs = base.map(new Function<String, String>() {
             @Override
             public String call(String s) {
                 if ("fail".equals(s)) {
@@ -83,26 +83,26 @@ public class OperatorDoOnEachTest {
             }
         });
 
-        Observable<String> doOnEach = errs.doOnEach(sideEffectObserver);
+        Flowable<String> doOnEach = errs.doOnEach(sideEffectObserver);
 
         doOnEach.subscribe(subscribedObserver);
         verify(subscribedObserver, times(1)).onNext("one");
         verify(subscribedObserver, never()).onNext("two");
         verify(subscribedObserver, never()).onNext("three");
-        verify(subscribedObserver, never()).onCompleted();
+        verify(subscribedObserver, never()).onComplete();
         verify(subscribedObserver, times(1)).onError(any(Throwable.class));
 
         verify(sideEffectObserver, times(1)).onNext("one");
         verify(sideEffectObserver, never()).onNext("two");
         verify(sideEffectObserver, never()).onNext("three");
-        verify(sideEffectObserver, never()).onCompleted();
+        verify(sideEffectObserver, never()).onComplete();
         verify(sideEffectObserver, times(1)).onError(any(Throwable.class));
     }
 
     @Test
     public void testDoOnEachWithErrorInCallback() {
-        Observable<String> base = Observable.just("one", "two", "fail", "three");
-        Observable<String> doOnEach = base.doOnNext(new Action1<String>() {
+        Flowable<String> base = Flowable.just("one", "two", "fail", "three");
+        Flowable<String> doOnEach = base.doOnNext(new Action1<String>() {
             @Override
             public void call(String s) {
                 if ("fail".equals(s)) {
@@ -115,7 +115,7 @@ public class OperatorDoOnEachTest {
         verify(subscribedObserver, times(1)).onNext("one");
         verify(subscribedObserver, times(1)).onNext("two");
         verify(subscribedObserver, never()).onNext("three");
-        verify(subscribedObserver, never()).onCompleted();
+        verify(subscribedObserver, never()).onComplete();
         verify(subscribedObserver, times(1)).onError(any(Throwable.class));
 
     }
@@ -126,9 +126,9 @@ public class OperatorDoOnEachTest {
         int[] nums = { 1, 2, 3 };
         final AtomicInteger count = new AtomicInteger();
         for (final int n : nums) {
-            Observable
+            Flowable
                     .just(Boolean.TRUE, Boolean.FALSE)
-                    .takeWhile(new Func1<Boolean, Boolean>() {
+                    .takeWhile(new Function<Boolean, Boolean>() {
                         @Override
                         public Boolean call(Boolean value) {
                             return value;
@@ -152,9 +152,9 @@ public class OperatorDoOnEachTest {
         int[] nums = { 1, 2, 3 };
         final AtomicInteger count = new AtomicInteger();
         for (final int n : nums) {
-            Observable
+            Flowable
                     .just(Boolean.TRUE, Boolean.FALSE, Boolean.FALSE)
-                    .takeWhile(new Func1<Boolean, Boolean>() {
+                    .takeWhile(new Function<Boolean, Boolean>() {
                         @Override
                         public Boolean call(Boolean value) {
                             return value;
@@ -175,11 +175,11 @@ public class OperatorDoOnEachTest {
     @Test
     public void testFatalError() {
         try {
-            Observable.just(1, 2, 3)
-                    .flatMap(new Func1<Integer, Observable<?>>() {
+            Flowable.just(1, 2, 3)
+                    .flatMap(new Function<Integer, Flowable<?>>() {
                         @Override
-                        public Observable<?> call(Integer integer) {
-                            return Observable.create(new Observable.OnSubscribe<Object>() {
+                        public Flowable<?> call(Integer integer) {
+                            return Flowable.create(new Flowable.OnSubscribe<Object>() {
                                 @Override
                                 public void call(Subscriber<Object> o) {
                                     throw new NullPointerException("Test NPE");

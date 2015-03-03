@@ -22,12 +22,12 @@ import rxjf.disposables.Disposable;
 import rxjf.subscribers.AbstractSubscriber;
 
 /**
- * Returns a Future representing the single value emitted by an Observable.
+ * Returns a Future representing the single value emitted by an Flowable.
  * <p>
  * <img width="640" src="https://github.com/ReactiveX/RxJava/wiki/images/rx-operators/B.toFuture.png" alt="">
  * <p>
- * The toFuture operation throws an exception if the Observable emits more than one item. If the
- * Observable may emit more than item, use <code>toList().toFuture()</code>.
+ * The toFuture operation throws an exception if the Flowable emits more than one item. If the
+ * Flowable may emit more than item, use <code>toList().toFuture()</code>.
  */
 public final class BlockingOperatorToFuture {
     private BlockingOperatorToFuture() {
@@ -40,7 +40,7 @@ public final class BlockingOperatorToFuture {
      *            an observable sequence to get a Future for.
      * @param <T>
      *            the type of source.
-     * @return the Future to retrieve a single elements from an Observable
+     * @return the Future to retrieve a single elements from an Flowable
      */
     public static <T> Future<T> toFuture(Flowable<? extends T> that) {
 

@@ -26,7 +26,7 @@ import java.util.concurrent.TimeUnit;
 import org.junit.Test;
 import org.mockito.InOrder;
 
-import rx.Observable;
+import rx.Flowable;
 import rx.Observer;
 import rx.exceptions.TestException;
 import rx.schedulers.TestScheduler;
@@ -40,7 +40,7 @@ public class OperatorSkipTimedTest {
 
         PublishSubject<Integer> source = PublishSubject.create();
 
-        Observable<Integer> result = source.skip(1, TimeUnit.SECONDS, scheduler);
+        Flowable<Integer> result = source.skip(1, TimeUnit.SECONDS, scheduler);
 
         @SuppressWarnings("unchecked")
         Observer<Object> o = mock(Observer.class);
@@ -57,7 +57,7 @@ public class OperatorSkipTimedTest {
         source.onNext(5);
         source.onNext(6);
 
-        source.onCompleted();
+        source.onComplete();
 
         InOrder inOrder = inOrder(o);
 
@@ -67,7 +67,7 @@ public class OperatorSkipTimedTest {
         inOrder.verify(o).onNext(4);
         inOrder.verify(o).onNext(5);
         inOrder.verify(o).onNext(6);
-        inOrder.verify(o).onCompleted();
+        inOrder.verify(o).onComplete();
         inOrder.verifyNoMoreInteractions();
         verify(o, never()).onError(any(Throwable.class));
     }
@@ -78,7 +78,7 @@ public class OperatorSkipTimedTest {
 
         PublishSubject<Integer> source = PublishSubject.create();
 
-        Observable<Integer> result = source.skip(1, TimeUnit.SECONDS, scheduler);
+        Flowable<Integer> result = source.skip(1, TimeUnit.SECONDS, scheduler);
 
         @SuppressWarnings("unchecked")
         Observer<Object> o = mock(Observer.class);
@@ -88,13 +88,13 @@ public class OperatorSkipTimedTest {
         source.onNext(1);
         source.onNext(2);
         source.onNext(3);
-        source.onCompleted();
+        source.onComplete();
 
         scheduler.advanceTimeBy(1, TimeUnit.SECONDS);
 
         InOrder inOrder = inOrder(o);
 
-        inOrder.verify(o).onCompleted();
+        inOrder.verify(o).onComplete();
         inOrder.verifyNoMoreInteractions();
         verify(o, never()).onNext(any());
         verify(o, never()).onError(any(Throwable.class));
@@ -106,7 +106,7 @@ public class OperatorSkipTimedTest {
 
         PublishSubject<Integer> source = PublishSubject.create();
 
-        Observable<Integer> result = source.skip(1, TimeUnit.SECONDS, scheduler);
+        Flowable<Integer> result = source.skip(1, TimeUnit.SECONDS, scheduler);
 
         @SuppressWarnings("unchecked")
         Observer<Object> o = mock(Observer.class);
@@ -125,7 +125,7 @@ public class OperatorSkipTimedTest {
         inOrder.verify(o).onError(any(TestException.class));
         inOrder.verifyNoMoreInteractions();
         verify(o, never()).onNext(any());
-        verify(o, never()).onCompleted();
+        verify(o, never()).onComplete();
     }
 
     @Test
@@ -134,7 +134,7 @@ public class OperatorSkipTimedTest {
 
         PublishSubject<Integer> source = PublishSubject.create();
 
-        Observable<Integer> result = source.skip(1, TimeUnit.SECONDS, scheduler);
+        Flowable<Integer> result = source.skip(1, TimeUnit.SECONDS, scheduler);
 
         @SuppressWarnings("unchecked")
         Observer<Object> o = mock(Observer.class);
@@ -163,7 +163,7 @@ public class OperatorSkipTimedTest {
         inOrder.verify(o).onNext(6);
         inOrder.verify(o).onError(any(TestException.class));
         inOrder.verifyNoMoreInteractions();
-        verify(o, never()).onCompleted();
+        verify(o, never()).onComplete();
 
     }
 }

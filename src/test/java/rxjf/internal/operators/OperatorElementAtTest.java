@@ -21,40 +21,40 @@ import java.util.Arrays;
 
 import org.junit.Test;
 
-import rx.Observable;
+import rx.Flowable;
 
 public class OperatorElementAtTest {
 
     @Test
     public void testElementAt() {
-        assertEquals(2, Observable.from(Arrays.asList(1, 2)).elementAt(1).toBlocking().single()
+        assertEquals(2, Flowable.from(Arrays.asList(1, 2)).elementAt(1).toBlocking().single()
                 .intValue());
     }
 
     @Test(expected = IndexOutOfBoundsException.class)
     public void testElementAtWithMinusIndex() {
-        Observable.from(Arrays.asList(1, 2)).elementAt(-1);
+        Flowable.from(Arrays.asList(1, 2)).elementAt(-1);
     }
 
     @Test(expected = IndexOutOfBoundsException.class)
     public void testElementAtWithIndexOutOfBounds() {
-        Observable.from(Arrays.asList(1, 2)).elementAt(2).toBlocking().single();
+        Flowable.from(Arrays.asList(1, 2)).elementAt(2).toBlocking().single();
     }
 
     @Test
     public void testElementAtOrDefault() {
-        assertEquals(2, Observable.from(Arrays.asList(1, 2)).elementAtOrDefault(1, 0).toBlocking()
+        assertEquals(2, Flowable.from(Arrays.asList(1, 2)).elementAtOrDefault(1, 0).toBlocking()
                 .single().intValue());
     }
 
     @Test
     public void testElementAtOrDefaultWithIndexOutOfBounds() {
-        assertEquals(0, Observable.from(Arrays.asList(1, 2)).elementAtOrDefault(2, 0).toBlocking()
+        assertEquals(0, Flowable.from(Arrays.asList(1, 2)).elementAtOrDefault(2, 0).toBlocking()
                 .single().intValue());
     }
 
     @Test(expected = IndexOutOfBoundsException.class)
     public void testElementAtOrDefaultWithMinusIndex() {
-        Observable.from(Arrays.asList(1, 2)).elementAtOrDefault(-1, 0);
+        Flowable.from(Arrays.asList(1, 2)).elementAtOrDefault(-1, 0);
     }
 }

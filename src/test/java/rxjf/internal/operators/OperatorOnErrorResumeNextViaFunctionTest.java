@@ -28,12 +28,12 @@ import java.util.concurrent.atomic.AtomicReference;
 import org.junit.Test;
 import org.mockito.Mockito;
 
-import rx.Observable;
-import rx.Observable.Operator;
+import rx.Flowable;
+import rx.Flowable.Operator;
 import rx.Observer;
 import rx.Subscriber;
 import rx.Subscription;
-import rx.functions.Func1;
+import rx.functions.Function;
 import rx.observers.TestSubscriber;
 import rx.schedulers.Schedulers;
 
@@ -42,7 +42,7 @@ public class OperatorOnErrorResumeNextViaFunctionTest {
     @Test
     public void testResumeNextWithSynchronousExecution() {
         final AtomicReference<Throwable> receivedException = new AtomicReference<Throwable>();
-        Observable<String> w = Observable.create(new Observable.OnSubscribe<String>() {
+        Flowable<String> w = Flowable.create(new Flowable.OnSubscribe<String>() {
 
             @Override
             public void call(Subscriber<? super String> observer) {
@@ -53,23 +53,23 @@ public class OperatorOnErrorResumeNextViaFunctionTest {
             }
         });
 
-        Func1<Throwable, Observable<String>> resume = new Func1<Throwable, Observable<String>>() {
+        Function<Throwable, Flowable<String>> resume = new Function<Throwable, Flowable<String>>() {
 
             @Override
-            public Observable<String> call(Throwable t1) {
+            public Flowable<String> call(Throwable t1) {
                 receivedException.set(t1);
-                return Observable.just("twoResume", "threeResume");
+                return Flowable.just("twoResume", "threeResume");
             }
 
         };
-        Observable<String> observable = w.onErrorResumeNext(resume);
+        Flowable<String> observable = w.onErrorResumeNext(resume);
 
         @SuppressWarnings("unchecked")
         Observer<String> observer = mock(Observer.class);
         observable.subscribe(observer);
 
         verify(observer, Mockito.never()).onError(any(Throwable.class));
-        verify(observer, times(1)).onCompleted();
+        verify(observer, times(1)).onComplete();
         verify(observer, times(1)).onNext("one");
         verify(observer, Mockito.never()).onNext("two");
         verify(observer, Mockito.never()).onNext("three");
@@ -82,17 +82,17 @@ public class OperatorOnErrorResumeNextViaFunctionTest {
     public void testResumeNextWithAsyncExecution() {
         final AtomicReference<Throwable> receivedException = new AtomicReference<Throwable>();
         Subscription s = mock(Subscription.class);
-        TestObservable w = new TestObservable(s, "one");
-        Func1<Throwable, Observable<String>> resume = new Func1<Throwable, Observable<String>>() {
+        TestFlowable w = new TestFlowable(s, "one");
+        Function<Throwable, Flowable<String>> resume = new Function<Throwable, Flowable<String>>() {
 
             @Override
-            public Observable<String> call(Throwable t1) {
+            public Flowable<String> call(Throwable t1) {
                 receivedException.set(t1);
-                return Observable.just("twoResume", "threeResume");
+                return Flowable.just("twoResume", "threeResume");
             }
 
         };
-        Observable<String> observable = Observable.create(w).onErrorResumeNext(resume);
+        Flowable<String> observable = Flowable.create(w).onErrorResumeNext(resume);
 
         @SuppressWarnings("unchecked")
         Observer<String> observer = mock(Observer.class);
@@ -105,7 +105,7 @@ public class OperatorOnErrorResumeNextViaFunctionTest {
         }
 
         verify(observer, Mockito.never()).onError(any(Throwable.class));
-        verify(observer, times(1)).onCompleted();
+        verify(observer, times(1)).onComplete();
         verify(observer, times(1)).onNext("one");
         verify(observer, Mockito.never()).onNext("two");
         verify(observer, Mockito.never()).onNext("three");
@@ -120,16 +120,16 @@ public class OperatorOnErrorResumeNextViaFunctionTest {
     @Test
     public void testFunctionThrowsError() {
         Subscription s = mock(Subscription.class);
-        TestObservable w = new TestObservable(s, "one");
-        Func1<Throwable, Observable<String>> resume = new Func1<Throwable, Observable<String>>() {
+        TestFlowable w = new TestFlowable(s, "one");
+        Function<Throwable, Flowable<String>> resume = new Function<Throwable, Flowable<String>>() {
 
             @Override
-            public Observable<String> call(Throwable t1) {
+            public Flowable<String> call(Throwable t1) {
                 throw new RuntimeException("exception from function");
             }
 
         };
-        Observable<String> observable = Observable.create(w).onErrorResumeNext(resume);
+        Flowable<String> observable = Flowable.create(w).onErrorResumeNext(resume);
 
         @SuppressWarnings("unchecked")
         Observer<String> observer = mock(Observer.class);
@@ -146,7 +146,7 @@ public class OperatorOnErrorResumeNextViaFunctionTest {
 
         // we should have received an onError call on the Observer since the resume function threw an exception
         verify(observer, times(1)).onError(any(Throwable.class));
-        verify(observer, times(0)).onCompleted();
+        verify(observer, times(0)).onComplete();
     }
 
     /**
@@ -156,21 +156,21 @@ public class OperatorOnErrorResumeNextViaFunctionTest {
     @Test
     public void testOnErrorResumeReceivesErrorFromPreviousNonProtectedOperator() {
         TestSubscriber<String> ts = new TestSubscriber<String>();
-        Observable.just(1).lift(new Operator<String, Integer>() {
+        Flowable.just(1).lift(new Operator<String, Integer>() {
 
             @Override
             public Subscriber<? super Integer> call(Subscriber<? super String> t1) {
                 throw new RuntimeException("failed");
             }
 
-        }).onErrorResumeNext(new Func1<Throwable, Observable<String>>() {
+        }).onErrorResumeNext(new Function<Throwable, Flowable<String>>() {
 
             @Override
-            public Observable<String> call(Throwable t1) {
+            public Flowable<String> call(Throwable t1) {
                 if (t1.getMessage().equals("failed")) {
-                    return Observable.just("success");
+                    return Flowable.just("success");
                 } else {
-                    return Observable.error(t1);
+                    return Flowable.error(t1);
                 }
             }
 
@@ -188,14 +188,14 @@ public class OperatorOnErrorResumeNextViaFunctionTest {
     @Test
     public void testOnErrorResumeReceivesErrorFromPreviousNonProtectedOperatorOnNext() {
         TestSubscriber<String> ts = new TestSubscriber<String>();
-        Observable.just(1).lift(new Operator<String, Integer>() {
+        Flowable.just(1).lift(new Operator<String, Integer>() {
 
             @Override
             public Subscriber<? super Integer> call(Subscriber<? super String> t1) {
                 return new Subscriber<Integer>() {
 
                     @Override
-                    public void onCompleted() {
+                    public void onComplete() {
                         throw new RuntimeException("failed");
                     }
 
@@ -212,14 +212,14 @@ public class OperatorOnErrorResumeNextViaFunctionTest {
                 };
             }
 
-        }).onErrorResumeNext(new Func1<Throwable, Observable<String>>() {
+        }).onErrorResumeNext(new Function<Throwable, Flowable<String>>() {
 
             @Override
-            public Observable<String> call(Throwable t1) {
+            public Flowable<String> call(Throwable t1) {
                 if (t1.getMessage().equals("failed")) {
-                    return Observable.just("success");
+                    return Flowable.just("success");
                 } else {
-                    return Observable.error(t1);
+                    return Flowable.error(t1);
                 }
             }
 
@@ -233,11 +233,11 @@ public class OperatorOnErrorResumeNextViaFunctionTest {
     @Test
     public void testMapResumeAsyncNext() {
         // Trigger multiple failures
-        Observable<String> w = Observable.just("one", "fail", "two", "three", "fail");
+        Flowable<String> w = Flowable.just("one", "fail", "two", "three", "fail");
 
         // Introduce map function that fails intermittently (Map does not prevent this when the observer is a
-        //  rx.operator incl onErrorResumeNextViaObservable)
-        w = w.map(new Func1<String, String>() {
+        //  rx.operator incl onErrorResumeNextViaFlowable)
+        w = w.map(new Function<String, String>() {
             @Override
             public String call(String s) {
                 if ("fail".equals(s))
@@ -247,11 +247,11 @@ public class OperatorOnErrorResumeNextViaFunctionTest {
             }
         });
 
-        Observable<String> observable = w.onErrorResumeNext(new Func1<Throwable, Observable<String>>() {
+        Flowable<String> observable = w.onErrorResumeNext(new Function<Throwable, Flowable<String>>() {
 
             @Override
-            public Observable<String> call(Throwable t1) {
-                return Observable.just("twoResume", "threeResume").subscribeOn(Schedulers.computation());
+            public Flowable<String> call(Throwable t1) {
+                return Flowable.just("twoResume", "threeResume").subscribeOn(Schedulers.computation());
             }
             
         });
@@ -263,7 +263,7 @@ public class OperatorOnErrorResumeNextViaFunctionTest {
         ts.awaitTerminalEvent();
 
         verify(observer, Mockito.never()).onError(any(Throwable.class));
-        verify(observer, times(1)).onCompleted();
+        verify(observer, times(1)).onComplete();
         verify(observer, times(1)).onNext("one");
         verify(observer, Mockito.never()).onNext("two");
         verify(observer, Mockito.never()).onNext("three");
@@ -271,29 +271,29 @@ public class OperatorOnErrorResumeNextViaFunctionTest {
         verify(observer, times(1)).onNext("threeResume");
     }
 
-    private static class TestObservable implements Observable.OnSubscribe<String> {
+    private static class TestFlowable implements Flowable.OnSubscribe<String> {
 
         final Subscription s;
         final String[] values;
         Thread t = null;
 
-        public TestObservable(Subscription s, String... values) {
+        public TestFlowable(Subscription s, String... values) {
             this.s = s;
             this.values = values;
         }
 
         @Override
         public void call(final Subscriber<? super String> observer) {
-            System.out.println("TestObservable subscribed to ...");
+            System.out.println("TestFlowable subscribed to ...");
             observer.add(s);
             t = new Thread(new Runnable() {
 
                 @Override
                 public void run() {
                     try {
-                        System.out.println("running TestObservable thread");
+                        System.out.println("running TestFlowable thread");
                         for (String s : values) {
-                            System.out.println("TestObservable onNext: " + s);
+                            System.out.println("TestFlowable onNext: " + s);
                             observer.onNext(s);
                         }
                         throw new RuntimeException("Forced Failure");
@@ -303,9 +303,9 @@ public class OperatorOnErrorResumeNextViaFunctionTest {
                 }
 
             });
-            System.out.println("starting TestObservable thread");
+            System.out.println("starting TestFlowable thread");
             t.start();
-            System.out.println("done starting TestObservable thread");
+            System.out.println("done starting TestFlowable thread");
         }
 
     }
@@ -313,17 +313,17 @@ public class OperatorOnErrorResumeNextViaFunctionTest {
     @Test
     public void testBackpressure() {
         TestSubscriber<Integer> ts = new TestSubscriber<Integer>();
-        Observable.range(0, 100000)
-                .onErrorResumeNext(new Func1<Throwable, Observable<Integer>>() {
+        Flowable.range(0, 100000)
+                .onErrorResumeNext(new Function<Throwable, Flowable<Integer>>() {
 
                     @Override
-                    public Observable<Integer> call(Throwable t1) {
-                        return Observable.just(1);
+                    public Flowable<Integer> call(Throwable t1) {
+                        return Flowable.just(1);
                     }
 
                 })
                 .observeOn(Schedulers.computation())
-                .map(new Func1<Integer, Integer>() {
+                .map(new Function<Integer, Integer>() {
                     int c = 0;
 
                     @Override

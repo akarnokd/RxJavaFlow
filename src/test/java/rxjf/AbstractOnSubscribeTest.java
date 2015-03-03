@@ -27,7 +27,7 @@ import org.junit.Test;
 import org.mockito.InOrder;
 
 import rx.*;
-import rx.Observable;
+import rx.Flowable;
 import rx.Observer;
 import rx.exceptions.TestException;
 import rx.functions.*;
@@ -45,13 +45,13 @@ public class AbstractOnSubscribeTest {
             @Override
             protected void next(SubscriptionState<Integer, Void> state) {
                 state.onNext(1);
-                state.onCompleted();
+                state.onComplete();
             }
         };
         
         TestSubscriber<Integer> ts = new TestSubscriber<Integer>();
         
-        aos.toObservable().subscribe(ts);
+        aos.toFlowable().subscribe(ts);
         
         ts.assertNoErrors();
         ts.assertTerminalEvent();
@@ -64,37 +64,37 @@ public class AbstractOnSubscribeTest {
             protected void next(SubscriptionState<Integer, Void> state) {
                 state.onNext(1);
                 state.onNext(2);
-                state.onCompleted();
+                state.onComplete();
             }
         };
         
         @SuppressWarnings("unchecked")
         Observer<Object> o = mock(Observer.class);
         
-        aos.toObservable().subscribe(o);
+        aos.toFlowable().subscribe(o);
 
         verify(o, never()).onNext(any(Integer.class));
-        verify(o, never()).onCompleted();
+        verify(o, never()).onComplete();
         verify(o).onError(any(IllegalStateException.class));
     }
     @Test
-    public void testJustMisbehavingOnCompleted() {
+    public void testJustMisbehavingonComplete() {
         AbstractOnSubscribe<Integer, Void> aos = new AbstractOnSubscribe<Integer, Void>() {
             @Override
             protected void next(SubscriptionState<Integer, Void> state) {
                 state.onNext(1);
-                state.onCompleted();
-                state.onCompleted();
+                state.onComplete();
+                state.onComplete();
             }
         };
         
         @SuppressWarnings("unchecked")
         Observer<Object> o = mock(Observer.class);
         
-        aos.toObservable().subscribe(o);
+        aos.toFlowable().subscribe(o);
 
         verify(o, never()).onNext(any(Integer.class));
-        verify(o, never()).onCompleted();
+        verify(o, never()).onComplete();
         verify(o).onError(any(IllegalStateException.class));
     }
     @Test
@@ -111,10 +111,10 @@ public class AbstractOnSubscribeTest {
         @SuppressWarnings("unchecked")
         Observer<Object> o = mock(Observer.class);
         
-        aos.toObservable().subscribe(o);
+        aos.toFlowable().subscribe(o);
 
         verify(o, never()).onNext(any(Integer.class));
-        verify(o, never()).onCompleted();
+        verify(o, never()).onComplete();
         verify(o).onError(any(IllegalStateException.class));
     }
     @Test
@@ -122,18 +122,18 @@ public class AbstractOnSubscribeTest {
         AbstractOnSubscribe<Integer, Void> aos = new AbstractOnSubscribe<Integer, Void>() {
             @Override
             protected void next(SubscriptionState<Integer, Void> state) {
-                state.onCompleted();
+                state.onComplete();
             }
         };
         
         @SuppressWarnings("unchecked")
         Observer<Object> o = mock(Observer.class);
         
-        aos.toObservable().subscribe(o);
+        aos.toFlowable().subscribe(o);
         
         verify(o, never()).onNext(any(Integer.class));
         verify(o, never()).onError(any(Throwable.class));
-        verify(o).onCompleted();
+        verify(o).onComplete();
     }
     @Test
     public void testNever() {
@@ -147,11 +147,11 @@ public class AbstractOnSubscribeTest {
         @SuppressWarnings("unchecked")
         Observer<Object> o = mock(Observer.class);
         
-        aos.toObservable().subscribe(o);
+        aos.toFlowable().subscribe(o);
         
         verify(o, never()).onNext(any(Integer.class));
         verify(o, never()).onError(any(Throwable.class));
-        verify(o, never()).onCompleted();
+        verify(o, never()).onComplete();
     }
 
     @Test
@@ -166,10 +166,10 @@ public class AbstractOnSubscribeTest {
         @SuppressWarnings("unchecked")
         Observer<Object> o = mock(Observer.class);
         
-        aos.toObservable().subscribe(o);
+        aos.toFlowable().subscribe(o);
         
         verify(o, never()).onNext(any(Integer.class));
-        verify(o, never()).onCompleted();
+        verify(o, never()).onComplete();
         verify(o).onError(any(TestException.class));
     }
 
@@ -185,11 +185,11 @@ public class AbstractOnSubscribeTest {
         @SuppressWarnings("unchecked")
         Observer<Object> o = mock(Observer.class);
         
-        aos.toObservable().subscribe(o);
+        aos.toFlowable().subscribe(o);
         
         verify(o, never()).onNext(any(Integer.class));
         verify(o).onError(any(TestException.class));
-        verify(o, never()).onCompleted();
+        verify(o, never()).onComplete();
     }
     @Test
     public void testRange() {
@@ -202,7 +202,7 @@ public class AbstractOnSubscribeTest {
                 if (calls <= count) {
                     state.onNext((int)calls + start);
                     if (calls == count) {
-                        state.onCompleted();
+                        state.onComplete();
                     }
                 }
             }
@@ -212,13 +212,13 @@ public class AbstractOnSubscribeTest {
         Observer<Object> o = mock(Observer.class);
         InOrder inOrder = inOrder(o);
         
-        aos.toObservable().subscribe(o);
+        aos.toFlowable().subscribe(o);
         
         verify(o, never()).onError(any(TestException.class));
         for (int i = start; i < start + count; i++) {
             inOrder.verify(o).onNext(i);
         }
-        inOrder.verify(o).onCompleted();
+        inOrder.verify(o).onComplete();
         inOrder.verifyNoMoreInteractions();
     }
     @Test
@@ -242,7 +242,7 @@ public class AbstractOnSubscribeTest {
                     state.onNext(it.next());
                 }
                 if (!it.hasNext()) {
-                    state.onCompleted();
+                    state.onComplete();
                 }
             }
         };
@@ -251,13 +251,13 @@ public class AbstractOnSubscribeTest {
         Observer<Object> o = mock(Observer.class);
         InOrder inOrder = inOrder(o);
         
-        aos.toObservable().subscribe(o);
+        aos.toFlowable().subscribe(o);
         
         verify(o, never()).onError(any(TestException.class));
         for (int i = 0; i < n; i++) {
             inOrder.verify(o).onNext(i);
         }
-        inOrder.verify(o).onCompleted();
+        inOrder.verify(o).onComplete();
         inOrder.verifyNoMoreInteractions();
     }
     
@@ -283,7 +283,7 @@ public class AbstractOnSubscribeTest {
                     break;
                 case 2:
                     state.onNext("Finally");
-                    state.onCompleted();
+                    state.onComplete();
                     state.advancePhase();
                     break;
                 default:
@@ -296,12 +296,12 @@ public class AbstractOnSubscribeTest {
         Observer<Object> o = mock(Observer.class);
         InOrder inOrder = inOrder(o);
         
-        aos.toObservable().subscribe(o);
+        aos.toFlowable().subscribe(o);
         
         verify(o, never()).onError(any(Throwable.class));
         inOrder.verify(o, times(count + 1)).onNext("Beginning");
         inOrder.verify(o).onNext("Finally");
-        inOrder.verify(o).onCompleted();
+        inOrder.verify(o).onComplete();
         inOrder.verifyNoMoreInteractions();
     }
     @Test
@@ -327,7 +327,7 @@ public class AbstractOnSubscribeTest {
                     break;
                 case 2:
                     state.onNext("Finally");
-                    state.onCompleted();
+                    state.onComplete();
                     phase++;
                     break;
                 default:
@@ -340,12 +340,12 @@ public class AbstractOnSubscribeTest {
         Observer<Object> o = mock(Observer.class);
         InOrder inOrder = inOrder(o);
         
-        aos.toObservable().retry(2 * count).subscribe(o);
+        aos.toFlowable().retry(2 * count).subscribe(o);
         
         verify(o, never()).onError(any(Throwable.class));
         inOrder.verify(o, times(count + 1)).onNext("Beginning");
         inOrder.verify(o).onNext("Finally");
-        inOrder.verify(o).onCompleted();
+        inOrder.verify(o).onComplete();
         inOrder.verifyNoMoreInteractions();
     }
     @Test
@@ -362,13 +362,13 @@ public class AbstractOnSubscribeTest {
         Observer<Object> o = mock(Observer.class);
         InOrder inOrder = inOrder(o);
         
-        aos.toObservable().take(count).subscribe(o);
+        aos.toFlowable().take(count).subscribe(o);
         
         verify(o, never()).onError(any(Throwable.class));
         for (int i = 0; i < 100; i++) {
             inOrder.verify(o).onNext(i);
         }
-        inOrder.verify(o).onCompleted();
+        inOrder.verify(o).onComplete();
         inOrder.verifyNoMoreInteractions();
     }
     @Test
@@ -392,12 +392,12 @@ public class AbstractOnSubscribeTest {
             }
         };
         
-        aos.toObservable().subscribe(ts);
+        aos.toFlowable().subscribe(ts);
         
         ts.requestMore(count);
         
         verify(o, never()).onError(any(Throwable.class));
-        verify(o, never()).onCompleted();
+        verify(o, never()).onComplete();
         for (int i = 0; i < count; i++) {
             inOrder.verify(o).onNext(i);
         }
@@ -414,7 +414,7 @@ public class AbstractOnSubscribeTest {
                 state.stop();
             }
         };
-        Observable<Integer> source = aos.toObservable();
+        Flowable<Integer> source = aos.toFlowable();
         for (int i = 0; i < count; i++) {
             source.subscribe();
         }
@@ -432,7 +432,7 @@ public class AbstractOnSubscribeTest {
                 if (calls <= count) {
                     state.onNext((int)calls + start);
                     if (calls == count) {
-                        state.onCompleted();
+                        state.onComplete();
                     }
                 }
             }
@@ -444,7 +444,7 @@ public class AbstractOnSubscribeTest {
 
         TestSubscriber<Object> ts = new TestSubscriber<Object>(o);
 
-        aos.toObservable().subscribeOn(Schedulers.newThread()).subscribe(ts);
+        aos.toFlowable().subscribeOn(Schedulers.newThread()).subscribe(ts);
         
         ts.awaitTerminalEvent();
         
@@ -452,7 +452,7 @@ public class AbstractOnSubscribeTest {
         for (int i = 1; i <= count; i++) {
             inOrder.verify(o).onNext(i);
         }
-        inOrder.verify(o).onCompleted();
+        inOrder.verify(o).onComplete();
         inOrder.verifyNoMoreInteractions();
 
     }
@@ -467,7 +467,7 @@ public class AbstractOnSubscribeTest {
                 if (calls <= count) {
                     state.onNext((int)calls + start);
                     if (calls == count) {
-                        state.onCompleted();
+                        state.onComplete();
                     }
                 }
             }
@@ -478,13 +478,13 @@ public class AbstractOnSubscribeTest {
 
         TestSubscriber<Object> ts = new TestSubscriber<Object>(o);
 
-        aos.toObservable().observeOn(Schedulers.newThread()).subscribe(ts);
+        aos.toFlowable().observeOn(Schedulers.newThread()).subscribe(ts);
         
         ts.awaitTerminalEvent();
         
         verify(o, never()).onError(any(Throwable.class));
         verify(o, times(count + 1)).onNext(any(Integer.class));
-        verify(o).onCompleted();
+        verify(o).onComplete();
         
         for (int i = 0; i < ts.getOnNextEvents().size(); i++) {
             Object object = ts.getOnNextEvents().get(i);
@@ -497,9 +497,9 @@ public class AbstractOnSubscribeTest {
         Observer<Object> o = mock(Observer.class);
 
         Action1<SubscriptionState<Object, Void>> empty = Actions.empty();
-        AbstractOnSubscribe.create(empty).toObservable().subscribe(o);
+        AbstractOnSubscribe.create(empty).toFlowable().subscribe(o);
         
-        verify(o, never()).onCompleted();
+        verify(o, never()).onComplete();
         verify(o, never()).onNext(any(Object.class));
         verify(o).onError(any(IllegalStateException.class));
     }

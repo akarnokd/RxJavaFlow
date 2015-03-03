@@ -92,7 +92,7 @@ public abstract class RxJavaFlowableExecutionHook {
      * Invoked after failed execution of {@link Flowable#subscribe(Subscriber)} with thrown Throwable.
      * <p>
      * This is <em>not</em> errors emitted via {@link Subscriber#onError(Throwable)} but exceptions thrown when
-     * attempting to subscribe to a {@link Func1}<{@link Subscriber}{@code <T>}, {@link Subscription}>.
+     * attempting to subscribe to a {@link Function}<{@link Subscriber}{@code <T>}, {@link Subscription}>.
      * 
      * @param e
      *            Throwable thrown by {@link Flowable#subscribe(Subscriber)}

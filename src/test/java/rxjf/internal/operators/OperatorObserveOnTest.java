@@ -38,8 +38,8 @@ import org.junit.Test;
 import org.mockito.InOrder;
 
 import rx.Notification;
-import rx.Observable;
-import rx.Observable.OnSubscribe;
+import rx.Flowable;
+import rx.Flowable.OnSubscribe;
 import rx.Observer;
 import rx.Scheduler;
 import rx.Subscriber;
@@ -48,8 +48,8 @@ import rx.exceptions.MissingBackpressureException;
 import rx.exceptions.TestException;
 import rx.functions.Action0;
 import rx.functions.Action1;
-import rx.functions.Func1;
-import rx.functions.Func2;
+import rx.functions.Function;
+import rx.functions.BiFunction;
 import rx.internal.util.RxRingBuffer;
 import rx.observers.TestSubscriber;
 import rx.schedulers.Schedulers;
@@ -65,18 +65,18 @@ public class OperatorObserveOnTest {
     @SuppressWarnings("unchecked")
     public void testObserveOn() {
         Observer<Integer> observer = mock(Observer.class);
-        Observable.just(1, 2, 3).observeOn(Schedulers.immediate()).subscribe(observer);
+        Flowable.just(1, 2, 3).observeOn(Schedulers.immediate()).subscribe(observer);
 
         verify(observer, times(1)).onNext(1);
         verify(observer, times(1)).onNext(2);
         verify(observer, times(1)).onNext(3);
-        verify(observer, times(1)).onCompleted();
+        verify(observer, times(1)).onComplete();
     }
 
     @Test
     @SuppressWarnings("unchecked")
     public void testOrdering() throws InterruptedException {
-        Observable<String> obs = Observable.just("one", null, "two", "three", "four");
+        Flowable<String> obs = Flowable.just("one", null, "two", "three", "four");
 
         Observer<String> observer = mock(Observer.class);
 
@@ -98,7 +98,7 @@ public class OperatorObserveOnTest {
         inOrder.verify(observer, times(1)).onNext("two");
         inOrder.verify(observer, times(1)).onNext("three");
         inOrder.verify(observer, times(1)).onNext("four");
-        inOrder.verify(observer, times(1)).onCompleted();
+        inOrder.verify(observer, times(1)).onComplete();
         inOrder.verifyNoMoreInteractions();
     }
 
@@ -106,7 +106,7 @@ public class OperatorObserveOnTest {
     @SuppressWarnings("unchecked")
     public void testThreadName() throws InterruptedException {
         System.out.println("Main Thread: " + Thread.currentThread().getName());
-        Observable<String> obs = Observable.just("one", null, "two", "three", "four");
+        Flowable<String> obs = Flowable.just("one", null, "two", "three", "four");
 
         Observer<String> observer = mock(Observer.class);
         final String parentThreadName = Thread.currentThread().getName();
@@ -151,15 +151,15 @@ public class OperatorObserveOnTest {
 
         verify(observer, never()).onError(any(Throwable.class));
         verify(observer, times(5)).onNext(any(String.class));
-        verify(observer, times(1)).onCompleted();
+        verify(observer, times(1)).onComplete();
     }
 
     @Test
     public void observeOnTheSameSchedulerTwice() {
         Scheduler scheduler = Schedulers.immediate();
 
-        Observable<Integer> o = Observable.just(1, 2, 3);
-        Observable<Integer> o2 = o.observeOn(scheduler);
+        Flowable<Integer> o = Flowable.just(1, 2, 3);
+        Flowable<Integer> o2 = o.observeOn(scheduler);
 
         @SuppressWarnings("unchecked")
         Observer<Object> observer1 = mock(Observer.class);
@@ -175,14 +175,14 @@ public class OperatorObserveOnTest {
         inOrder1.verify(observer1, times(1)).onNext(1);
         inOrder1.verify(observer1, times(1)).onNext(2);
         inOrder1.verify(observer1, times(1)).onNext(3);
-        inOrder1.verify(observer1, times(1)).onCompleted();
+        inOrder1.verify(observer1, times(1)).onComplete();
         verify(observer1, never()).onError(any(Throwable.class));
         inOrder1.verifyNoMoreInteractions();
 
         inOrder2.verify(observer2, times(1)).onNext(1);
         inOrder2.verify(observer2, times(1)).onNext(2);
         inOrder2.verify(observer2, times(1)).onNext(3);
-        inOrder2.verify(observer2, times(1)).onCompleted();
+        inOrder2.verify(observer2, times(1)).onComplete();
         verify(observer2, never()).onError(any(Throwable.class));
         inOrder2.verifyNoMoreInteractions();
     }
@@ -192,9 +192,9 @@ public class OperatorObserveOnTest {
         TestScheduler scheduler1 = new TestScheduler();
         TestScheduler scheduler2 = new TestScheduler();
 
-        Observable<Integer> o = Observable.just(1, 2, 3);
-        Observable<Integer> o1 = o.observeOn(scheduler1);
-        Observable<Integer> o2 = o.observeOn(scheduler2);
+        Flowable<Integer> o = Flowable.just(1, 2, 3);
+        Flowable<Integer> o1 = o.observeOn(scheduler1);
+        Flowable<Integer> o2 = o.observeOn(scheduler2);
 
         @SuppressWarnings("unchecked")
         Observer<Object> observer1 = mock(Observer.class);
@@ -213,14 +213,14 @@ public class OperatorObserveOnTest {
         inOrder1.verify(observer1, times(1)).onNext(1);
         inOrder1.verify(observer1, times(1)).onNext(2);
         inOrder1.verify(observer1, times(1)).onNext(3);
-        inOrder1.verify(observer1, times(1)).onCompleted();
+        inOrder1.verify(observer1, times(1)).onComplete();
         verify(observer1, never()).onError(any(Throwable.class));
         inOrder1.verifyNoMoreInteractions();
 
         inOrder2.verify(observer2, times(1)).onNext(1);
         inOrder2.verify(observer2, times(1)).onNext(2);
         inOrder2.verify(observer2, times(1)).onNext(3);
-        inOrder2.verify(observer2, times(1)).onCompleted();
+        inOrder2.verify(observer2, times(1)).onComplete();
         verify(observer2, never()).onError(any(Throwable.class));
         inOrder2.verifyNoMoreInteractions();
     }
@@ -233,7 +233,7 @@ public class OperatorObserveOnTest {
         final AtomicInteger count = new AtomicInteger();
         final int _multiple = 99;
 
-        Observable.range(1, 100000).map(new Func1<Integer, Integer>() {
+        Flowable.range(1, 100000).map(new Function<Integer, Integer>() {
 
             @Override
             public Integer call(Integer t1) {
@@ -261,7 +261,7 @@ public class OperatorObserveOnTest {
         final AtomicInteger count = new AtomicInteger();
         final int _multiple = 99;
 
-        Observable.range(1, 100000).map(new Func1<Integer, Integer>() {
+        Flowable.range(1, 100000).map(new Function<Integer, Integer>() {
 
             @Override
             public Integer call(Integer t1) {
@@ -294,7 +294,7 @@ public class OperatorObserveOnTest {
         final AtomicInteger count = new AtomicInteger();
         final int _multiple = 99;
 
-        Observable.range(1, 10000).map(new Func1<Integer, Integer>() {
+        Flowable.range(1, 10000).map(new Function<Integer, Integer>() {
 
             @Override
             public Integer call(Integer t1) {
@@ -327,11 +327,11 @@ public class OperatorObserveOnTest {
         final CountDownLatch nextLatch = new CountDownLatch(1);
         final AtomicLong completeTime = new AtomicLong();
         // use subscribeOn to make async, observeOn to move
-        Observable.range(1, 2).subscribeOn(Schedulers.newThread()).observeOn(Schedulers.newThread()).subscribe(new Observer<Integer>() {
+        Flowable.range(1, 2).subscribeOn(Schedulers.newThread()).observeOn(Schedulers.newThread()).subscribe(new Observer<Integer>() {
 
             @Override
-            public void onCompleted() {
-                System.out.println("onCompleted");
+            public void onComplete() {
+                System.out.println("onComplete()");
                 completeTime.set(System.nanoTime());
                 completedLatch.countDown();
             }
@@ -377,7 +377,7 @@ public class OperatorObserveOnTest {
     public void testDelayedErrorDeliveryWhenSafeSubscriberUnsubscribes() {
         TestScheduler testScheduler = new TestScheduler();
 
-        Observable<Integer> source = Observable.concat(Observable.<Integer> error(new TestException()), Observable.just(1));
+        Flowable<Integer> source = Flowable.concat(Flowable.<Integer> error(new TestException()), Flowable.just(1));
 
         @SuppressWarnings("unchecked")
         Observer<Integer> o = mock(Observer.class);
@@ -391,7 +391,7 @@ public class OperatorObserveOnTest {
 
         inOrder.verify(o).onError(any(TestException.class));
         inOrder.verify(o, never()).onNext(anyInt());
-        inOrder.verify(o, never()).onCompleted();
+        inOrder.verify(o, never()).onComplete();
     }
 
     @Test
@@ -399,7 +399,7 @@ public class OperatorObserveOnTest {
         final TestScheduler testScheduler = new TestScheduler();
         @SuppressWarnings("unchecked")
         final Observer<Integer> observer = mock(Observer.class);
-        final Subscription subscription = Observable.just(1, 2, 3)
+        final Subscription subscription = Flowable.just(1, 2, 3)
                 .observeOn(testScheduler)
                 .subscribe(observer);
         subscription.unsubscribe();
@@ -409,13 +409,13 @@ public class OperatorObserveOnTest {
 
         inOrder.verify(observer, never()).onNext(anyInt());
         inOrder.verify(observer, never()).onError(any(Exception.class));
-        inOrder.verify(observer, never()).onCompleted();
+        inOrder.verify(observer, never()).onComplete();
     }
 
     @Test
     public void testBackpressureWithTakeAfter() {
         final AtomicInteger generated = new AtomicInteger();
-        Observable<Integer> observable = Observable.from(new Iterable<Integer>() {
+        Flowable<Integer> observable = Flowable.from(new Iterable<Integer>() {
             @Override
             public Iterator<Integer> iterator() {
                 return new Iterator<Integer>() {
@@ -465,7 +465,7 @@ public class OperatorObserveOnTest {
     public void testBackpressureWithTakeAfterAndMultipleBatches() {
         int numForBatches = RxRingBuffer.SIZE * 3 + 1; // should be 4 batches == ((3*n)+1) items
         final AtomicInteger generated = new AtomicInteger();
-        Observable<Integer> observable = Observable.from(new Iterable<Integer>() {
+        Flowable<Integer> observable = Flowable.from(new Iterable<Integer>() {
             @Override
             public Iterator<Integer> iterator() {
                 return new Iterator<Integer>() {
@@ -509,7 +509,7 @@ public class OperatorObserveOnTest {
     @Test
     public void testBackpressureWithTakeBefore() {
         final AtomicInteger generated = new AtomicInteger();
-        Observable<Integer> observable = Observable.from(new Iterable<Integer>() {
+        Flowable<Integer> observable = Flowable.from(new Iterable<Integer>() {
             @Override
             public Iterator<Integer> iterator() {
                 return new Iterator<Integer>() {
@@ -545,7 +545,7 @@ public class OperatorObserveOnTest {
     @Test
     public void testQueueFullEmitsError() {
         final CountDownLatch latch = new CountDownLatch(1);
-        Observable<Integer> observable = Observable.create(new OnSubscribe<Integer>() {
+        Flowable<Integer> observable = Flowable.create(new OnSubscribe<Integer>() {
 
             @Override
             public void call(Subscriber<? super Integer> o) {
@@ -553,7 +553,7 @@ public class OperatorObserveOnTest {
                     o.onNext(i);
                 }
                 latch.countDown();
-                o.onCompleted();
+                o.onComplete();
             }
 
         });
@@ -561,7 +561,7 @@ public class OperatorObserveOnTest {
         TestSubscriber<Integer> testSubscriber = new TestSubscriber<Integer>(new Observer<Integer>() {
 
             @Override
-            public void onCompleted() {
+            public void onComplete() {
 
             }
 
@@ -602,7 +602,7 @@ public class OperatorObserveOnTest {
     @Test
     public void testAsyncChild() {
         TestSubscriber<Integer> ts = new TestSubscriber<Integer>();
-        Observable.range(0, 100000).observeOn(Schedulers.newThread()).observeOn(Schedulers.newThread()).subscribe(ts);
+        Flowable.range(0, 100000).observeOn(Schedulers.newThread()).observeOn(Schedulers.newThread()).subscribe(ts);
         ts.awaitTerminalEvent();
         ts.assertNoErrors();
     }
@@ -616,7 +616,7 @@ public class OperatorObserveOnTest {
             TestSubscriber<Long> ts = new TestSubscriber<Long>(new Observer<Long>() {
     
                 @Override
-                public void onCompleted() {
+                public void onComplete() {
     
                 }
     
@@ -661,9 +661,9 @@ public class OperatorObserveOnTest {
     @Test
     public void testHotOperatorBackpressure() {
         TestSubscriber<String> ts = new TestSubscriber<String>();
-        Observable.timer(0, 1, TimeUnit.MICROSECONDS)
+        Flowable.timer(0, 1, TimeUnit.MICROSECONDS)
                 .observeOn(Schedulers.computation())
-                .map(new Func1<Long, String>() {
+                .map(new Function<Long, String>() {
 
                     @Override
                     public String call(Long t1) {
@@ -685,7 +685,7 @@ public class OperatorObserveOnTest {
 
     @Test
     public void testErrorPropagatesWhenNoOutstandingRequests() {
-        Observable<Long> timer = Observable.timer(0, 1, TimeUnit.MICROSECONDS)
+        Flowable<Long> timer = Flowable.timer(0, 1, TimeUnit.MICROSECONDS)
                 .doOnEach(new Action1<Notification<? super Long>>() {
 
                     @Override
@@ -710,7 +710,7 @@ public class OperatorObserveOnTest {
 
         TestSubscriber<Long> ts = new TestSubscriber<Long>();
 
-        Observable.combineLatest(timer, Observable.<Integer> never(), new Func2<Long, Integer, Long>() {
+        Flowable.combineLatest(timer, Flowable.<Integer> never(), new BiFunction<Long, Integer, Long>() {
 
             @Override
             public Long call(Long t1, Integer t2) {

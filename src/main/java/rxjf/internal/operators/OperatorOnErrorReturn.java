@@ -17,25 +17,25 @@ package rx.internal.operators;
 
 import java.util.Arrays;
 
-import rx.Observable.Operator;
+import rx.Flowable.Operator;
 import rx.Producer;
 import rx.Subscriber;
 import rx.exceptions.CompositeException;
 import rx.exceptions.Exceptions;
-import rx.functions.Func1;
+import rx.functions.Function;
 import rx.plugins.RxJavaPlugins;
 
 /**
- * Instruct an Observable to emit a particular item to its Observer's <code>onNext</code> method
+ * Instruct an Flowable to emit a particular item to its Observer's <code>onNext</code> method
  * rather than invoking <code>onError</code> if it encounters an error.
  * <p>
  * <img width="640" src="https://github.com/ReactiveX/RxJava/wiki/images/rx-operators/onErrorReturn.png" alt="">
  * <p>
- * By default, when an Observable encounters an error that prevents it from emitting the expected
- * item to its Observer, the Observable invokes its Observer's <code>onError</code> method, and then
+ * By default, when an Flowable encounters an error that prevents it from emitting the expected
+ * item to its Observer, the Flowable invokes its Observer's <code>onError</code> method, and then
  * quits without invoking any more of its Observer's methods. The onErrorReturn operation changes
  * this behavior. If you pass a function (resumeFunction) to onErrorReturn, if the original
- * Observable encounters an error, instead of invoking its Observer's <code>onError</code> method,
+ * Flowable encounters an error, instead of invoking its Observer's <code>onError</code> method,
  * it will instead pass the return value of resumeFunction to the Observer's <code>onNext</code>
  * method.
  * <p>
@@ -45,9 +45,9 @@ import rx.plugins.RxJavaPlugins;
  * @param <T> the value type
  */
 public final class OperatorOnErrorReturn<T> implements Operator<T, T> {
-    final Func1<Throwable, ? extends T> resultFunction;
+    final Function<Throwable, ? extends T> resultFunction;
 
-    public OperatorOnErrorReturn(Func1<Throwable, ? extends T> resultFunction) {
+    public OperatorOnErrorReturn(Function<Throwable, ? extends T> resultFunction) {
         this.resultFunction = resultFunction;
     }
 
@@ -81,16 +81,16 @@ public final class OperatorOnErrorReturn<T> implements Operator<T, T> {
                     child.onError(new CompositeException(Arrays.asList(e, x)));
                     return;
                 }
-                child.onCompleted();
+                child.onComplete();
             }
 
             @Override
-            public void onCompleted() {
+            public void onComplete() {
                 if (done) {
                     return;
                 }
                 done = true;
-                child.onCompleted();
+                child.onComplete();
             }
             
             @Override

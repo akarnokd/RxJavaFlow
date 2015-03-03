@@ -15,7 +15,7 @@
  */
 package rx.internal.operators;
 
-import rx.Observable.Operator;
+import rx.Flowable.Operator;
 import rx.Subscriber;
 
 /**
@@ -46,7 +46,7 @@ public class OperatorDefaultIfEmpty<T> implements Operator<T, T> {
             }
 
             @Override
-            public void onCompleted() {
+            public void onComplete() {
                 if (!hasValue) {
                     try {
                         child.onNext(defaultValue);
@@ -55,7 +55,7 @@ public class OperatorDefaultIfEmpty<T> implements Operator<T, T> {
                         return;
                     }
                 }
-                child.onCompleted();
+                child.onComplete();
             }
             
         };

@@ -17,17 +17,17 @@ package rx.internal.operators;
 
 import java.util.Iterator;
 
-import rx.Observable.Operator;
+import rx.Flowable.Operator;
 import rx.Subscriber;
-import rx.functions.Func2;
+import rx.functions.BiFunction;
 import rx.observers.Subscribers;
 
 public final class OperatorZipIterable<T1, T2, R> implements Operator<R, T1> {
 
     final Iterable<? extends T2> iterable;
-    final Func2<? super T1, ? super T2, ? extends R> zipFunction;
+    final BiFunction<? super T1, ? super T2, ? extends R> zipFunction;
 
-    public OperatorZipIterable(Iterable<? extends T2> iterable, Func2<? super T1, ? super T2, ? extends R> zipFunction) {
+    public OperatorZipIterable(Iterable<? extends T2> iterable, BiFunction<? super T1, ? super T2, ? extends R> zipFunction) {
         this.iterable = iterable;
         this.zipFunction = zipFunction;
     }
@@ -37,7 +37,7 @@ public final class OperatorZipIterable<T1, T2, R> implements Operator<R, T1> {
         final Iterator<? extends T2> iterator = iterable.iterator();
         try {
             if (!iterator.hasNext()) {
-                subscriber.onCompleted();
+                subscriber.onComplete();
                 return Subscribers.empty();
             }
         } catch (Throwable e) {
@@ -46,12 +46,12 @@ public final class OperatorZipIterable<T1, T2, R> implements Operator<R, T1> {
         return new Subscriber<T1>(subscriber) {
             boolean once;
             @Override
-            public void onCompleted() {
+            public void onComplete() {
                 if (once) {
                     return;
                 }
                 once = true;
-                subscriber.onCompleted();
+                subscriber.onComplete();
             }
 
             @Override
@@ -64,7 +64,7 @@ public final class OperatorZipIterable<T1, T2, R> implements Operator<R, T1> {
                 try {
                     subscriber.onNext(zipFunction.call(t, iterator.next()));
                     if (!iterator.hasNext()) {
-                        onCompleted();
+                        onComplete();
                     }
                 } catch (Throwable e) {
                     onError(e);

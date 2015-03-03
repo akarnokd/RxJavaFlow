@@ -15,7 +15,7 @@
  */
 package rx.internal.operators;
 
-import rx.Observable.Operator;
+import rx.Flowable.Operator;
 import rx.Scheduler;
 import rx.Subscriber;
 import rx.schedulers.TimeInterval;
@@ -47,8 +47,8 @@ public final class OperatorTimeInterval<T> implements Operator<TimeInterval<T>, 
             }
 
             @Override
-            public void onCompleted() {
-                subscriber.onCompleted();
+            public void onComplete() {
+                subscriber.onComplete();
             }
 
             @Override

@@ -31,10 +31,10 @@ public class IntervalDemo {
 
     @Test
     public void demoInterval() throws Exception {
-        testLongObservable(Observable.interval(500, TimeUnit.MILLISECONDS).take(4), "demoInterval");
+        testLongFlowable(Flowable.interval(500, TimeUnit.MILLISECONDS).take(4), "demoInterval");
     }
 
-    public void testLongObservable(Observable<Long> o, final String testname) throws Exception {
+    public void testLongFlowable(Flowable<Long> o, final String testname) throws Exception {
         final List<Long> l = new ArrayList<Long>();
         Action1<Long> onNext = new Action1<Long>() {
             @Override

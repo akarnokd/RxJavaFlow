@@ -29,9 +29,9 @@ import java.util.concurrent.atomic.AtomicReference;
 
 import org.junit.Test;
 
-import rx.Observable.OnSubscribe;
-import rx.Observable.Operator;
-import rx.functions.Func1;
+import rx.Flowable.OnSubscribe;
+import rx.Flowable.Operator;
+import rx.functions.Function;
 import rx.observers.TestSubscriber;
 
 public class SubscriberTest {
@@ -83,7 +83,7 @@ public class SubscriberTest {
                 return new Subscriber<String>(s) {
 
                     @Override
-                    public void onCompleted() {
+                    public void onComplete() {
 
                     }
 
@@ -128,7 +128,7 @@ public class SubscriberTest {
                 return new Subscriber<String>() {
 
                     @Override
-                    public void onCompleted() {
+                    public void onComplete() {
 
                     }
 
@@ -185,7 +185,7 @@ public class SubscriberTest {
                 Subscriber<String> as = new Subscriber<String>() {
 
                     @Override
-                    public void onCompleted() {
+                    public void onComplete() {
 
                     }
 
@@ -225,11 +225,11 @@ public class SubscriberTest {
     }
 
     @Test
-    public void testRequestToObservable() {
+    public void testRequestToFlowable() {
         TestSubscriber<Integer> ts = new TestSubscriber<Integer>();
         ts.request(3);
         final AtomicLong requested = new AtomicLong();
-        Observable.create(new OnSubscribe<Integer>() {
+        Flowable.create(new OnSubscribe<Integer>() {
 
             @Override
             public void call(Subscriber<? super Integer> s) {
@@ -252,7 +252,7 @@ public class SubscriberTest {
         TestSubscriber<Integer> ts = new TestSubscriber<Integer>();
         ts.request(3);
         final AtomicLong requested = new AtomicLong();
-        Observable.create(new OnSubscribe<Integer>() {
+        Flowable.create(new OnSubscribe<Integer>() {
 
             @Override
             public void call(Subscriber<? super Integer> s) {
@@ -266,7 +266,7 @@ public class SubscriberTest {
                 });
             }
 
-        }).map(new Func1<Integer, Integer>() {
+        }).map(new Function<Integer, Integer>() {
 
             @Override
             public Integer call(Integer t1) {
@@ -282,7 +282,7 @@ public class SubscriberTest {
         TestSubscriber<Integer> ts = new TestSubscriber<Integer>();
         ts.request(3);
         final AtomicLong requested = new AtomicLong();
-        Observable.create(new OnSubscribe<Integer>() {
+        Flowable.create(new OnSubscribe<Integer>() {
 
             @Override
             public void call(Subscriber<? super Integer> s) {
@@ -305,7 +305,7 @@ public class SubscriberTest {
         TestSubscriber<Integer> ts = new TestSubscriber<Integer>();
         ts.request(3);
         final AtomicLong requested = new AtomicLong();
-        Observable.create(new OnSubscribe<Integer>() {
+        Flowable.create(new OnSubscribe<Integer>() {
 
             @Override
             public void call(Subscriber<? super Integer> s) {
@@ -326,7 +326,7 @@ public class SubscriberTest {
     @Test
     public void testOnStartCalledOnceViaSubscribe() {
         final AtomicInteger c = new AtomicInteger();
-        Observable.just(1, 2, 3, 4).take(2).subscribe(new Subscriber<Integer>() {
+        Flowable.just(1, 2, 3, 4).take(2).subscribe(new Subscriber<Integer>() {
 
             @Override
             public void onStart() {
@@ -335,7 +335,7 @@ public class SubscriberTest {
             }
 
             @Override
-            public void onCompleted() {
+            public void onComplete() {
 
             }
 
@@ -357,7 +357,7 @@ public class SubscriberTest {
     @Test
     public void testOnStartCalledOnceViaUnsafeSubscribe() {
         final AtomicInteger c = new AtomicInteger();
-        Observable.just(1, 2, 3, 4).take(2).unsafeSubscribe(new Subscriber<Integer>() {
+        Flowable.just(1, 2, 3, 4).take(2).unsafeSubscribe(new Subscriber<Integer>() {
 
             @Override
             public void onStart() {
@@ -366,7 +366,7 @@ public class SubscriberTest {
             }
 
             @Override
-            public void onCompleted() {
+            public void onComplete() {
 
             }
 
@@ -388,7 +388,7 @@ public class SubscriberTest {
     @Test
     public void testOnStartCalledOnceViaLift() {
         final AtomicInteger c = new AtomicInteger();
-        Observable.just(1, 2, 3, 4).lift(new Operator<Integer, Integer>() {
+        Flowable.just(1, 2, 3, 4).lift(new Operator<Integer, Integer>() {
 
             @Override
             public Subscriber<? super Integer> call(final Subscriber<? super Integer> child) {
@@ -401,8 +401,8 @@ public class SubscriberTest {
                     }
 
                     @Override
-                    public void onCompleted() {
-                        child.onCompleted();
+                    public void onComplete() {
+                        child.onComplete();
                     }
 
                     @Override
@@ -428,7 +428,7 @@ public class SubscriberTest {
     public void testNegativeRequestThrowsIllegalArgumentException() throws InterruptedException {
         final CountDownLatch latch = new CountDownLatch(1);
         final AtomicReference<Throwable> exception = new AtomicReference<Throwable>();
-        Observable.just(1,2,3,4).subscribe(new Subscriber<Integer>() {
+        Flowable.just(1,2,3,4).subscribe(new Subscriber<Integer>() {
 
             @Override
             public void onStart() {
@@ -436,7 +436,7 @@ public class SubscriberTest {
             }
             
             @Override
-            public void onCompleted() {
+            public void onComplete() {
                 
             }
 
@@ -458,7 +458,7 @@ public class SubscriberTest {
     @Test
     public void testOnStartRequestsAreAdditive() {
         final List<Integer> list = new ArrayList<Integer>();
-        Observable.just(1,2,3,4,5).subscribe(new Subscriber<Integer>() {
+        Flowable.just(1,2,3,4,5).subscribe(new Subscriber<Integer>() {
             @Override
             public void onStart() {
                 request(3);
@@ -466,7 +466,7 @@ public class SubscriberTest {
             }
             
             @Override
-            public void onCompleted() {
+            public void onComplete() {
                 
             }
 
@@ -485,7 +485,7 @@ public class SubscriberTest {
     @Test
     public void testOnStartRequestsAreAdditiveAndOverflowBecomesMaxValue() {
         final List<Integer> list = new ArrayList<Integer>();
-        Observable.just(1,2,3,4,5).subscribe(new Subscriber<Integer>() {
+        Flowable.just(1,2,3,4,5).subscribe(new Subscriber<Integer>() {
             @Override
             public void onStart() {
                 request(2);
@@ -493,7 +493,7 @@ public class SubscriberTest {
             }
             
             @Override
-            public void onCompleted() {
+            public void onComplete() {
                 
             }
 

@@ -19,7 +19,7 @@ import java.util.ArrayDeque;
 import java.util.Deque;
 import java.util.concurrent.TimeUnit;
 
-import rx.Observable.Operator;
+import rx.Flowable.Operator;
 import rx.Scheduler;
 import rx.Subscriber;
 import rx.schedulers.Timestamped;
@@ -69,9 +69,9 @@ public class OperatorSkipLastTimed<T> implements Operator<T, T> {
             }
 
             @Override
-            public void onCompleted() {
+            public void onComplete() {
                 emitItemsOutOfWindow(scheduler.now());
-                subscriber.onCompleted();
+                subscriber.onComplete();
             }
 
         };

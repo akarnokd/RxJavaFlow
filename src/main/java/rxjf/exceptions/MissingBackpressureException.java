@@ -17,27 +17,27 @@ package rxjf.exceptions;
 
 /**
  * Represents an exception that indicates that a Subscriber or operator attempted to apply reactive pull
- * backpressure to an Observable that does not implement it.
+ * backpressure to an Flowable that does not implement it.
  * <p>
- * If an Observable has not been written to support reactive pull backpressure (such support is not a
- * requirement for Observables), you can apply one of the following operators to it, each of which forces a
+ * If an Flowable has not been written to support reactive pull backpressure (such support is not a
+ * requirement for Flowables), you can apply one of the following operators to it, each of which forces a
  * simple form of backpressure behavior:
  * <dl>
  *  <dt><code>onBackpressureBuffer</code></dt>
- *   <dd>maintains a buffer of all emissions from the source Observable and emits them to downstream Subscribers
+ *   <dd>maintains a buffer of all emissions from the source Flowable and emits them to downstream Subscribers
  *       according to the requests they generate</dd>
  *  <dt><code>onBackpressureDrop</code></dt>
- *   <dd>drops emissions from the source Observable unless there is a pending request from a downstream
+ *   <dd>drops emissions from the source Flowable unless there is a pending request from a downstream
  *       Subscriber, in which case it will emit enough items to fulfill the request</dd>
  * </dl>
- * If you do not apply either of these operators to an Observable that does not support backpressure, and if
- * either you as the Subscriber or some operator between you and the Observable attempts to apply reactive pull
+ * If you do not apply either of these operators to an Flowable that does not support backpressure, and if
+ * either you as the Subscriber or some operator between you and the Flowable attempts to apply reactive pull
  * backpressure, you will encounter a {@code MissingBackpressureException} which you will be notified of via
  * your {@code onError} callback.
  * <p>
- * There are, however, other options. You can throttle an over-producing Observable with operators like
+ * There are, however, other options. You can throttle an over-producing Flowable with operators like
  * {@code sample}/{@code throttleLast}, {@code throttleFirst}, or {@code throttleWithTimeout}/{@code debounce}.
- * You can also take the large number of items emitted by an over-producing Observable and package them into
+ * You can also take the large number of items emitted by an over-producing Flowable and package them into
  * a smaller set of emissions by using operators like {@code buffer} and {@code window}.
  * <p>
  * For a more complete discussion of the options available to you for dealing with issues related to

@@ -25,11 +25,11 @@ import rx.CovarianceTest.Movie;
 import rx.CovarianceTest.Rating;
 import rx.CovarianceTest.Result;
 import rx.functions.Action1;
-import rx.functions.Func2;
+import rx.functions.BiFunction;
 import rx.subjects.BehaviorSubject;
 
 import static org.junit.Assert.assertNull;
-import static rx.Observable.combineLatest;
+import static rx.Flowable.combineLatest;
 
 public class CombineLatestTests {
     /**
@@ -37,19 +37,19 @@ public class CombineLatestTests {
      */
     @Test
     public void testCovarianceOfCombineLatest() {
-        Observable<HorrorMovie> horrors = Observable.just(new HorrorMovie());
-        Observable<CoolRating> ratings = Observable.just(new CoolRating());
+        Flowable<HorrorMovie> horrors = Flowable.just(new HorrorMovie());
+        Flowable<CoolRating> ratings = Flowable.just(new CoolRating());
 
-        Observable.<Movie, CoolRating, Result> combineLatest(horrors, ratings, combine).toBlocking().forEach(action);
-        Observable.<Movie, CoolRating, Result> combineLatest(horrors, ratings, combine).toBlocking().forEach(action);
-        Observable.<Media, Rating, ExtendedResult> combineLatest(horrors, ratings, combine).toBlocking().forEach(extendedAction);
-        Observable.<Media, Rating, Result> combineLatest(horrors, ratings, combine).toBlocking().forEach(action);
-        Observable.<Media, Rating, ExtendedResult> combineLatest(horrors, ratings, combine).toBlocking().forEach(action);
+        Flowable.<Movie, CoolRating, Result> combineLatest(horrors, ratings, combine).toBlocking().forEach(action);
+        Flowable.<Movie, CoolRating, Result> combineLatest(horrors, ratings, combine).toBlocking().forEach(action);
+        Flowable.<Media, Rating, ExtendedResult> combineLatest(horrors, ratings, combine).toBlocking().forEach(extendedAction);
+        Flowable.<Media, Rating, Result> combineLatest(horrors, ratings, combine).toBlocking().forEach(action);
+        Flowable.<Media, Rating, ExtendedResult> combineLatest(horrors, ratings, combine).toBlocking().forEach(action);
 
-        Observable.<Movie, CoolRating, Result> combineLatest(horrors, ratings, combine);
+        Flowable.<Movie, CoolRating, Result> combineLatest(horrors, ratings, combine);
     }
 
-    Func2<Media, Rating, ExtendedResult> combine = new Func2<Media, Rating, ExtendedResult>() {
+    BiFunction<Media, Rating, ExtendedResult> combine = new BiFunction<Media, Rating, ExtendedResult>() {
         @Override
         public ExtendedResult call(Media m, Rating r) {
             return new ExtendedResult();
@@ -72,10 +72,10 @@ public class CombineLatestTests {
 
     @Test
     public void testNullEmitting() throws Exception {
-        Observable<Boolean> nullObservable = BehaviorSubject.create((Boolean) null);
-        Observable<Boolean> nonNullObservable = BehaviorSubject.create(true);
-        Observable<Boolean> combined =
-                combineLatest(nullObservable, nonNullObservable, new Func2<Boolean, Boolean, Boolean>() {
+        Flowable<Boolean> nullFlowable = BehaviorSubject.create((Boolean) null);
+        Flowable<Boolean> nonNullFlowable = BehaviorSubject.create(true);
+        Flowable<Boolean> combined =
+                combineLatest(nullFlowable, nonNullFlowable, new BiFunction<Boolean, Boolean, Boolean>() {
                     @Override
                     public Boolean call(Boolean bool1, Boolean bool2) {
                         return bool1 == null ? null : bool2;

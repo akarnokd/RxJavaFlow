@@ -25,7 +25,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import org.junit.Test;
 
-import rx.Observable;
+import rx.Flowable;
 import rx.Subscription;
 import rx.functions.Action0;
 import rx.functions.Action1;
@@ -42,7 +42,7 @@ public class OperatorDoOnUnsubscribeTest {
 
         final AtomicInteger upperCount = new AtomicInteger();
         final AtomicInteger lowerCount = new AtomicInteger();
-        Observable<Long> longs = Observable
+        Flowable<Long> longs = Flowable
                 // The stream needs to be infinite to ensure the stream does not terminate
                 // before it is unsubscribed
                 .interval(50, TimeUnit.MILLISECONDS)
@@ -102,7 +102,7 @@ public class OperatorDoOnUnsubscribeTest {
 
         final AtomicInteger upperCount = new AtomicInteger();
         final AtomicInteger lowerCount = new AtomicInteger();
-        Observable<Long> longs = Observable
+        Flowable<Long> longs = Flowable
                 // The stream needs to be infinite to ensure the stream does not terminate
                 // before it is unsubscribed
                 .interval(50, TimeUnit.MILLISECONDS)

@@ -27,15 +27,15 @@ import org.junit.Test;
 import org.mockito.InOrder;
 
 
-import rx.Observable;
+import rx.Flowable;
 import rx.Observer;
 import rx.Scheduler;
 import rx.Scheduler.Worker;
 import rx.Subscription;
 import rx.functions.Action0;
 import rx.functions.Action1;
-import rx.functions.Func1;
-import rx.observables.ConnectableObservable;
+import rx.functions.Function;
+import rx.observables.ConnectableFlowable;
 import rx.schedulers.TestScheduler;
 import rx.subjects.PublishSubject;
 
@@ -44,7 +44,7 @@ public class OperatorReplayTest {
     public void testBufferedReplay() {
         PublishSubject<Integer> source = PublishSubject.create();
 
-        ConnectableObservable<Integer> co = source.replay(3);
+        ConnectableFlowable<Integer> co = source.replay(3);
         co.connect();
 
         {
@@ -63,9 +63,9 @@ public class OperatorReplayTest {
             inOrder.verify(observer1, times(1)).onNext(3);
 
             source.onNext(4);
-            source.onCompleted();
+            source.onComplete();
             inOrder.verify(observer1, times(1)).onNext(4);
-            inOrder.verify(observer1, times(1)).onCompleted();
+            inOrder.verify(observer1, times(1)).onComplete();
             inOrder.verifyNoMoreInteractions();
             verify(observer1, never()).onError(any(Throwable.class));
 
@@ -81,7 +81,7 @@ public class OperatorReplayTest {
             inOrder.verify(observer1, times(1)).onNext(2);
             inOrder.verify(observer1, times(1)).onNext(3);
             inOrder.verify(observer1, times(1)).onNext(4);
-            inOrder.verify(observer1, times(1)).onCompleted();
+            inOrder.verify(observer1, times(1)).onComplete();
             inOrder.verifyNoMoreInteractions();
             verify(observer1, never()).onError(any(Throwable.class));
         }
@@ -91,7 +91,7 @@ public class OperatorReplayTest {
     public void testBufferedWindowReplay() {
         PublishSubject<Integer> source = PublishSubject.create();
         TestScheduler scheduler = new TestScheduler();
-        ConnectableObservable<Integer> co = source.replay(3, 100, TimeUnit.MILLISECONDS, scheduler);
+        ConnectableFlowable<Integer> co = source.replay(3, 100, TimeUnit.MILLISECONDS, scheduler);
         co.connect();
 
         {
@@ -145,7 +145,7 @@ public class OperatorReplayTest {
 
         PublishSubject<Integer> source = PublishSubject.create();
 
-        ConnectableObservable<Integer> co = source.replay(100, TimeUnit.MILLISECONDS, scheduler);
+        ConnectableFlowable<Integer> co = source.replay(100, TimeUnit.MILLISECONDS, scheduler);
         co.connect();
 
         {
@@ -161,14 +161,14 @@ public class OperatorReplayTest {
             scheduler.advanceTimeBy(60, TimeUnit.MILLISECONDS);
             source.onNext(3);
             scheduler.advanceTimeBy(60, TimeUnit.MILLISECONDS);
-            source.onCompleted();
+            source.onComplete();
             scheduler.advanceTimeBy(60, TimeUnit.MILLISECONDS);
 
             inOrder.verify(observer1, times(1)).onNext(1);
             inOrder.verify(observer1, times(1)).onNext(2);
             inOrder.verify(observer1, times(1)).onNext(3);
 
-            inOrder.verify(observer1, times(1)).onCompleted();
+            inOrder.verify(observer1, times(1)).onComplete();
             inOrder.verifyNoMoreInteractions();
             verify(observer1, never()).onError(any(Throwable.class));
 
@@ -181,7 +181,7 @@ public class OperatorReplayTest {
             co.subscribe(observer1);
             inOrder.verify(observer1, times(1)).onNext(3);
 
-            inOrder.verify(observer1, times(1)).onCompleted();
+            inOrder.verify(observer1, times(1)).onComplete();
             inOrder.verifyNoMoreInteractions();
             verify(observer1, never()).onError(any(Throwable.class));
         }
@@ -189,7 +189,7 @@ public class OperatorReplayTest {
 
     @Test
     public void testReplaySelector() {
-        final Func1<Integer, Integer> dbl = new Func1<Integer, Integer>() {
+        final Function<Integer, Integer> dbl = new Function<Integer, Integer>() {
 
             @Override
             public Integer call(Integer t1) {
@@ -198,10 +198,10 @@ public class OperatorReplayTest {
 
         };
 
-        Func1<Observable<Integer>, Observable<Integer>> selector = new Func1<Observable<Integer>, Observable<Integer>>() {
+        Function<Flowable<Integer>, Flowable<Integer>> selector = new Function<Flowable<Integer>, Flowable<Integer>>() {
 
             @Override
-            public Observable<Integer> call(Observable<Integer> t1) {
+            public Flowable<Integer> call(Flowable<Integer> t1) {
                 return t1.map(dbl);
             }
 
@@ -209,7 +209,7 @@ public class OperatorReplayTest {
 
         PublishSubject<Integer> source = PublishSubject.create();
 
-        Observable<Integer> co = source.replay(selector);
+        Flowable<Integer> co = source.replay(selector);
 
         {
             @SuppressWarnings("unchecked")
@@ -227,9 +227,9 @@ public class OperatorReplayTest {
             inOrder.verify(observer1, times(1)).onNext(6);
 
             source.onNext(4);
-            source.onCompleted();
+            source.onComplete();
             inOrder.verify(observer1, times(1)).onNext(8);
-            inOrder.verify(observer1, times(1)).onCompleted();
+            inOrder.verify(observer1, times(1)).onComplete();
             inOrder.verifyNoMoreInteractions();
             verify(observer1, never()).onError(any(Throwable.class));
 
@@ -242,7 +242,7 @@ public class OperatorReplayTest {
 
             co.subscribe(observer1);
 
-            inOrder.verify(observer1, times(1)).onCompleted();
+            inOrder.verify(observer1, times(1)).onComplete();
             inOrder.verifyNoMoreInteractions();
             verify(observer1, never()).onError(any(Throwable.class));
 
@@ -253,7 +253,7 @@ public class OperatorReplayTest {
     @Test
     public void testBufferedReplaySelector() {
 
-        final Func1<Integer, Integer> dbl = new Func1<Integer, Integer>() {
+        final Function<Integer, Integer> dbl = new Function<Integer, Integer>() {
 
             @Override
             public Integer call(Integer t1) {
@@ -262,10 +262,10 @@ public class OperatorReplayTest {
 
         };
 
-        Func1<Observable<Integer>, Observable<Integer>> selector = new Func1<Observable<Integer>, Observable<Integer>>() {
+        Function<Flowable<Integer>, Flowable<Integer>> selector = new Function<Flowable<Integer>, Flowable<Integer>>() {
 
             @Override
-            public Observable<Integer> call(Observable<Integer> t1) {
+            public Flowable<Integer> call(Flowable<Integer> t1) {
                 return t1.map(dbl);
             }
 
@@ -273,7 +273,7 @@ public class OperatorReplayTest {
 
         PublishSubject<Integer> source = PublishSubject.create();
 
-        Observable<Integer> co = source.replay(selector, 3);
+        Flowable<Integer> co = source.replay(selector, 3);
 
         {
             @SuppressWarnings("unchecked")
@@ -291,9 +291,9 @@ public class OperatorReplayTest {
             inOrder.verify(observer1, times(1)).onNext(6);
 
             source.onNext(4);
-            source.onCompleted();
+            source.onComplete();
             inOrder.verify(observer1, times(1)).onNext(8);
-            inOrder.verify(observer1, times(1)).onCompleted();
+            inOrder.verify(observer1, times(1)).onComplete();
             inOrder.verifyNoMoreInteractions();
             verify(observer1, never()).onError(any(Throwable.class));
 
@@ -306,7 +306,7 @@ public class OperatorReplayTest {
 
             co.subscribe(observer1);
 
-            inOrder.verify(observer1, times(1)).onCompleted();
+            inOrder.verify(observer1, times(1)).onComplete();
             inOrder.verifyNoMoreInteractions();
             verify(observer1, never()).onError(any(Throwable.class));
         }
@@ -315,7 +315,7 @@ public class OperatorReplayTest {
     @Test
     public void testWindowedReplaySelector() {
 
-        final Func1<Integer, Integer> dbl = new Func1<Integer, Integer>() {
+        final Function<Integer, Integer> dbl = new Function<Integer, Integer>() {
 
             @Override
             public Integer call(Integer t1) {
@@ -324,10 +324,10 @@ public class OperatorReplayTest {
 
         };
 
-        Func1<Observable<Integer>, Observable<Integer>> selector = new Func1<Observable<Integer>, Observable<Integer>>() {
+        Function<Flowable<Integer>, Flowable<Integer>> selector = new Function<Flowable<Integer>, Flowable<Integer>>() {
 
             @Override
-            public Observable<Integer> call(Observable<Integer> t1) {
+            public Flowable<Integer> call(Flowable<Integer> t1) {
                 return t1.map(dbl);
             }
 
@@ -337,7 +337,7 @@ public class OperatorReplayTest {
 
         PublishSubject<Integer> source = PublishSubject.create();
 
-        Observable<Integer> co = source.replay(selector, 100, TimeUnit.MILLISECONDS, scheduler);
+        Flowable<Integer> co = source.replay(selector, 100, TimeUnit.MILLISECONDS, scheduler);
 
         {
             @SuppressWarnings("unchecked")
@@ -352,14 +352,14 @@ public class OperatorReplayTest {
             scheduler.advanceTimeBy(60, TimeUnit.MILLISECONDS);
             source.onNext(3);
             scheduler.advanceTimeBy(60, TimeUnit.MILLISECONDS);
-            source.onCompleted();
+            source.onComplete();
             scheduler.advanceTimeBy(60, TimeUnit.MILLISECONDS);
 
             inOrder.verify(observer1, times(1)).onNext(2);
             inOrder.verify(observer1, times(1)).onNext(4);
             inOrder.verify(observer1, times(1)).onNext(6);
 
-            inOrder.verify(observer1, times(1)).onCompleted();
+            inOrder.verify(observer1, times(1)).onComplete();
             inOrder.verifyNoMoreInteractions();
             verify(observer1, never()).onError(any(Throwable.class));
 
@@ -371,7 +371,7 @@ public class OperatorReplayTest {
 
             co.subscribe(observer1);
 
-            inOrder.verify(observer1, times(1)).onCompleted();
+            inOrder.verify(observer1, times(1)).onComplete();
             inOrder.verifyNoMoreInteractions();
             verify(observer1, never()).onError(any(Throwable.class));
         }
@@ -381,7 +381,7 @@ public class OperatorReplayTest {
     public void testBufferedReplayError() {
         PublishSubject<Integer> source = PublishSubject.create();
 
-        ConnectableObservable<Integer> co = source.replay(3);
+        ConnectableFlowable<Integer> co = source.replay(3);
         co.connect();
 
         {
@@ -405,7 +405,7 @@ public class OperatorReplayTest {
             inOrder.verify(observer1, times(1)).onNext(4);
             inOrder.verify(observer1, times(1)).onError(any(RuntimeException.class));
             inOrder.verifyNoMoreInteractions();
-            verify(observer1, never()).onCompleted();
+            verify(observer1, never()).onComplete();
 
         }
 
@@ -421,7 +421,7 @@ public class OperatorReplayTest {
             inOrder.verify(observer1, times(1)).onNext(4);
             inOrder.verify(observer1, times(1)).onError(any(RuntimeException.class));
             inOrder.verifyNoMoreInteractions();
-            verify(observer1, never()).onCompleted();
+            verify(observer1, never()).onComplete();
         }
     }
 
@@ -431,7 +431,7 @@ public class OperatorReplayTest {
 
         PublishSubject<Integer> source = PublishSubject.create();
 
-        ConnectableObservable<Integer> co = source.replay(100, TimeUnit.MILLISECONDS, scheduler);
+        ConnectableFlowable<Integer> co = source.replay(100, TimeUnit.MILLISECONDS, scheduler);
         co.connect();
 
         {
@@ -456,7 +456,7 @@ public class OperatorReplayTest {
 
             inOrder.verify(observer1, times(1)).onError(any(RuntimeException.class));
             inOrder.verifyNoMoreInteractions();
-            verify(observer1, never()).onCompleted();
+            verify(observer1, never()).onComplete();
 
         }
         {
@@ -469,13 +469,13 @@ public class OperatorReplayTest {
 
             inOrder.verify(observer1, times(1)).onError(any(RuntimeException.class));
             inOrder.verifyNoMoreInteractions();
-            verify(observer1, never()).onCompleted();
+            verify(observer1, never()).onComplete();
         }
     }
     @Test
     public void testSynchronousDisconnect() {
         final AtomicInteger effectCounter = new AtomicInteger();
-        Observable<Integer> source = Observable.just(1, 2, 3, 4)
+        Flowable<Integer> source = Flowable.just(1, 2, 3, 4)
         .doOnNext(new Action1<Integer>() {
             @Override
             public void call(Integer v) {
@@ -484,10 +484,10 @@ public class OperatorReplayTest {
             }
         });
         
-        Observable<Integer> result = source.replay(
-        new Func1<Observable<Integer>, Observable<Integer>>() {
+        Flowable<Integer> result = source.replay(
+        new Function<Flowable<Integer>, Flowable<Integer>>() {
             @Override
-            public Observable<Integer> call(Observable<Integer> o) {
+            public Flowable<Integer> call(Flowable<Integer> o) {
                 return o.take(2);
             }
         });
@@ -532,13 +532,13 @@ public class OperatorReplayTest {
         Observer spiedSubscriberBeforeConnect = mock(Observer.class);
         Observer spiedSubscriberAfterConnect = mock(Observer.class);
 
-        // Observable under test
-        Observable<Integer> source = Observable.just(1,2);
+        // Flowable under test
+        Flowable<Integer> source = Flowable.just(1,2);
 
-        ConnectableObservable<Integer> replay = source
+        ConnectableFlowable<Integer> replay = source
                 .doOnNext(sourceNext)
                 .doOnUnsubscribe(sourceUnsubscribed)
-                .doOnCompleted(sourceCompleted)
+                .doonComplete()(sourceCompleted)
                 .replay();
 
         replay.subscribe(spiedSubscriberBeforeConnect);
@@ -584,11 +584,11 @@ public class OperatorReplayTest {
 
         when(mockScheduler.createWorker()).thenReturn(spiedWorker);
 
-        // Observable under test
-        ConnectableObservable<Integer> replay = Observable.just(1, 2, 3)
+        // Flowable under test
+        ConnectableFlowable<Integer> replay = Flowable.just(1, 2, 3)
                 .doOnNext(sourceNext)
                 .doOnUnsubscribe(sourceUnsubscribed)
-                .doOnCompleted(sourceCompleted)
+                .doonComplete()(sourceCompleted)
                 .subscribeOn(mockScheduler).replay();
 
         replay.subscribe(mockObserverBeforeConnect);
@@ -641,15 +641,15 @@ public class OperatorReplayTest {
 
         when(mockScheduler.createWorker()).thenReturn(spiedWorker);
 
-        // Observable under test
-        Func1<Integer, Integer> mockFunc = mock(Func1.class);
+        // Flowable under test
+        Function<Integer, Integer> mockFunc = mock(Function.class);
         IllegalArgumentException illegalArgumentException = new IllegalArgumentException();
         when(mockFunc.call(1)).thenReturn(1);
         when(mockFunc.call(2)).thenThrow(illegalArgumentException);
-        ConnectableObservable<Integer> replay = Observable.just(1, 2, 3).map(mockFunc)
+        ConnectableFlowable<Integer> replay = Flowable.just(1, 2, 3).map(mockFunc)
                 .doOnNext(sourceNext)
                 .doOnUnsubscribe(sourceUnsubscribed)
-                .doOnCompleted(sourceCompleted)
+                .doonComplete()(sourceCompleted)
                 .doOnError(sourceError)
                 .subscribeOn(mockScheduler).replay();
 
@@ -684,7 +684,7 @@ public class OperatorReplayTest {
 
     private static void verifyObserverMock(Observer mock, int numSubscriptions, int numItemsExpected) {
         verify(mock, times(numItemsExpected)).onNext(notNull());
-        verify(mock, times(numSubscriptions)).onCompleted();
+        verify(mock, times(numSubscriptions)).onComplete();
         verifyNoMoreInteractions(mock);
     }
 

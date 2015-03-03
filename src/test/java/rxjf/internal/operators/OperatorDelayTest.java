@@ -37,13 +37,13 @@ import org.mockito.InOrder;
 import org.mockito.Mock;
 
 import rx.Notification;
-import rx.Observable;
+import rx.Flowable;
 import rx.Observer;
 import rx.Subscription;
 import rx.exceptions.TestException;
 import rx.functions.Action1;
 import rx.functions.Func0;
-import rx.functions.Func1;
+import rx.functions.Function;
 import rx.internal.util.RxRingBuffer;
 import rx.observers.TestObserver;
 import rx.observers.TestSubscriber;
@@ -67,55 +67,55 @@ public class OperatorDelayTest {
 
     @Test
     public void testDelay() {
-        Observable<Long> source = Observable.interval(1L, TimeUnit.SECONDS, scheduler).take(3);
-        Observable<Long> delayed = source.delay(500L, TimeUnit.MILLISECONDS, scheduler);
+        Flowable<Long> source = Flowable.interval(1L, TimeUnit.SECONDS, scheduler).take(3);
+        Flowable<Long> delayed = source.delay(500L, TimeUnit.MILLISECONDS, scheduler);
         delayed.subscribe(observer);
 
         InOrder inOrder = inOrder(observer);
         scheduler.advanceTimeTo(1499L, TimeUnit.MILLISECONDS);
         verify(observer, never()).onNext(anyLong());
-        verify(observer, never()).onCompleted();
+        verify(observer, never()).onComplete();
         verify(observer, never()).onError(any(Throwable.class));
 
         scheduler.advanceTimeTo(1500L, TimeUnit.MILLISECONDS);
         inOrder.verify(observer, times(1)).onNext(0L);
         inOrder.verify(observer, never()).onNext(anyLong());
-        verify(observer, never()).onCompleted();
+        verify(observer, never()).onComplete();
         verify(observer, never()).onError(any(Throwable.class));
 
         scheduler.advanceTimeTo(2400L, TimeUnit.MILLISECONDS);
         inOrder.verify(observer, never()).onNext(anyLong());
-        verify(observer, never()).onCompleted();
+        verify(observer, never()).onComplete();
         verify(observer, never()).onError(any(Throwable.class));
 
         scheduler.advanceTimeTo(2500L, TimeUnit.MILLISECONDS);
         inOrder.verify(observer, times(1)).onNext(1L);
         inOrder.verify(observer, never()).onNext(anyLong());
-        verify(observer, never()).onCompleted();
+        verify(observer, never()).onComplete();
         verify(observer, never()).onError(any(Throwable.class));
 
         scheduler.advanceTimeTo(3400L, TimeUnit.MILLISECONDS);
         inOrder.verify(observer, never()).onNext(anyLong());
-        verify(observer, never()).onCompleted();
+        verify(observer, never()).onComplete();
         verify(observer, never()).onError(any(Throwable.class));
 
         scheduler.advanceTimeTo(3500L, TimeUnit.MILLISECONDS);
         inOrder.verify(observer, times(1)).onNext(2L);
-        verify(observer, times(1)).onCompleted();
+        verify(observer, times(1)).onComplete();
         verify(observer, never()).onError(any(Throwable.class));
     }
 
     @Test
     public void testLongDelay() {
-        Observable<Long> source = Observable.interval(1L, TimeUnit.SECONDS, scheduler).take(3);
-        Observable<Long> delayed = source.delay(5L, TimeUnit.SECONDS, scheduler);
+        Flowable<Long> source = Flowable.interval(1L, TimeUnit.SECONDS, scheduler).take(3);
+        Flowable<Long> delayed = source.delay(5L, TimeUnit.SECONDS, scheduler);
         delayed.subscribe(observer);
 
         InOrder inOrder = inOrder(observer);
 
         scheduler.advanceTimeTo(5999L, TimeUnit.MILLISECONDS);
         verify(observer, never()).onNext(anyLong());
-        verify(observer, never()).onCompleted();
+        verify(observer, never()).onComplete();
         verify(observer, never()).onError(any(Throwable.class));
 
         scheduler.advanceTimeTo(6000L, TimeUnit.MILLISECONDS);
@@ -128,15 +128,15 @@ public class OperatorDelayTest {
         inOrder.verify(observer, never()).onNext(anyLong());
         scheduler.advanceTimeTo(8000L, TimeUnit.MILLISECONDS);
         inOrder.verify(observer, times(1)).onNext(2L);
-        inOrder.verify(observer, times(1)).onCompleted();
+        inOrder.verify(observer, times(1)).onComplete();
         inOrder.verify(observer, never()).onNext(anyLong());
-        inOrder.verify(observer, never()).onCompleted();
+        inOrder.verify(observer, never()).onComplete();
         verify(observer, never()).onError(any(Throwable.class));
     }
 
     @Test
     public void testDelayWithError() {
-        Observable<Long> source = Observable.interval(1L, TimeUnit.SECONDS, scheduler).map(new Func1<Long, Long>() {
+        Flowable<Long> source = Flowable.interval(1L, TimeUnit.SECONDS, scheduler).map(new Function<Long, Long>() {
             @Override
             public Long call(Long value) {
                 if (value == 1L) {
@@ -145,31 +145,31 @@ public class OperatorDelayTest {
                 return value;
             }
         });
-        Observable<Long> delayed = source.delay(1L, TimeUnit.SECONDS, scheduler);
+        Flowable<Long> delayed = source.delay(1L, TimeUnit.SECONDS, scheduler);
         delayed.subscribe(observer);
 
         InOrder inOrder = inOrder(observer);
 
         scheduler.advanceTimeTo(1999L, TimeUnit.MILLISECONDS);
         verify(observer, never()).onNext(anyLong());
-        verify(observer, never()).onCompleted();
+        verify(observer, never()).onComplete();
         verify(observer, never()).onError(any(Throwable.class));
 
         scheduler.advanceTimeTo(2000L, TimeUnit.MILLISECONDS);
         inOrder.verify(observer, times(1)).onError(any(Throwable.class));
         inOrder.verify(observer, never()).onNext(anyLong());
-        verify(observer, never()).onCompleted();
+        verify(observer, never()).onComplete();
 
         scheduler.advanceTimeTo(5000L, TimeUnit.MILLISECONDS);
         inOrder.verify(observer, never()).onNext(anyLong());
         inOrder.verify(observer, never()).onError(any(Throwable.class));
-        verify(observer, never()).onCompleted();
+        verify(observer, never()).onComplete();
     }
 
     @Test
     public void testDelayWithMultipleSubscriptions() {
-        Observable<Long> source = Observable.interval(1L, TimeUnit.SECONDS, scheduler).take(3);
-        Observable<Long> delayed = source.delay(500L, TimeUnit.MILLISECONDS, scheduler);
+        Flowable<Long> source = Flowable.interval(1L, TimeUnit.SECONDS, scheduler).take(3);
+        Flowable<Long> delayed = source.delay(500L, TimeUnit.MILLISECONDS, scheduler);
         delayed.subscribe(observer);
         delayed.subscribe(observer2);
 
@@ -192,16 +192,16 @@ public class OperatorDelayTest {
         inOrder.verify(observer, times(1)).onNext(1L);
         inOrder2.verify(observer2, times(1)).onNext(1L);
 
-        verify(observer, never()).onCompleted();
-        verify(observer2, never()).onCompleted();
+        verify(observer, never()).onComplete();
+        verify(observer2, never()).onComplete();
 
         scheduler.advanceTimeTo(3500L, TimeUnit.MILLISECONDS);
         inOrder.verify(observer, times(1)).onNext(2L);
         inOrder2.verify(observer2, times(1)).onNext(2L);
         inOrder.verify(observer, never()).onNext(anyLong());
         inOrder2.verify(observer2, never()).onNext(anyLong());
-        inOrder.verify(observer, times(1)).onCompleted();
-        inOrder2.verify(observer2, times(1)).onCompleted();
+        inOrder.verify(observer, times(1)).onComplete();
+        inOrder2.verify(observer2, times(1)).onComplete();
 
         verify(observer, never()).onError(any(Throwable.class));
         verify(observer2, never()).onError(any(Throwable.class));
@@ -209,7 +209,7 @@ public class OperatorDelayTest {
 
     @Test
     public void testDelaySubscription() {
-        Observable<Integer> result = Observable.just(1, 2, 3).delaySubscription(100, TimeUnit.MILLISECONDS, scheduler);
+        Flowable<Integer> result = Flowable.just(1, 2, 3).delaySubscription(100, TimeUnit.MILLISECONDS, scheduler);
 
         @SuppressWarnings("unchecked")
         Observer<Object> o = mock(Observer.class);
@@ -218,21 +218,21 @@ public class OperatorDelayTest {
         result.subscribe(o);
 
         inOrder.verify(o, never()).onNext(any());
-        inOrder.verify(o, never()).onCompleted();
+        inOrder.verify(o, never()).onComplete();
 
         scheduler.advanceTimeBy(100, TimeUnit.MILLISECONDS);
 
         inOrder.verify(o, times(1)).onNext(1);
         inOrder.verify(o, times(1)).onNext(2);
         inOrder.verify(o, times(1)).onNext(3);
-        inOrder.verify(o, times(1)).onCompleted();
+        inOrder.verify(o, times(1)).onComplete();
 
         verify(o, never()).onError(any(Throwable.class));
     }
 
     @Test
     public void testDelaySubscriptionCancelBeforeTime() {
-        Observable<Integer> result = Observable.just(1, 2, 3).delaySubscription(100, TimeUnit.MILLISECONDS, scheduler);
+        Flowable<Integer> result = Flowable.just(1, 2, 3).delaySubscription(100, TimeUnit.MILLISECONDS, scheduler);
 
         @SuppressWarnings("unchecked")
         Observer<Object> o = mock(Observer.class);
@@ -242,12 +242,12 @@ public class OperatorDelayTest {
         scheduler.advanceTimeBy(100, TimeUnit.MILLISECONDS);
 
         verify(o, never()).onNext(any());
-        verify(o, never()).onCompleted();
+        verify(o, never()).onComplete();
         verify(o, never()).onError(any(Throwable.class));
     }
 
     @Test
-    public void testDelayWithObservableNormal1() {
+    public void testDelayWithFlowableNormal1() {
         PublishSubject<Integer> source = PublishSubject.create();
         final List<PublishSubject<Integer>> delays = new ArrayList<PublishSubject<Integer>>();
         final int n = 10;
@@ -256,9 +256,9 @@ public class OperatorDelayTest {
             delays.add(delay);
         }
 
-        Func1<Integer, Observable<Integer>> delayFunc = new Func1<Integer, Observable<Integer>>() {
+        Function<Integer, Flowable<Integer>> delayFunc = new Function<Integer, Flowable<Integer>>() {
             @Override
-            public Observable<Integer> call(Integer t1) {
+            public Flowable<Integer> call(Integer t1) {
                 return delays.get(t1);
             }
         };
@@ -274,23 +274,23 @@ public class OperatorDelayTest {
             delays.get(i).onNext(i);
             inOrder.verify(o).onNext(i);
         }
-        source.onCompleted();
+        source.onComplete();
 
-        inOrder.verify(o).onCompleted();
+        inOrder.verify(o).onComplete();
         inOrder.verifyNoMoreInteractions();
 
         verify(o, never()).onError(any(Throwable.class));
     }
 
     @Test
-    public void testDelayWithObservableSingleSend1() {
+    public void testDelayWithFlowableSingleSend1() {
         PublishSubject<Integer> source = PublishSubject.create();
         final PublishSubject<Integer> delay = PublishSubject.create();
 
-        Func1<Integer, Observable<Integer>> delayFunc = new Func1<Integer, Observable<Integer>>() {
+        Function<Integer, Flowable<Integer>> delayFunc = new Function<Integer, Flowable<Integer>>() {
 
             @Override
-            public Observable<Integer> call(Integer t1) {
+            public Flowable<Integer> call(Integer t1) {
                 return delay;
             }
         };
@@ -310,14 +310,14 @@ public class OperatorDelayTest {
     }
 
     @Test
-    public void testDelayWithObservableSourceThrows() {
+    public void testDelayWithFlowableSourceThrows() {
         PublishSubject<Integer> source = PublishSubject.create();
         final PublishSubject<Integer> delay = PublishSubject.create();
 
-        Func1<Integer, Observable<Integer>> delayFunc = new Func1<Integer, Observable<Integer>>() {
+        Function<Integer, Flowable<Integer>> delayFunc = new Function<Integer, Flowable<Integer>>() {
 
             @Override
-            public Observable<Integer> call(Integer t1) {
+            public Flowable<Integer> call(Integer t1) {
                 return delay;
             }
         };
@@ -333,17 +333,17 @@ public class OperatorDelayTest {
         inOrder.verify(o).onError(any(TestException.class));
         inOrder.verifyNoMoreInteractions();
         verify(o, never()).onNext(any());
-        verify(o, never()).onCompleted();
+        verify(o, never()).onComplete();
     }
 
     @Test
-    public void testDelayWithObservableDelayFunctionThrows() {
+    public void testDelayWithFlowableDelayFunctionThrows() {
         PublishSubject<Integer> source = PublishSubject.create();
 
-        Func1<Integer, Observable<Integer>> delayFunc = new Func1<Integer, Observable<Integer>>() {
+        Function<Integer, Flowable<Integer>> delayFunc = new Function<Integer, Flowable<Integer>>() {
 
             @Override
-            public Observable<Integer> call(Integer t1) {
+            public Flowable<Integer> call(Integer t1) {
                 throw new TestException();
             }
         };
@@ -357,18 +357,18 @@ public class OperatorDelayTest {
         inOrder.verify(o).onError(any(TestException.class));
         inOrder.verifyNoMoreInteractions();
         verify(o, never()).onNext(any());
-        verify(o, never()).onCompleted();
+        verify(o, never()).onComplete();
     }
 
     @Test
-    public void testDelayWithObservableDelayThrows() {
+    public void testDelayWithFlowableDelayThrows() {
         PublishSubject<Integer> source = PublishSubject.create();
         final PublishSubject<Integer> delay = PublishSubject.create();
 
-        Func1<Integer, Observable<Integer>> delayFunc = new Func1<Integer, Observable<Integer>>() {
+        Function<Integer, Flowable<Integer>> delayFunc = new Function<Integer, Flowable<Integer>>() {
 
             @Override
-            public Observable<Integer> call(Integer t1) {
+            public Flowable<Integer> call(Integer t1) {
                 return delay;
             }
         };
@@ -383,23 +383,23 @@ public class OperatorDelayTest {
         inOrder.verify(o).onError(any(TestException.class));
         inOrder.verifyNoMoreInteractions();
         verify(o, never()).onNext(any());
-        verify(o, never()).onCompleted();
+        verify(o, never()).onComplete();
     }
 
     @Test
-    public void testDelayWithObservableSubscriptionNormal() {
+    public void testDelayWithFlowableSubscriptionNormal() {
         PublishSubject<Integer> source = PublishSubject.create();
         final PublishSubject<Integer> delay = PublishSubject.create();
-        Func0<Observable<Integer>> subFunc = new Func0<Observable<Integer>>() {
+        Func0<Flowable<Integer>> subFunc = new Func0<Flowable<Integer>>() {
             @Override
-            public Observable<Integer> call() {
+            public Flowable<Integer> call() {
                 return delay;
             }
         };
-        Func1<Integer, Observable<Integer>> delayFunc = new Func1<Integer, Observable<Integer>>() {
+        Function<Integer, Flowable<Integer>> delayFunc = new Function<Integer, Flowable<Integer>>() {
 
             @Override
-            public Observable<Integer> call(Integer t1) {
+            public Flowable<Integer> call(Integer t1) {
                 return delay;
             }
         };
@@ -419,23 +419,23 @@ public class OperatorDelayTest {
         inOrder.verify(o).onNext(2);
         inOrder.verifyNoMoreInteractions();
         verify(o, never()).onError(any(Throwable.class));
-        verify(o, never()).onCompleted();
+        verify(o, never()).onComplete();
     }
 
     @Test
-    public void testDelayWithObservableSubscriptionFunctionThrows() {
+    public void testDelayWithFlowableSubscriptionFunctionThrows() {
         PublishSubject<Integer> source = PublishSubject.create();
         final PublishSubject<Integer> delay = PublishSubject.create();
-        Func0<Observable<Integer>> subFunc = new Func0<Observable<Integer>>() {
+        Func0<Flowable<Integer>> subFunc = new Func0<Flowable<Integer>>() {
             @Override
-            public Observable<Integer> call() {
+            public Flowable<Integer> call() {
                 throw new TestException();
             }
         };
-        Func1<Integer, Observable<Integer>> delayFunc = new Func1<Integer, Observable<Integer>>() {
+        Function<Integer, Flowable<Integer>> delayFunc = new Function<Integer, Flowable<Integer>>() {
 
             @Override
-            public Observable<Integer> call(Integer t1) {
+            public Flowable<Integer> call(Integer t1) {
                 return delay;
             }
         };
@@ -454,23 +454,23 @@ public class OperatorDelayTest {
         inOrder.verify(o).onError(any(TestException.class));
         inOrder.verifyNoMoreInteractions();
         verify(o, never()).onNext(any());
-        verify(o, never()).onCompleted();
+        verify(o, never()).onComplete();
     }
 
     @Test
-    public void testDelayWithObservableSubscriptionThrows() {
+    public void testDelayWithFlowableSubscriptionThrows() {
         PublishSubject<Integer> source = PublishSubject.create();
         final PublishSubject<Integer> delay = PublishSubject.create();
-        Func0<Observable<Integer>> subFunc = new Func0<Observable<Integer>>() {
+        Func0<Flowable<Integer>> subFunc = new Func0<Flowable<Integer>>() {
             @Override
-            public Observable<Integer> call() {
+            public Flowable<Integer> call() {
                 return delay;
             }
         };
-        Func1<Integer, Observable<Integer>> delayFunc = new Func1<Integer, Observable<Integer>>() {
+        Function<Integer, Flowable<Integer>> delayFunc = new Function<Integer, Flowable<Integer>>() {
 
             @Override
-            public Observable<Integer> call(Integer t1) {
+            public Flowable<Integer> call(Integer t1) {
                 return delay;
             }
         };
@@ -489,18 +489,18 @@ public class OperatorDelayTest {
         inOrder.verify(o).onError(any(TestException.class));
         inOrder.verifyNoMoreInteractions();
         verify(o, never()).onNext(any());
-        verify(o, never()).onCompleted();
+        verify(o, never()).onComplete();
     }
 
     @Test
-    public void testDelayWithObservableEmptyDelayer() {
+    public void testDelayWithFlowableEmptyDelayer() {
         PublishSubject<Integer> source = PublishSubject.create();
 
-        Func1<Integer, Observable<Integer>> delayFunc = new Func1<Integer, Observable<Integer>>() {
+        Function<Integer, Flowable<Integer>> delayFunc = new Function<Integer, Flowable<Integer>>() {
 
             @Override
-            public Observable<Integer> call(Integer t1) {
-                return Observable.empty();
+            public Flowable<Integer> call(Integer t1) {
+                return Flowable.empty();
             }
         };
         @SuppressWarnings("unchecked")
@@ -510,29 +510,29 @@ public class OperatorDelayTest {
         source.delay(delayFunc).subscribe(o);
 
         source.onNext(1);
-        source.onCompleted();
+        source.onComplete();
 
         inOrder.verify(o).onNext(1);
-        inOrder.verify(o).onCompleted();
+        inOrder.verify(o).onComplete();
         inOrder.verifyNoMoreInteractions();
         verify(o, never()).onError(any(Throwable.class));
     }
 
     @Test
-    public void testDelayWithObservableSubscriptionRunCompletion() {
+    public void testDelayWithFlowableSubscriptionRunCompletion() {
         PublishSubject<Integer> source = PublishSubject.create();
         final PublishSubject<Integer> sdelay = PublishSubject.create();
         final PublishSubject<Integer> delay = PublishSubject.create();
-        Func0<Observable<Integer>> subFunc = new Func0<Observable<Integer>>() {
+        Func0<Flowable<Integer>> subFunc = new Func0<Flowable<Integer>>() {
             @Override
-            public Observable<Integer> call() {
+            public Flowable<Integer> call() {
                 return sdelay;
             }
         };
-        Func1<Integer, Observable<Integer>> delayFunc = new Func1<Integer, Observable<Integer>>() {
+        Function<Integer, Flowable<Integer>> delayFunc = new Function<Integer, Flowable<Integer>>() {
 
             @Override
-            public Observable<Integer> call(Integer t1) {
+            public Flowable<Integer> call(Integer t1) {
                 return delay;
             }
         };
@@ -544,7 +544,7 @@ public class OperatorDelayTest {
         source.delay(subFunc, delayFunc).subscribe(o);
 
         source.onNext(1);
-        sdelay.onCompleted();
+        sdelay.onComplete();
 
         source.onNext(2);
         delay.onNext(2);
@@ -552,61 +552,61 @@ public class OperatorDelayTest {
         inOrder.verify(o).onNext(2);
         inOrder.verifyNoMoreInteractions();
         verify(o, never()).onError(any(Throwable.class));
-        verify(o, never()).onCompleted();
+        verify(o, never()).onComplete();
     }
 
     @Test
-    public void testDelayWithObservableAsTimed() {
-        Observable<Long> source = Observable.interval(1L, TimeUnit.SECONDS, scheduler).take(3);
+    public void testDelayWithFlowableAsTimed() {
+        Flowable<Long> source = Flowable.interval(1L, TimeUnit.SECONDS, scheduler).take(3);
 
-        final Observable<Long> delayer = Observable.timer(500L, TimeUnit.MILLISECONDS, scheduler);
+        final Flowable<Long> delayer = Flowable.timer(500L, TimeUnit.MILLISECONDS, scheduler);
 
-        Func1<Long, Observable<Long>> delayFunc = new Func1<Long, Observable<Long>>() {
+        Function<Long, Flowable<Long>> delayFunc = new Function<Long, Flowable<Long>>() {
             @Override
-            public Observable<Long> call(Long t1) {
+            public Flowable<Long> call(Long t1) {
                 return delayer;
             }
         };
 
-        Observable<Long> delayed = source.delay(delayFunc);
+        Flowable<Long> delayed = source.delay(delayFunc);
         delayed.subscribe(observer);
 
         InOrder inOrder = inOrder(observer);
         scheduler.advanceTimeTo(1499L, TimeUnit.MILLISECONDS);
         verify(observer, never()).onNext(anyLong());
-        verify(observer, never()).onCompleted();
+        verify(observer, never()).onComplete();
         verify(observer, never()).onError(any(Throwable.class));
 
         scheduler.advanceTimeTo(1500L, TimeUnit.MILLISECONDS);
         inOrder.verify(observer, times(1)).onNext(0L);
         inOrder.verify(observer, never()).onNext(anyLong());
-        verify(observer, never()).onCompleted();
+        verify(observer, never()).onComplete();
         verify(observer, never()).onError(any(Throwable.class));
 
         scheduler.advanceTimeTo(2400L, TimeUnit.MILLISECONDS);
         inOrder.verify(observer, never()).onNext(anyLong());
-        verify(observer, never()).onCompleted();
+        verify(observer, never()).onComplete();
         verify(observer, never()).onError(any(Throwable.class));
 
         scheduler.advanceTimeTo(2500L, TimeUnit.MILLISECONDS);
         inOrder.verify(observer, times(1)).onNext(1L);
         inOrder.verify(observer, never()).onNext(anyLong());
-        verify(observer, never()).onCompleted();
+        verify(observer, never()).onComplete();
         verify(observer, never()).onError(any(Throwable.class));
 
         scheduler.advanceTimeTo(3400L, TimeUnit.MILLISECONDS);
         inOrder.verify(observer, never()).onNext(anyLong());
-        verify(observer, never()).onCompleted();
+        verify(observer, never()).onComplete();
         verify(observer, never()).onError(any(Throwable.class));
 
         scheduler.advanceTimeTo(3500L, TimeUnit.MILLISECONDS);
         inOrder.verify(observer, times(1)).onNext(2L);
-        verify(observer, times(1)).onCompleted();
+        verify(observer, times(1)).onComplete();
         verify(observer, never()).onError(any(Throwable.class));
     }
 
     @Test
-    public void testDelayWithObservableReorder() {
+    public void testDelayWithFlowableReorder() {
         int n = 3;
 
         PublishSubject<Integer> source = PublishSubject.create();
@@ -615,10 +615,10 @@ public class OperatorDelayTest {
             subjects.add(PublishSubject.<Integer> create());
         }
 
-        Observable<Integer> result = source.delay(new Func1<Integer, Observable<Integer>>() {
+        Flowable<Integer> result = source.delay(new Function<Integer, Flowable<Integer>>() {
 
             @Override
-            public Observable<Integer> call(Integer t1) {
+            public Flowable<Integer> call(Integer t1) {
                 return subjects.get(t1);
             }
         });
@@ -632,25 +632,25 @@ public class OperatorDelayTest {
         for (int i = 0; i < n; i++) {
             source.onNext(i);
         }
-        source.onCompleted();
+        source.onComplete();
 
         inOrder.verify(o, never()).onNext(anyInt());
-        inOrder.verify(o, never()).onCompleted();
+        inOrder.verify(o, never()).onComplete();
 
         for (int i = n - 1; i >= 0; i--) {
-            subjects.get(i).onCompleted();
+            subjects.get(i).onComplete();
             inOrder.verify(o).onNext(i);
         }
 
-        inOrder.verify(o).onCompleted();
+        inOrder.verify(o).onComplete();
 
         verify(o, never()).onError(any(Throwable.class));
     }
 
     @Test
     public void testDelayEmitsEverything() {
-        Observable<Integer> source = Observable.range(1, 5);
-        Observable<Integer> delayed = source.delay(500L, TimeUnit.MILLISECONDS, scheduler);
+        Flowable<Integer> source = Flowable.range(1, 5);
+        Flowable<Integer> delayed = source.delay(500L, TimeUnit.MILLISECONDS, scheduler);
         delayed = delayed.doOnEach(new Action1<Notification<? super Integer>>() {
 
             @Override
@@ -669,10 +669,10 @@ public class OperatorDelayTest {
     @Test
     public void testBackpressureWithTimedDelay() {
         TestSubscriber<Integer> ts = new TestSubscriber<Integer>();
-        Observable.range(1, RxRingBuffer.SIZE * 2)
+        Flowable.range(1, RxRingBuffer.SIZE * 2)
                 .delay(100, TimeUnit.MILLISECONDS)
                 .observeOn(Schedulers.computation())
-                .map(new Func1<Integer, Integer>() {
+                .map(new Function<Integer, Integer>() {
 
                     int c = 0;
 
@@ -697,11 +697,11 @@ public class OperatorDelayTest {
     @Test
     public void testBackpressureWithSubscriptionTimedDelay() {
         TestSubscriber<Integer> ts = new TestSubscriber<Integer>();
-        Observable.range(1, RxRingBuffer.SIZE * 2)
+        Flowable.range(1, RxRingBuffer.SIZE * 2)
                 .delaySubscription(100, TimeUnit.MILLISECONDS)
                 .delay(100, TimeUnit.MILLISECONDS)
                 .observeOn(Schedulers.computation())
-                .map(new Func1<Integer, Integer>() {
+                .map(new Function<Integer, Integer>() {
 
                     int c = 0;
 
@@ -726,17 +726,17 @@ public class OperatorDelayTest {
     @Test
     public void testBackpressureWithSelectorDelay() {
         TestSubscriber<Integer> ts = new TestSubscriber<Integer>();
-        Observable.range(1, RxRingBuffer.SIZE * 2)
-                .delay(new Func1<Integer, Observable<Long>>() {
+        Flowable.range(1, RxRingBuffer.SIZE * 2)
+                .delay(new Function<Integer, Flowable<Long>>() {
 
                     @Override
-                    public Observable<Long> call(Integer i) {
-                        return Observable.timer(100, TimeUnit.MILLISECONDS);
+                    public Flowable<Long> call(Integer i) {
+                        return Flowable.timer(100, TimeUnit.MILLISECONDS);
                     }
 
                 })
                 .observeOn(Schedulers.computation())
-                .map(new Func1<Integer, Integer>() {
+                .map(new Function<Integer, Integer>() {
 
                     int c = 0;
 
@@ -761,23 +761,23 @@ public class OperatorDelayTest {
     @Test
     public void testBackpressureWithSelectorDelayAndSubscriptionDelay() {
         TestSubscriber<Integer> ts = new TestSubscriber<Integer>();
-        Observable.range(1, RxRingBuffer.SIZE * 2)
-                .delay(new Func0<Observable<Long>>() {
+        Flowable.range(1, RxRingBuffer.SIZE * 2)
+                .delay(new Func0<Flowable<Long>>() {
 
                     @Override
-                    public Observable<Long> call() {
-                        return Observable.timer(500, TimeUnit.MILLISECONDS);
+                    public Flowable<Long> call() {
+                        return Flowable.timer(500, TimeUnit.MILLISECONDS);
                     }
-                }, new Func1<Integer, Observable<Long>>() {
+                }, new Function<Integer, Flowable<Long>>() {
 
                     @Override
-                    public Observable<Long> call(Integer i) {
-                        return Observable.timer(100, TimeUnit.MILLISECONDS);
+                    public Flowable<Long> call(Integer i) {
+                        return Flowable.timer(100, TimeUnit.MILLISECONDS);
                     }
 
                 })
                 .observeOn(Schedulers.computation())
-                .map(new Func1<Integer, Integer>() {
+                .map(new Function<Integer, Integer>() {
 
                     int c = 0;
 

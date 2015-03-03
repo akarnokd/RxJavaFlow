@@ -21,10 +21,10 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
 
-import rx.Observable.Operator;
+import rx.Flowable.Operator;
 import rx.Subscriber;
 import rx.functions.Func0;
-import rx.functions.Func1;
+import rx.functions.Function;
 
 /**
  * Maps the elements of the source observable into a multimap
@@ -49,25 +49,25 @@ public final class OperatorToMultimap<T, K, V> implements Operator<Map<K, Collec
      * an ArrayList independent of the key.
      */
     public static final class DefaultMultimapCollectionFactory<K, V>
-            implements Func1<K, Collection<V>> {
+            implements Function<K, Collection<V>> {
         @Override
         public Collection<V> call(K t1) {
             return new ArrayList<V>();
         }
     }
 
-    private final Func1<? super T, ? extends K> keySelector;
-    private final Func1<? super T, ? extends V> valueSelector;
+    private final Function<? super T, ? extends K> keySelector;
+    private final Function<? super T, ? extends V> valueSelector;
     private final Func0<? extends Map<K, Collection<V>>> mapFactory;
-    private final Func1<? super K, ? extends Collection<V>> collectionFactory;
+    private final Function<? super K, ? extends Collection<V>> collectionFactory;
 
     /**
      * ToMultimap with key selector, custom value selector,
      * default HashMap factory and default ArrayList collection factory.
      */
     public OperatorToMultimap(
-            Func1<? super T, ? extends K> keySelector,
-            Func1<? super T, ? extends V> valueSelector) {
+            Function<? super T, ? extends K> keySelector,
+            Function<? super T, ? extends V> valueSelector) {
         this(keySelector, valueSelector,
                 new DefaultToMultimapFactory<K, V>(),
                 new DefaultMultimapCollectionFactory<K, V>());
@@ -78,8 +78,8 @@ public final class OperatorToMultimap<T, K, V> implements Operator<Map<K, Collec
      * custom Map factory and default ArrayList collection factory.
      */
     public OperatorToMultimap(
-            Func1<? super T, ? extends K> keySelector,
-            Func1<? super T, ? extends V> valueSelector,
+            Function<? super T, ? extends K> keySelector,
+            Function<? super T, ? extends V> valueSelector,
             Func0<? extends Map<K, Collection<V>>> mapFactory) {
         this(keySelector, valueSelector,
                 mapFactory,
@@ -91,10 +91,10 @@ public final class OperatorToMultimap<T, K, V> implements Operator<Map<K, Collec
      * custom Map factory and custom collection factory.
      */
     public OperatorToMultimap(
-            Func1<? super T, ? extends K> keySelector,
-            Func1<? super T, ? extends V> valueSelector,
+            Function<? super T, ? extends K> keySelector,
+            Function<? super T, ? extends V> valueSelector,
             Func0<? extends Map<K, Collection<V>>> mapFactory,
-            Func1<? super K, ? extends Collection<V>> collectionFactory) {
+            Function<? super K, ? extends Collection<V>> collectionFactory) {
         this.keySelector = keySelector;
         this.valueSelector = valueSelector;
         this.mapFactory = mapFactory;
@@ -130,11 +130,11 @@ public final class OperatorToMultimap<T, K, V> implements Operator<Map<K, Collec
             }
 
             @Override
-            public void onCompleted() {
+            public void onComplete() {
                 Map<K, Collection<V>> map0 = map;
                 map = null;
                 subscriber.onNext(map0);
-                subscriber.onCompleted();
+                subscriber.onComplete();
             }
 
         };

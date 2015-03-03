@@ -15,23 +15,23 @@
  */
 package rx.internal.operators;
 
-import rx.Observable.Operator;
+import rx.Flowable.Operator;
 import rx.Subscriber;
-import rx.functions.Func1;
-import rx.functions.Func2;
+import rx.functions.Function;
+import rx.functions.BiFunction;
 
 /**
- * Returns an Observable that emits items emitted by the source Observable as long as a specified
+ * Returns an Flowable that emits items emitted by the source Flowable as long as a specified
  * condition is true.
  * <p>
  * <img width="640" src="https://github.com/ReactiveX/RxJava/wiki/images/rx-operators/takeWhile.png" alt="">
  */
 public final class OperatorTakeWhile<T> implements Operator<T, T> {
 
-    private final Func2<? super T, ? super Integer, Boolean> predicate;
+    private final BiFunction<? super T, ? super Integer, Boolean> predicate;
 
-    public OperatorTakeWhile(final Func1<? super T, Boolean> underlying) {
-        this(new Func2<T, Integer, Boolean>() {
+    public OperatorTakeWhile(final Function<? super T, Boolean> underlying) {
+        this(new BiFunction<T, Integer, Boolean>() {
             @Override
             public Boolean call(T input, Integer index) {
                 return underlying.call(input);
@@ -39,7 +39,7 @@ public final class OperatorTakeWhile<T> implements Operator<T, T> {
         });
     }
 
-    public OperatorTakeWhile(Func2<? super T, ? super Integer, Boolean> predicate) {
+    public OperatorTakeWhile(BiFunction<? super T, ? super Integer, Boolean> predicate) {
         this.predicate = predicate;
     }
 
@@ -66,15 +66,15 @@ public final class OperatorTakeWhile<T> implements Operator<T, T> {
                     subscriber.onNext(args);
                 } else {
                     done = true;
-                    subscriber.onCompleted();
+                    subscriber.onComplete();
                     unsubscribe();
                 }
             }
 
             @Override
-            public void onCompleted() {
+            public void onComplete() {
                 if (!done) {
-                    subscriber.onCompleted();
+                    subscriber.onComplete();
                 }
             }
 

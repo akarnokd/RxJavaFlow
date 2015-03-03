@@ -20,13 +20,13 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import rx.Observable;
-import rx.Observable.OnSubscribe;
+import rx.Flowable;
+import rx.Flowable.OnSubscribe;
 import rx.Observer;
 import rx.Subscriber;
 import rx.Subscription;
-import rx.functions.Func1;
-import rx.functions.Func2;
+import rx.functions.Function;
+import rx.functions.BiFunction;
 import rx.observers.SerializedObserver;
 import rx.observers.SerializedSubscriber;
 import rx.subjects.PublishSubject;
@@ -37,7 +37,7 @@ import rx.subscriptions.RefCountSubscription;
 /**
  * Corrrelates two sequences when they overlap and groups the results.
  * 
- * @see <a href="http://msdn.microsoft.com/en-us/library/hh244235.aspx">MSDN: Observable.GroupJoin</a>
+ * @see <a href="http://msdn.microsoft.com/en-us/library/hh244235.aspx">MSDN: Flowable.GroupJoin</a>
  * @param <T1> the left value type
  * @param <T2> the right value type
  * @param <D1> the value type of the left duration
@@ -45,18 +45,18 @@ import rx.subscriptions.RefCountSubscription;
  * @param <R> the result value type
  */
 public final class OnSubscribeGroupJoin<T1, T2, D1, D2, R> implements OnSubscribe<R> {
-    protected final Observable<T1> left;
-    protected final Observable<T2> right;
-    protected final Func1<? super T1, ? extends Observable<D1>> leftDuration;
-    protected final Func1<? super T2, ? extends Observable<D2>> rightDuration;
-    protected final Func2<? super T1, ? super Observable<T2>, ? extends R> resultSelector;
+    protected final Flowable<T1> left;
+    protected final Flowable<T2> right;
+    protected final Function<? super T1, ? extends Flowable<D1>> leftDuration;
+    protected final Function<? super T2, ? extends Flowable<D2>> rightDuration;
+    protected final BiFunction<? super T1, ? super Flowable<T2>, ? extends R> resultSelector;
 
     public OnSubscribeGroupJoin(
-            Observable<T1> left,
-            Observable<T2> right,
-            Func1<? super T1, ? extends Observable<D1>> leftDuration,
-            Func1<? super T2, ? extends Observable<D2>> rightDuration,
-            Func2<? super T1, ? super Observable<T2>, ? extends R> resultSelector) {
+            Flowable<T1> left,
+            Flowable<T2> right,
+            Function<? super T1, ? extends Flowable<D1>> leftDuration,
+            Function<? super T2, ? extends Flowable<D2>> rightDuration,
+            BiFunction<? super T1, ? super Flowable<T2>, ? extends R> resultSelector) {
         this.left = left;
         this.right = right;
         this.leftDuration = leftDuration;
@@ -149,9 +149,9 @@ public final class OnSubscribeGroupJoin<T1, T2, D1, D2, R> implements OnSubscrib
         void complete(List<Observer<T2>> list) {
             if (list != null) {
                 for (Observer<T2> o : list) {
-                    o.onCompleted();
+                    o.onComplete();
                 }
-                subscriber.onCompleted();
+                subscriber.onComplete();
                 cancel.unsubscribe();
             }
         }
@@ -170,9 +170,9 @@ public final class OnSubscribeGroupJoin<T1, T2, D1, D2, R> implements OnSubscrib
                         leftMap.put(id, subjSerial);
                     }
 
-                    Observable<T2> window = Observable.create(new WindowObservableFunc<T2>(subj, cancel));
+                    Flowable<T2> window = Flowable.create(new WindowFlowableFunc<T2>(subj, cancel));
 
-                    Observable<D1> duration = leftDuration.call(args);
+                    Flowable<D1> duration = leftDuration.call(args);
 
                     Subscriber<D1> d1 = new LeftDurationObserver(id);
                     group.add(d1);
@@ -197,7 +197,7 @@ public final class OnSubscribeGroupJoin<T1, T2, D1, D2, R> implements OnSubscrib
             }
 
             @Override
-            public void onCompleted() {
+            public void onComplete() {
                 List<Observer<T2>> list = null;
                 synchronized (guard) {
                     leftDone = true;
@@ -227,7 +227,7 @@ public final class OnSubscribeGroupJoin<T1, T2, D1, D2, R> implements OnSubscrib
                         id = rightIds++;
                         rightMap.put(id, args);
                     }
-                    Observable<D2> duration = rightDuration.call(args);
+                    Flowable<D2> duration = rightDuration.call(args);
 
                     Subscriber<D2> d2 = new RightDurationObserver(id);
                     
@@ -247,7 +247,7 @@ public final class OnSubscribeGroupJoin<T1, T2, D1, D2, R> implements OnSubscrib
             }
 
             @Override
-            public void onCompleted() {
+            public void onComplete() {
                 List<Observer<T2>> list = null;
                 synchronized (guard) {
                     rightDone = true;
@@ -276,7 +276,7 @@ public final class OnSubscribeGroupJoin<T1, T2, D1, D2, R> implements OnSubscrib
             }
 
             @Override
-            public void onCompleted() {
+            public void onComplete() {
                 if (once) {
                     once = false;
                     Observer<T2> gr;
@@ -284,7 +284,7 @@ public final class OnSubscribeGroupJoin<T1, T2, D1, D2, R> implements OnSubscrib
                         gr = leftMap.remove(id);
                     }
                     if (gr != null) {
-                        gr.onCompleted();
+                        gr.onComplete();
                     }
                     group.remove(this);
                 }
@@ -297,7 +297,7 @@ public final class OnSubscribeGroupJoin<T1, T2, D1, D2, R> implements OnSubscrib
 
             @Override
             public void onNext(D1 args) {
-                onCompleted();
+                onComplete();
             }
         }
 
@@ -310,7 +310,7 @@ public final class OnSubscribeGroupJoin<T1, T2, D1, D2, R> implements OnSubscrib
             }
 
             @Override
-            public void onCompleted() {
+            public void onComplete() {
                 if (once) {
                     once = false;
                     synchronized (guard) {
@@ -327,7 +327,7 @@ public final class OnSubscribeGroupJoin<T1, T2, D1, D2, R> implements OnSubscrib
 
             @Override
             public void onNext(D2 args) {
-                onCompleted();
+                onComplete();
             }
         }
 
@@ -335,14 +335,14 @@ public final class OnSubscribeGroupJoin<T1, T2, D1, D2, R> implements OnSubscrib
 
     /**
      * The reference-counted window observable.
-     * Subscribes to the underlying Observable by using a reference-counted
+     * Subscribes to the underlying Flowable by using a reference-counted
      * subscription.
      */
-    final static class WindowObservableFunc<T> implements OnSubscribe<T> {
+    final static class WindowFlowableFunc<T> implements OnSubscribe<T> {
         final RefCountSubscription refCount;
-        final Observable<T> underlying;
+        final Flowable<T> underlying;
 
-        public WindowObservableFunc(Observable<T> underlying, RefCountSubscription refCount) {
+        public WindowFlowableFunc(Flowable<T> underlying, RefCountSubscription refCount) {
             this.refCount = refCount;
             this.underlying = underlying;
         }
@@ -379,8 +379,8 @@ public final class OnSubscribeGroupJoin<T1, T2, D1, D2, R> implements OnSubscrib
             }
 
             @Override
-            public void onCompleted() {
-                subscriber.onCompleted();
+            public void onComplete() {
+                subscriber.onComplete();
                 ref.unsubscribe();
             }
         }

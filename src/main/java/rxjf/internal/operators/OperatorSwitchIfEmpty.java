@@ -21,14 +21,14 @@ import rx.*;
 import rx.subscriptions.SerialSubscription;
 
 /**
- * If the Observable completes without emitting any items, subscribe to an alternate Observable. Allows for similar
+ * If the Flowable completes without emitting any items, subscribe to an alternate Flowable. Allows for similar
  * functionality to {@link rx.internal.operators.OperatorDefaultIfEmpty} except instead of one item being emitted when
- * empty, the results of the given Observable will be emitted.
+ * empty, the results of the given Flowable will be emitted.
  */
-public final class OperatorSwitchIfEmpty<T> implements Observable.Operator<T, T> {
-    private final Observable<? extends T> alternate;
+public final class OperatorSwitchIfEmpty<T> implements Flowable.Operator<T, T> {
+    private final Flowable<? extends T> alternate;
 
-    public OperatorSwitchIfEmpty(Observable<? extends T> alternate) {
+    public OperatorSwitchIfEmpty(Flowable<? extends T> alternate) {
         this.alternate = alternate;
     }
 
@@ -68,9 +68,9 @@ public final class OperatorSwitchIfEmpty<T> implements Observable.Operator<T, T>
         }
 
         @Override
-        public void onCompleted() {
+        public void onComplete() {
             if (!empty) {
-                child.onCompleted();
+                child.onComplete();
             } else if (!child.isUnsubscribed()) {
                 subscribeToAlternate();
             }
@@ -98,8 +98,8 @@ public final class OperatorSwitchIfEmpty<T> implements Observable.Operator<T, T>
                 }
 
                 @Override
-                public void onCompleted() {
-                    child.onCompleted();
+                public void onComplete() {
+                    child.onComplete();
                 }
 
                 @Override

@@ -21,49 +21,49 @@ import java.util.List;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.atomic.AtomicReference;
 
-import rx.Observable;
-import rx.Observable.OnSubscribe;
+import rx.Flowable;
+import rx.Flowable.OnSubscribe;
 import rx.Producer;
 import rx.Subscriber;
 import rx.functions.Action0;
 import rx.subscriptions.Subscriptions;
 
 /**
- * Given multiple {@link Observable}s, propagates the one that first emits an item.
+ * Given multiple {@link Flowable}s, propagates the one that first emits an item.
  */
 public final class OnSubscribeAmb<T> implements OnSubscribe<T>{
 
     /**
-     * Given two {@link Observable}s, propagates the one that first emits an item.
+     * Given two {@link Flowable}s, propagates the one that first emits an item.
      *
      * @param o1
-     *          the first {@code Observable}
+     *          the first {@code Flowable}
      * @param o2
-     *          the second {@code Observable}
-     * @return an {@code Observable} that mirrors the one of the source {@code Observable}s that was first to
+     *          the second {@code Flowable}
+     * @return an {@code Flowable} that mirrors the one of the source {@code Flowable}s that was first to
      *         emit an item
      */
-    public static <T> OnSubscribe<T> amb(Observable<? extends T> o1, Observable<? extends T> o2) {
-        List<Observable<? extends T>> sources = new ArrayList<Observable<? extends T>>();
+    public static <T> OnSubscribe<T> amb(Flowable<? extends T> o1, Flowable<? extends T> o2) {
+        List<Flowable<? extends T>> sources = new ArrayList<Flowable<? extends T>>();
         sources.add(o1);
         sources.add(o2);
         return amb(sources);
     }
 
     /**
-     * Given three {@link Observable}s, propagates the one that first emits an item.
+     * Given three {@link Flowable}s, propagates the one that first emits an item.
      *
      * @param o1
-     *          the first {@code Observable}
+     *          the first {@code Flowable}
      * @param o2
-     *          the second {@code Observable}
+     *          the second {@code Flowable}
      * @param o3
-     *          the third {@code Observable}
-     * @return an {@code Observable} that mirrors the one of the source {@code Observable}s that was first to
+     *          the third {@code Flowable}
+     * @return an {@code Flowable} that mirrors the one of the source {@code Flowable}s that was first to
      *         emit an item
      */
-    public static <T> OnSubscribe<T> amb(Observable<? extends T> o1, Observable<? extends T> o2, Observable<? extends T> o3) {
-        List<Observable<? extends T>> sources = new ArrayList<Observable<? extends T>>();
+    public static <T> OnSubscribe<T> amb(Flowable<? extends T> o1, Flowable<? extends T> o2, Flowable<? extends T> o3) {
+        List<Flowable<? extends T>> sources = new ArrayList<Flowable<? extends T>>();
         sources.add(o1);
         sources.add(o2);
         sources.add(o3);
@@ -71,21 +71,21 @@ public final class OnSubscribeAmb<T> implements OnSubscribe<T>{
     }
 
     /**
-     * Given four {@link Observable}s, propagates the one that first emits an item.
+     * Given four {@link Flowable}s, propagates the one that first emits an item.
      *
      * @param o1
-     *          the first {@code Observable}
+     *          the first {@code Flowable}
      * @param o2
-     *          the second {@code Observable}
+     *          the second {@code Flowable}
      * @param o3
-     *          the third {@code Observable}
+     *          the third {@code Flowable}
      * @param o4
-     *          the fourth {@code Observable}
-     * @return an {@code Observable} that mirrors the one of the source {@code Observable}s that was first to
+     *          the fourth {@code Flowable}
+     * @return an {@code Flowable} that mirrors the one of the source {@code Flowable}s that was first to
      *         emit an item
      */
-    public static <T> OnSubscribe<T> amb(Observable<? extends T> o1, Observable<? extends T> o2, Observable<? extends T> o3, Observable<? extends T> o4) {
-        List<Observable<? extends T>> sources = new ArrayList<Observable<? extends T>>();
+    public static <T> OnSubscribe<T> amb(Flowable<? extends T> o1, Flowable<? extends T> o2, Flowable<? extends T> o3, Flowable<? extends T> o4) {
+        List<Flowable<? extends T>> sources = new ArrayList<Flowable<? extends T>>();
         sources.add(o1);
         sources.add(o2);
         sources.add(o3);
@@ -94,23 +94,23 @@ public final class OnSubscribeAmb<T> implements OnSubscribe<T>{
     }
 
     /**
-     * Given five {@link Observable}s, propagates the one that first emits an item.
+     * Given five {@link Flowable}s, propagates the one that first emits an item.
      *
      * @param o1
-     *          the first {@code Observable}
+     *          the first {@code Flowable}
      * @param o2
-     *          the second {@code Observable}
+     *          the second {@code Flowable}
      * @param o3
-     *          the third {@code Observable}
+     *          the third {@code Flowable}
      * @param o4
-     *          the fourth {@code Observable}
+     *          the fourth {@code Flowable}
      * @param o5
-     *          the fifth {@code Observable}
-     * @return an {@code Observable} that mirrors the one of the source {@code Observable}s that was first to
+     *          the fifth {@code Flowable}
+     * @return an {@code Flowable} that mirrors the one of the source {@code Flowable}s that was first to
      *         emit an item
      */
-    public static <T> OnSubscribe<T> amb(Observable<? extends T> o1, Observable<? extends T> o2, Observable<? extends T> o3, Observable<? extends T> o4, Observable<? extends T> o5) {
-        List<Observable<? extends T>> sources = new ArrayList<Observable<? extends T>>();
+    public static <T> OnSubscribe<T> amb(Flowable<? extends T> o1, Flowable<? extends T> o2, Flowable<? extends T> o3, Flowable<? extends T> o4, Flowable<? extends T> o5) {
+        List<Flowable<? extends T>> sources = new ArrayList<Flowable<? extends T>>();
         sources.add(o1);
         sources.add(o2);
         sources.add(o3);
@@ -120,25 +120,25 @@ public final class OnSubscribeAmb<T> implements OnSubscribe<T>{
     }
 
     /**
-     * Given six {@link Observable}s, propagates the one that first emits an item.
+     * Given six {@link Flowable}s, propagates the one that first emits an item.
      *
      * @param o1
-     *          the first {@code Observable}
+     *          the first {@code Flowable}
      * @param o2
-     *          the second {@code Observable}
+     *          the second {@code Flowable}
      * @param o3
-     *          the third {@code Observable}
+     *          the third {@code Flowable}
      * @param o4
-     *          the fourth {@code Observable}
+     *          the fourth {@code Flowable}
      * @param o5
-     *          the fifth {@code Observable}
+     *          the fifth {@code Flowable}
      * @param o6
-     *          the sixth {@code Observable}
-     * @return an {@code Observable} that mirrors the one of the source {@code Observable}s that was first to
+     *          the sixth {@code Flowable}
+     * @return an {@code Flowable} that mirrors the one of the source {@code Flowable}s that was first to
      *         emit an item
      */
-    public static <T> OnSubscribe<T> amb(Observable<? extends T> o1, Observable<? extends T> o2, Observable<? extends T> o3, Observable<? extends T> o4, Observable<? extends T> o5, Observable<? extends T> o6) {
-        List<Observable<? extends T>> sources = new ArrayList<Observable<? extends T>>();
+    public static <T> OnSubscribe<T> amb(Flowable<? extends T> o1, Flowable<? extends T> o2, Flowable<? extends T> o3, Flowable<? extends T> o4, Flowable<? extends T> o5, Flowable<? extends T> o6) {
+        List<Flowable<? extends T>> sources = new ArrayList<Flowable<? extends T>>();
         sources.add(o1);
         sources.add(o2);
         sources.add(o3);
@@ -149,27 +149,27 @@ public final class OnSubscribeAmb<T> implements OnSubscribe<T>{
     }
 
     /**
-     * Given seven {@link Observable}s, propagates the one that first emits an item.
+     * Given seven {@link Flowable}s, propagates the one that first emits an item.
      *
      * @param o1
-     *          the first {@code Observable}
+     *          the first {@code Flowable}
      * @param o2
-     *          the second {@code Observable}
+     *          the second {@code Flowable}
      * @param o3
-     *          the third {@code Observable}
+     *          the third {@code Flowable}
      * @param o4
-     *          the fourth {@code Observable}
+     *          the fourth {@code Flowable}
      * @param o5
-     *          the fifth {@code Observable}
+     *          the fifth {@code Flowable}
      * @param o6
-     *          the sixth {@code Observable}
+     *          the sixth {@code Flowable}
      * @param o7
-     *          the seventh {@code Observable}
-     * @return an {@code Observable} that mirrors the one of the source {@code Observable}s that was first to
+     *          the seventh {@code Flowable}
+     * @return an {@code Flowable} that mirrors the one of the source {@code Flowable}s that was first to
      *         emit an item
      */
-    public static <T> OnSubscribe<T> amb(Observable<? extends T> o1, Observable<? extends T> o2, Observable<? extends T> o3, Observable<? extends T> o4, Observable<? extends T> o5, Observable<? extends T> o6, Observable<? extends T> o7) {
-        List<Observable<? extends T>> sources = new ArrayList<Observable<? extends T>>();
+    public static <T> OnSubscribe<T> amb(Flowable<? extends T> o1, Flowable<? extends T> o2, Flowable<? extends T> o3, Flowable<? extends T> o4, Flowable<? extends T> o5, Flowable<? extends T> o6, Flowable<? extends T> o7) {
+        List<Flowable<? extends T>> sources = new ArrayList<Flowable<? extends T>>();
         sources.add(o1);
         sources.add(o2);
         sources.add(o3);
@@ -181,29 +181,29 @@ public final class OnSubscribeAmb<T> implements OnSubscribe<T>{
     }
 
     /**
-     * Given eight {@link Observable}s, propagates the one that first emits an item.
+     * Given eight {@link Flowable}s, propagates the one that first emits an item.
      *
      * @param o1
-     *          the first {@code Observable}
+     *          the first {@code Flowable}
      * @param o2
-     *          the second {@code Observable}
+     *          the second {@code Flowable}
      * @param o3
-     *          the third {@code Observable}
+     *          the third {@code Flowable}
      * @param o4
-     *          the fourth {@code Observable}
+     *          the fourth {@code Flowable}
      * @param o5
-     *          the fifth {@code Observable}
+     *          the fifth {@code Flowable}
      * @param o6
-     *          the sixth {@code Observable}
+     *          the sixth {@code Flowable}
      * @param o7
-     *          the seventh {@code Observable}
+     *          the seventh {@code Flowable}
      * @param o8
-     *          the eighth {@code Observable}
-     * @return an {@code Observable} that mirrors the one of the source {@code Observable}s that was first to
+     *          the eighth {@code Flowable}
+     * @return an {@code Flowable} that mirrors the one of the source {@code Flowable}s that was first to
      *         emit an item
      */
-    public static <T> OnSubscribe<T> amb(Observable<? extends T> o1, Observable<? extends T> o2, Observable<? extends T> o3, Observable<? extends T> o4, Observable<? extends T> o5, Observable<? extends T> o6, Observable<? extends T> o7, Observable<? extends T> o8) {
-        List<Observable<? extends T>> sources = new ArrayList<Observable<? extends T>>();
+    public static <T> OnSubscribe<T> amb(Flowable<? extends T> o1, Flowable<? extends T> o2, Flowable<? extends T> o3, Flowable<? extends T> o4, Flowable<? extends T> o5, Flowable<? extends T> o6, Flowable<? extends T> o7, Flowable<? extends T> o8) {
+        List<Flowable<? extends T>> sources = new ArrayList<Flowable<? extends T>>();
         sources.add(o1);
         sources.add(o2);
         sources.add(o3);
@@ -216,31 +216,31 @@ public final class OnSubscribeAmb<T> implements OnSubscribe<T>{
     }
 
     /**
-     * Given nine {@link Observable}s, propagates the one that first emits an item.
+     * Given nine {@link Flowable}s, propagates the one that first emits an item.
      *
      * @param o1
-     *          the first {@code Observable}
+     *          the first {@code Flowable}
      * @param o2
-     *          the second {@code Observable}
+     *          the second {@code Flowable}
      * @param o3
-     *          the third {@code Observable}
+     *          the third {@code Flowable}
      * @param o4
-     *          the fourth {@code Observable}
+     *          the fourth {@code Flowable}
      * @param o5
-     *          the fifth {@code Observable}
+     *          the fifth {@code Flowable}
      * @param o6
-     *          the sixth {@code Observable}
+     *          the sixth {@code Flowable}
      * @param o7
-     *          the seventh {@code Observable}
+     *          the seventh {@code Flowable}
      * @param o8
-     *          the eighth {@code Observable}
+     *          the eighth {@code Flowable}
      * @param o9
-     *          the ninth {@code Observable}
-     * @return an {@code Observable} that mirrors the one of the source {@code Observable}s that was first to
+     *          the ninth {@code Flowable}
+     * @return an {@code Flowable} that mirrors the one of the source {@code Flowable}s that was first to
      *         emit an item
      */
-    public static <T> OnSubscribe<T> amb(Observable<? extends T> o1, Observable<? extends T> o2, Observable<? extends T> o3, Observable<? extends T> o4, Observable<? extends T> o5, Observable<? extends T> o6, Observable<? extends T> o7, Observable<? extends T> o8, Observable<? extends T> o9) {
-        List<Observable<? extends T>> sources = new ArrayList<Observable<? extends T>>();
+    public static <T> OnSubscribe<T> amb(Flowable<? extends T> o1, Flowable<? extends T> o2, Flowable<? extends T> o3, Flowable<? extends T> o4, Flowable<? extends T> o5, Flowable<? extends T> o6, Flowable<? extends T> o7, Flowable<? extends T> o8, Flowable<? extends T> o9) {
+        List<Flowable<? extends T>> sources = new ArrayList<Flowable<? extends T>>();
         sources.add(o1);
         sources.add(o2);
         sources.add(o3);
@@ -254,14 +254,14 @@ public final class OnSubscribeAmb<T> implements OnSubscribe<T>{
     }
 
     /**
-     * Given a set of {@link Observable}s, propagates the one that first emits an item.
+     * Given a set of {@link Flowable}s, propagates the one that first emits an item.
      *
      * @param sources
-     *          an {@code Iterable} of {@code Observable}s
-     * @return an {@code Observable} that mirrors the one of the {@code Observable}s in {@code sources} that was
+     *          an {@code Iterable} of {@code Flowable}s
+     * @return an {@code Flowable} that mirrors the one of the {@code Flowable}s in {@code sources} that was
      *         the first to emit an item
      */
-    public static <T> OnSubscribe<T> amb(final Iterable<? extends Observable<? extends T>> sources) {
+    public static <T> OnSubscribe<T> amb(final Iterable<? extends Flowable<? extends T>> sources) {
         return new OnSubscribeAmb<T>(sources);
     }
 
@@ -290,11 +290,11 @@ public final class OnSubscribeAmb<T> implements OnSubscribe<T>{
         }
 
         @Override
-        public void onCompleted() {
+        public void onComplete() {
             if (!isSelected()) {
                 return;
             }
-            subscriber.onCompleted();
+            subscriber.onComplete();
         }
 
         @Override
@@ -344,10 +344,10 @@ public final class OnSubscribeAmb<T> implements OnSubscribe<T>{
 
     }
 
-    private final Iterable<? extends Observable<? extends T>> sources;
+    private final Iterable<? extends Flowable<? extends T>> sources;
     private final Selection<T> selection = new Selection<T>();
 
-    private OnSubscribeAmb(Iterable<? extends Observable<? extends T>> sources) {
+    private OnSubscribeAmb(Iterable<? extends Flowable<? extends T>> sources) {
         this.sources = sources;
     }
 
@@ -379,7 +379,7 @@ public final class OnSubscribeAmb<T> implements OnSubscribe<T>{
                     // propagate the request to that single Subscriber that won
                     selection.choice.get().requestMore(n);
                 } else {
-                    for (Observable<? extends T> source : sources) {
+                    for (Flowable<? extends T> source : sources) {
                         if (subscriber.isUnsubscribed()) {
                             break;
                         }

@@ -15,29 +15,29 @@
  */
 package rx.internal.operators;
 
-import rx.Observable;
+import rx.Flowable;
 import rx.Scheduler;
 import rx.Subscriber;
 import rx.Subscription;
 import rx.exceptions.Exceptions;
 import rx.functions.Func0;
-import rx.functions.Func1;
+import rx.functions.Function;
 import rx.schedulers.Schedulers;
 import rx.subscriptions.Subscriptions;
 
 /**
- * Returns an Observable that mirrors the source Observable. If either the first
- * item emitted by the source Observable or any subsequent item don't arrive
- * within time windows defined by provided Observables, switch to the
- * <code>other</code> Observable if provided, or emit a TimeoutException .
+ * Returns an Flowable that mirrors the source Flowable. If either the first
+ * item emitted by the source Flowable or any subsequent item don't arrive
+ * within time windows defined by provided Flowables, switch to the
+ * <code>other</code> Flowable if provided, or emit a TimeoutException .
  */
 public class OperatorTimeoutWithSelector<T, U, V> extends
         OperatorTimeoutBase<T> {
 
     public OperatorTimeoutWithSelector(
-            final Func0<? extends Observable<U>> firstTimeoutSelector,
-            final Func1<? super T, ? extends Observable<V>> timeoutSelector,
-            Observable<? extends T> other) {
+            final Func0<? extends Flowable<U>> firstTimeoutSelector,
+            final Function<? super T, ? extends Flowable<V>> timeoutSelector,
+            Flowable<? extends T> other) {
         super(new FirstTimeoutStub<T>() {
 
             @Override
@@ -45,7 +45,7 @@ public class OperatorTimeoutWithSelector<T, U, V> extends
                     final TimeoutSubscriber<T> timeoutSubscriber,
                     final Long seqId, Scheduler.Worker inner) {
                 if (firstTimeoutSelector != null) {
-                    Observable<U> o = null;
+                    Flowable<U> o = null;
                     try {
                         o = firstTimeoutSelector.call();
                     } catch (Throwable t) {
@@ -56,7 +56,7 @@ public class OperatorTimeoutWithSelector<T, U, V> extends
                     return o.unsafeSubscribe(new Subscriber<U>() {
 
                         @Override
-                        public void onCompleted() {
+                        public void onComplete() {
                             timeoutSubscriber.onTimeout(seqId);
                         }
 
@@ -81,7 +81,7 @@ public class OperatorTimeoutWithSelector<T, U, V> extends
             public Subscription call(
                     final TimeoutSubscriber<T> timeoutSubscriber,
                     final Long seqId, T value, Scheduler.Worker inner) {
-                Observable<V> o = null;
+                Flowable<V> o = null;
                 try {
                     o = timeoutSelector.call(value);
                 } catch (Throwable t) {
@@ -92,7 +92,7 @@ public class OperatorTimeoutWithSelector<T, U, V> extends
                 return o.unsafeSubscribe(new Subscriber<V>() {
 
                     @Override
-                    public void onCompleted() {
+                    public void onComplete() {
                         timeoutSubscriber.onTimeout(seqId);
                     }
 

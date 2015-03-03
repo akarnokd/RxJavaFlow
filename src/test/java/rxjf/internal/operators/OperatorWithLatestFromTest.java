@@ -24,21 +24,21 @@ import java.util.*;
 import org.junit.Test;
 import org.mockito.InOrder;
 
-import rx.Observable;
+import rx.Flowable;
 import rx.Observer;
 import rx.exceptions.TestException;
-import rx.functions.Func2;
+import rx.functions.BiFunction;
 import rx.observers.TestSubscriber;
 import rx.subjects.PublishSubject;
 
 public class OperatorWithLatestFromTest {
-    static final Func2<Integer, Integer, Integer> COMBINER = new Func2<Integer, Integer, Integer>() {
+    static final BiFunction<Integer, Integer, Integer> COMBINER = new BiFunction<Integer, Integer, Integer>() {
         @Override
         public Integer call(Integer t1, Integer t2) {
             return (t1 << 8) + t2;
         }
     };
-    static final Func2<Integer, Integer, Integer> COMBINER_ERROR = new Func2<Integer, Integer, Integer>() {
+    static final BiFunction<Integer, Integer, Integer> COMBINER_ERROR = new BiFunction<Integer, Integer, Integer>() {
         @Override
         public Integer call(Integer t1, Integer t2) {
             throw new TestException("Forced failure");
@@ -53,7 +53,7 @@ public class OperatorWithLatestFromTest {
         Observer<Integer> o = mock(Observer.class);
         InOrder inOrder = inOrder(o);
         
-        Observable<Integer> result = source.withLatestFrom(other, COMBINER);
+        Flowable<Integer> result = source.withLatestFrom(other, COMBINER);
         
         result.subscribe(o);
         
@@ -69,14 +69,14 @@ public class OperatorWithLatestFromTest {
         other.onNext(2);
         inOrder.verify(o, never()).onNext(anyInt());
         
-        other.onCompleted();
-        inOrder.verify(o, never()).onCompleted();
+        other.onComplete();
+        inOrder.verify(o, never()).onComplete();
         
         source.onNext(3);
         inOrder.verify(o).onNext((3 << 8) + 2);
         
-        source.onCompleted();
-        inOrder.verify(o).onCompleted();
+        source.onComplete();
+        inOrder.verify(o).onComplete();
         
         verify(o, never()).onError(any(Throwable.class));
     }
@@ -86,7 +86,7 @@ public class OperatorWithLatestFromTest {
         PublishSubject<Integer> source = PublishSubject.create();
         PublishSubject<Integer> other = PublishSubject.create();
         
-        Observable<Integer> result = source.withLatestFrom(other, COMBINER);
+        Flowable<Integer> result = source.withLatestFrom(other, COMBINER);
         
         TestSubscriber<Integer> ts = new TestSubscriber<Integer>();
         
@@ -97,7 +97,7 @@ public class OperatorWithLatestFromTest {
 
         other.onNext(1);
         
-        source.onCompleted();
+        source.onComplete();
         
         ts.assertNoErrors();
         ts.assertTerminalEvent();
@@ -112,7 +112,7 @@ public class OperatorWithLatestFromTest {
         PublishSubject<Integer> source = PublishSubject.create();
         PublishSubject<Integer> other = PublishSubject.create();
         
-        Observable<Integer> result = source.withLatestFrom(other, COMBINER);
+        Flowable<Integer> result = source.withLatestFrom(other, COMBINER);
         
         TestSubscriber<Integer> ts = new TestSubscriber<Integer>();
         
@@ -123,7 +123,7 @@ public class OperatorWithLatestFromTest {
 
         source.onNext(1);
         
-        source.onCompleted();
+        source.onComplete();
         
         ts.assertNoErrors();
         ts.assertTerminalEvent();
@@ -139,7 +139,7 @@ public class OperatorWithLatestFromTest {
         PublishSubject<Integer> source = PublishSubject.create();
         PublishSubject<Integer> other = PublishSubject.create();
         
-        Observable<Integer> result = source.withLatestFrom(other, COMBINER);
+        Flowable<Integer> result = source.withLatestFrom(other, COMBINER);
         
         TestSubscriber<Integer> ts = new TestSubscriber<Integer>();
         
@@ -155,7 +155,7 @@ public class OperatorWithLatestFromTest {
         
         ts.assertReceivedOnNext(Arrays.asList((1 << 8) + 1));
         ts.assertNoErrors();
-        assertEquals(0, ts.getOnCompletedEvents().size());
+        assertEquals(0, ts.getonComplete()Events().size());
         
         assertFalse(source.hasObservers());
         assertFalse(other.hasObservers());
@@ -166,7 +166,7 @@ public class OperatorWithLatestFromTest {
         PublishSubject<Integer> source = PublishSubject.create();
         PublishSubject<Integer> other = PublishSubject.create();
         
-        Observable<Integer> result = source.withLatestFrom(other, COMBINER);
+        Flowable<Integer> result = source.withLatestFrom(other, COMBINER);
         
         TestSubscriber<Integer> ts = new TestSubscriber<Integer>();
         
@@ -193,7 +193,7 @@ public class OperatorWithLatestFromTest {
         PublishSubject<Integer> source = PublishSubject.create();
         PublishSubject<Integer> other = PublishSubject.create();
         
-        Observable<Integer> result = source.withLatestFrom(other, COMBINER);
+        Flowable<Integer> result = source.withLatestFrom(other, COMBINER);
         
         TestSubscriber<Integer> ts = new TestSubscriber<Integer>();
         
@@ -221,7 +221,7 @@ public class OperatorWithLatestFromTest {
         PublishSubject<Integer> source = PublishSubject.create();
         PublishSubject<Integer> other = PublishSubject.create();
         
-        Observable<Integer> result = source.withLatestFrom(other, COMBINER_ERROR);
+        Flowable<Integer> result = source.withLatestFrom(other, COMBINER_ERROR);
         
         TestSubscriber<Integer> ts = new TestSubscriber<Integer>();
         
@@ -247,22 +247,22 @@ public class OperatorWithLatestFromTest {
         PublishSubject<Integer> source = PublishSubject.create();
         PublishSubject<Integer> other = PublishSubject.create();
         
-        Observable<Integer> result = source.withLatestFrom(other, COMBINER);
+        Flowable<Integer> result = source.withLatestFrom(other, COMBINER);
         
         TestSubscriber<Integer> ts = new TestSubscriber<Integer>();
         
         result.unsafeSubscribe(ts);
         
-        source.onCompleted();
+        source.onComplete();
         
         assertFalse(ts.isUnsubscribed());
     }
     @Test
     public void testBackpressure() {
-        Observable<Integer> source = Observable.range(1, 10);
+        Flowable<Integer> source = Flowable.range(1, 10);
         PublishSubject<Integer> other = PublishSubject.create();
         
-        Observable<Integer> result = source.withLatestFrom(other, COMBINER);
+        Flowable<Integer> result = source.withLatestFrom(other, COMBINER);
         
         TestSubscriber<Integer> ts = new TestSubscriber<Integer>() {
             @Override

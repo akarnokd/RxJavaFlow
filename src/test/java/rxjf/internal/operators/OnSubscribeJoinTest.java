@@ -25,27 +25,27 @@ import org.junit.Test;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 
-import rx.Observable;
+import rx.Flowable;
 import rx.Observer;
-import rx.functions.Func1;
-import rx.functions.Func2;
+import rx.functions.Function;
+import rx.functions.BiFunction;
 import rx.subjects.PublishSubject;
 
 public class OnSubscribeJoinTest {
     @Mock
     Observer<Object> observer;
 
-    Func2<Integer, Integer, Integer> add = new Func2<Integer, Integer, Integer>() {
+    BiFunction<Integer, Integer, Integer> add = new BiFunction<Integer, Integer, Integer>() {
         @Override
         public Integer call(Integer t1, Integer t2) {
             return t1 + t2;
         }
     };
 
-    <T> Func1<Integer, Observable<T>> just(final Observable<T> observable) {
-        return new Func1<Integer, Observable<T>>() {
+    <T> Function<Integer, Flowable<T>> just(final Flowable<T> observable) {
+        return new Function<Integer, Flowable<T>>() {
             @Override
-            public Observable<T> call(Integer t1) {
+            public Flowable<T> call(Integer t1) {
                 return observable;
             }
         };
@@ -61,9 +61,9 @@ public class OnSubscribeJoinTest {
         PublishSubject<Integer> source1 = PublishSubject.create();
         PublishSubject<Integer> source2 = PublishSubject.create();
 
-        Observable<Integer> m = source1.join(source2,
-                just(Observable.never()),
-                just(Observable.never()), add);
+        Flowable<Integer> m = source1.join(source2,
+                just(Flowable.never()),
+                just(Flowable.never()), add);
 
         m.subscribe(observer);
 
@@ -75,8 +75,8 @@ public class OnSubscribeJoinTest {
         source2.onNext(32);
         source2.onNext(64);
 
-        source1.onCompleted();
-        source2.onCompleted();
+        source1.onComplete();
+        source2.onComplete();
 
         verify(observer, times(1)).onNext(17);
         verify(observer, times(1)).onNext(18);
@@ -88,7 +88,7 @@ public class OnSubscribeJoinTest {
         verify(observer, times(1)).onNext(66);
         verify(observer, times(1)).onNext(68);
 
-        verify(observer, times(1)).onCompleted();
+        verify(observer, times(1)).onComplete();
         verify(observer, never()).onError(any(Throwable.class));
     }
 
@@ -99,9 +99,9 @@ public class OnSubscribeJoinTest {
 
         PublishSubject<Integer> duration1 = PublishSubject.create();
 
-        Observable<Integer> m = source1.join(source2,
+        Flowable<Integer> m = source1.join(source2,
                 just(duration1),
-                just(Observable.never()), add);
+                just(Flowable.never()), add);
         m.subscribe(observer);
 
         source1.onNext(1);
@@ -113,15 +113,15 @@ public class OnSubscribeJoinTest {
         source1.onNext(4);
         source1.onNext(8);
 
-        source1.onCompleted();
-        source2.onCompleted();
+        source1.onComplete();
+        source2.onComplete();
 
         verify(observer, times(1)).onNext(17);
         verify(observer, times(1)).onNext(18);
         verify(observer, times(1)).onNext(20);
         verify(observer, times(1)).onNext(24);
 
-        verify(observer, times(1)).onCompleted();
+        verify(observer, times(1)).onComplete();
         verify(observer, never()).onError(any(Throwable.class));
 
     }
@@ -131,21 +131,21 @@ public class OnSubscribeJoinTest {
         PublishSubject<Integer> source1 = PublishSubject.create();
         PublishSubject<Integer> source2 = PublishSubject.create();
 
-        Observable<Integer> m = source1.join(source2,
-                just(Observable.never()),
-                just(Observable.never()), add);
+        Flowable<Integer> m = source1.join(source2,
+                just(Flowable.never()),
+                just(Flowable.never()), add);
 
         m.subscribe(observer);
 
         source1.onNext(1);
         source1.onNext(2);
-        source1.onCompleted();
+        source1.onComplete();
 
         source2.onNext(16);
         source2.onNext(32);
         source2.onNext(64);
 
-        source2.onCompleted();
+        source2.onComplete();
 
         verify(observer, times(1)).onNext(17);
         verify(observer, times(1)).onNext(18);
@@ -154,7 +154,7 @@ public class OnSubscribeJoinTest {
         verify(observer, times(1)).onNext(65);
         verify(observer, times(1)).onNext(66);
 
-        verify(observer, times(1)).onCompleted();
+        verify(observer, times(1)).onComplete();
         verify(observer, never()).onError(any(Throwable.class));
     }
 
@@ -163,9 +163,9 @@ public class OnSubscribeJoinTest {
         PublishSubject<Integer> source1 = PublishSubject.create();
         PublishSubject<Integer> source2 = PublishSubject.create();
 
-        Observable<Integer> m = source1.join(source2,
-                just(Observable.never()),
-                just(Observable.never()), add);
+        Flowable<Integer> m = source1.join(source2,
+                just(Flowable.never()),
+                just(Flowable.never()), add);
 
         m.subscribe(observer);
 
@@ -173,7 +173,7 @@ public class OnSubscribeJoinTest {
         source1.onError(new RuntimeException("Forced failure"));
 
         verify(observer, times(1)).onError(any(Throwable.class));
-        verify(observer, never()).onCompleted();
+        verify(observer, never()).onComplete();
         verify(observer, never()).onNext(any());
     }
 
@@ -182,9 +182,9 @@ public class OnSubscribeJoinTest {
         PublishSubject<Integer> source1 = PublishSubject.create();
         PublishSubject<Integer> source2 = PublishSubject.create();
 
-        Observable<Integer> m = source1.join(source2,
-                just(Observable.never()),
-                just(Observable.never()), add);
+        Flowable<Integer> m = source1.join(source2,
+                just(Flowable.never()),
+                just(Flowable.never()), add);
 
         m.subscribe(observer);
 
@@ -192,7 +192,7 @@ public class OnSubscribeJoinTest {
         source2.onError(new RuntimeException("Forced failure"));
 
         verify(observer, times(1)).onError(any(Throwable.class));
-        verify(observer, never()).onCompleted();
+        verify(observer, never()).onComplete();
         verify(observer, never()).onNext(any());
     }
 
@@ -201,17 +201,17 @@ public class OnSubscribeJoinTest {
         PublishSubject<Integer> source1 = PublishSubject.create();
         PublishSubject<Integer> source2 = PublishSubject.create();
 
-        Observable<Integer> duration1 = Observable.<Integer> error(new RuntimeException("Forced failure"));
+        Flowable<Integer> duration1 = Flowable.<Integer> error(new RuntimeException("Forced failure"));
 
-        Observable<Integer> m = source1.join(source2,
+        Flowable<Integer> m = source1.join(source2,
                 just(duration1),
-                just(Observable.never()), add);
+                just(Flowable.never()), add);
         m.subscribe(observer);
 
         source1.onNext(1);
 
         verify(observer, times(1)).onError(any(Throwable.class));
-        verify(observer, never()).onCompleted();
+        verify(observer, never()).onComplete();
         verify(observer, never()).onNext(any());
     }
 
@@ -220,17 +220,17 @@ public class OnSubscribeJoinTest {
         PublishSubject<Integer> source1 = PublishSubject.create();
         PublishSubject<Integer> source2 = PublishSubject.create();
 
-        Observable<Integer> duration1 = Observable.<Integer> error(new RuntimeException("Forced failure"));
+        Flowable<Integer> duration1 = Flowable.<Integer> error(new RuntimeException("Forced failure"));
 
-        Observable<Integer> m = source1.join(source2,
-                just(Observable.never()),
+        Flowable<Integer> m = source1.join(source2,
+                just(Flowable.never()),
                 just(duration1), add);
         m.subscribe(observer);
 
         source2.onNext(1);
 
         verify(observer, times(1)).onError(any(Throwable.class));
-        verify(observer, never()).onCompleted();
+        verify(observer, never()).onComplete();
         verify(observer, never()).onNext(any());
     }
 
@@ -239,22 +239,22 @@ public class OnSubscribeJoinTest {
         PublishSubject<Integer> source1 = PublishSubject.create();
         PublishSubject<Integer> source2 = PublishSubject.create();
 
-        Func1<Integer, Observable<Integer>> fail = new Func1<Integer, Observable<Integer>>() {
+        Function<Integer, Flowable<Integer>> fail = new Function<Integer, Flowable<Integer>>() {
             @Override
-            public Observable<Integer> call(Integer t1) {
+            public Flowable<Integer> call(Integer t1) {
                 throw new RuntimeException("Forced failure");
             }
         };
 
-        Observable<Integer> m = source1.join(source2,
+        Flowable<Integer> m = source1.join(source2,
                 fail,
-                just(Observable.never()), add);
+                just(Flowable.never()), add);
         m.subscribe(observer);
 
         source1.onNext(1);
 
         verify(observer, times(1)).onError(any(Throwable.class));
-        verify(observer, never()).onCompleted();
+        verify(observer, never()).onComplete();
         verify(observer, never()).onNext(any());
     }
 
@@ -263,22 +263,22 @@ public class OnSubscribeJoinTest {
         PublishSubject<Integer> source1 = PublishSubject.create();
         PublishSubject<Integer> source2 = PublishSubject.create();
 
-        Func1<Integer, Observable<Integer>> fail = new Func1<Integer, Observable<Integer>>() {
+        Function<Integer, Flowable<Integer>> fail = new Function<Integer, Flowable<Integer>>() {
             @Override
-            public Observable<Integer> call(Integer t1) {
+            public Flowable<Integer> call(Integer t1) {
                 throw new RuntimeException("Forced failure");
             }
         };
 
-        Observable<Integer> m = source1.join(source2,
-                just(Observable.never()),
+        Flowable<Integer> m = source1.join(source2,
+                just(Flowable.never()),
                 fail, add);
         m.subscribe(observer);
 
         source2.onNext(1);
 
         verify(observer, times(1)).onError(any(Throwable.class));
-        verify(observer, never()).onCompleted();
+        verify(observer, never()).onComplete();
         verify(observer, never()).onNext(any());
     }
 
@@ -287,23 +287,23 @@ public class OnSubscribeJoinTest {
         PublishSubject<Integer> source1 = PublishSubject.create();
         PublishSubject<Integer> source2 = PublishSubject.create();
 
-        Func2<Integer, Integer, Integer> fail = new Func2<Integer, Integer, Integer>() {
+        BiFunction<Integer, Integer, Integer> fail = new BiFunction<Integer, Integer, Integer>() {
             @Override
             public Integer call(Integer t1, Integer t2) {
                 throw new RuntimeException("Forced failure");
             }
         };
 
-        Observable<Integer> m = source1.join(source2,
-                just(Observable.never()),
-                just(Observable.never()), fail);
+        Flowable<Integer> m = source1.join(source2,
+                just(Flowable.never()),
+                just(Flowable.never()), fail);
         m.subscribe(observer);
 
         source1.onNext(1);
         source2.onNext(2);
 
         verify(observer, times(1)).onError(any(Throwable.class));
-        verify(observer, never()).onCompleted();
+        verify(observer, never()).onComplete();
         verify(observer, never()).onNext(any());
     }
 }

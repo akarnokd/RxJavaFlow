@@ -21,14 +21,14 @@ import org.junit.Test;
 
 import rx.CovarianceTest.HorrorMovie;
 import rx.CovarianceTest.Movie;
-import rx.functions.Func2;
+import rx.functions.BiFunction;
 
 public class ReduceTests {
 
     @Test
     public void reduceInts() {
-        Observable<Integer> o = Observable.just(1, 2, 3);
-        int value = o.reduce(new Func2<Integer, Integer, Integer>() {
+        Flowable<Integer> o = Flowable.just(1, 2, 3);
+        int value = o.reduce(new BiFunction<Integer, Integer, Integer>() {
 
             @Override
             public Integer call(Integer t1, Integer t2) {
@@ -42,19 +42,19 @@ public class ReduceTests {
     @SuppressWarnings("unused")
     @Test
     public void reduceWithObjects() {
-        Observable<Movie> horrorMovies = Observable.<Movie> just(new HorrorMovie());
+        Flowable<Movie> horrorMovies = Flowable.<Movie> just(new HorrorMovie());
 
-        Func2<Movie, Movie, Movie> chooseSecondMovie =
-                new Func2<Movie, Movie, Movie>() {
+        BiFunction<Movie, Movie, Movie> chooseSecondMovie =
+                new BiFunction<Movie, Movie, Movie>() {
                     @Override
                     public Movie call(Movie t1, Movie t2) {
                         return t2;
                     }
                 };
 
-        Observable<Movie> reduceResult = horrorMovies.scan(chooseSecondMovie).takeLast(1);
+        Flowable<Movie> reduceResult = horrorMovies.scan(chooseSecondMovie).takeLast(1);
 
-        Observable<Movie> reduceResult2 = horrorMovies.reduce(chooseSecondMovie);
+        Flowable<Movie> reduceResult2 = horrorMovies.reduce(chooseSecondMovie);
     }
 
     /**
@@ -65,17 +65,17 @@ public class ReduceTests {
     @SuppressWarnings("unused")
     @Test
     public void reduceWithCovariantObjects() {
-        Observable<Movie> horrorMovies = Observable.<Movie> just(new HorrorMovie());
+        Flowable<Movie> horrorMovies = Flowable.<Movie> just(new HorrorMovie());
 
-        Func2<Movie, Movie, Movie> chooseSecondMovie =
-                new Func2<Movie, Movie, Movie>() {
+        BiFunction<Movie, Movie, Movie> chooseSecondMovie =
+                new BiFunction<Movie, Movie, Movie>() {
                     @Override
                     public Movie call(Movie t1, Movie t2) {
                         return t2;
                     }
                 };
 
-        Observable<Movie> reduceResult2 = horrorMovies.reduce(chooseSecondMovie);
+        Flowable<Movie> reduceResult2 = horrorMovies.reduce(chooseSecondMovie);
     }
 
     /**
@@ -86,16 +86,16 @@ public class ReduceTests {
     @Test
     public void reduceCovariance() {
         // must type it to <Movie>
-        Observable<Movie> horrorMovies = Observable.<Movie> just(new HorrorMovie());
-        libraryFunctionActingOnMovieObservables(horrorMovies);
+        Flowable<Movie> horrorMovies = Flowable.<Movie> just(new HorrorMovie());
+        libraryFunctionActingOnMovieFlowables(horrorMovies);
     }
 
     /*
      * This accepts <Movie> instead of <? super Movie> since `reduce` can't handle covariants
      */
-    public void libraryFunctionActingOnMovieObservables(Observable<Movie> obs) {
-        Func2<Movie, Movie, Movie> chooseSecondMovie =
-                new Func2<Movie, Movie, Movie>() {
+    public void libraryFunctionActingOnMovieFlowables(Flowable<Movie> obs) {
+        BiFunction<Movie, Movie, Movie> chooseSecondMovie =
+                new BiFunction<Movie, Movie, Movie>() {
                     @Override
                     public Movie call(Movie t1, Movie t2) {
                         return t2;

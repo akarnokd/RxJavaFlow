@@ -15,20 +15,20 @@
  */
 package rx.internal.operators;
 
-import rx.Observable;
+import rx.Flowable;
 import rx.Producer;
 import rx.Subscriber;
 
 /**
- * Returns an Observable that skips the first <code>num</code> items emitted by the source
- * Observable.
+ * Returns an Flowable that skips the first <code>num</code> items emitted by the source
+ * Flowable.
  * <p>
  * <img width="640" src="https://github.com/ReactiveX/RxJava/wiki/images/rx-operators/skip.png" alt="">
  * <p>
- * You can ignore the first <code>num</code> items emitted by an Observable and attend only to
- * those items that come after, by modifying the Observable with the {@code skip} operator.
+ * You can ignore the first <code>num</code> items emitted by an Flowable and attend only to
+ * those items that come after, by modifying the Flowable with the {@code skip} operator.
  */
-public final class OperatorSkip<T> implements Observable.Operator<T, T> {
+public final class OperatorSkip<T> implements Flowable.Operator<T, T> {
 
     final int toSkip;
 
@@ -43,8 +43,8 @@ public final class OperatorSkip<T> implements Observable.Operator<T, T> {
             int skipped = 0;
 
             @Override
-            public void onCompleted() {
-                child.onCompleted();
+            public void onComplete() {
+                child.onComplete();
             }
 
             @Override

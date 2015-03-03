@@ -25,7 +25,7 @@ import static org.mockito.Mockito.when;
 
 import org.junit.Test;
 
-import rx.Observable;
+import rx.Flowable;
 import rx.Observer;
 import rx.exceptions.TestException;
 import rx.functions.Func0;
@@ -36,13 +36,13 @@ public class OnSubscribeDeferTest {
     @Test
     public void testDefer() throws Throwable {
 
-        Func0<Observable<String>> factory = mock(Func0.class);
+        Func0<Flowable<String>> factory = mock(Func0.class);
 
-        Observable<String> firstObservable = Observable.just("one", "two");
-        Observable<String> secondObservable = Observable.just("three", "four");
-        when(factory.call()).thenReturn(firstObservable, secondObservable);
+        Flowable<String> firstFlowable = Flowable.just("one", "two");
+        Flowable<String> secondFlowable = Flowable.just("three", "four");
+        when(factory.call()).thenReturn(firstFlowable, secondFlowable);
 
-        Observable<String> deferred = Observable.defer(factory);
+        Flowable<String> deferred = Flowable.defer(factory);
 
         verifyZeroInteractions(factory);
 
@@ -54,7 +54,7 @@ public class OnSubscribeDeferTest {
         verify(firstObserver, times(1)).onNext("two");
         verify(firstObserver, times(0)).onNext("three");
         verify(firstObserver, times(0)).onNext("four");
-        verify(firstObserver, times(1)).onCompleted();
+        verify(firstObserver, times(1)).onComplete();
 
         Observer<String> secondObserver = mock(Observer.class);
         deferred.subscribe(secondObserver);
@@ -64,17 +64,17 @@ public class OnSubscribeDeferTest {
         verify(secondObserver, times(0)).onNext("two");
         verify(secondObserver, times(1)).onNext("three");
         verify(secondObserver, times(1)).onNext("four");
-        verify(secondObserver, times(1)).onCompleted();
+        verify(secondObserver, times(1)).onComplete();
 
     }
     
     @Test
     public void testDeferFunctionThrows() {
-        Func0<Observable<String>> factory = mock(Func0.class);
+        Func0<Flowable<String>> factory = mock(Func0.class);
         
         when(factory.call()).thenThrow(new TestException());
         
-        Observable<String> result = Observable.defer(factory);
+        Flowable<String> result = Flowable.defer(factory);
         
         Observer<String> o = mock(Observer.class);
         
@@ -82,6 +82,6 @@ public class OnSubscribeDeferTest {
         
         verify(o).onError(any(TestException.class));
         verify(o, never()).onNext(any(String.class));
-        verify(o, never()).onCompleted();
+        verify(o, never()).onComplete();
     }
 }

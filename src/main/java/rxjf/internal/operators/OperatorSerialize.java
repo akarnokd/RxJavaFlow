@@ -15,7 +15,7 @@
  */
 package rx.internal.operators;
 
-import rx.Observable.Operator;
+import rx.Flowable.Operator;
 import rx.Subscriber;
 import rx.observers.SerializedSubscriber;
 
@@ -38,8 +38,8 @@ public final class OperatorSerialize<T> implements Operator<T, T> {
         return new SerializedSubscriber<T>(new Subscriber<T>(s) {
 
             @Override
-            public void onCompleted() {
-                s.onCompleted();
+            public void onComplete() {
+                s.onComplete();
             }
 
             @Override

@@ -13,41 +13,47 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package rx.internal.operators;
+package rxjf.internal.operators;
 
-import rx.Observable.Operator;
-import rx.Subscriber;
-import rx.exceptions.OnErrorThrowable;
-import rx.functions.Func0;
-import rx.functions.Func1;
+import java.util.function.*;
+
+import rxjf.Flow.Subscriber;
+import rxjf.Flowable.Operator;
+import rxjf.exceptions.OnErrorThrowable;
+import rxjf.subscribers.AbstractSubscriber;
 
 /**
- * Applies a function of your choosing to every item emitted by an {@code Observable}, and emits the results of
- * this transformation as a new {@code Observable}.
+ * Applies a function of your choosing to every item emitted by an {@code Flowable}, and emits the results of
+ * this transformation as a new {@code Flowable}.
  * <p>
  * <img width="640" height="305" src="https://raw.githubusercontent.com/wiki/ReactiveX/RxJava/images/rx-operators/map.png" alt="">
  */
 public final class OperatorMapNotification<T, R> implements Operator<R, T> {
 
-    private final Func1<? super T, ? extends R> onNext;
-    private final Func1<? super Throwable, ? extends R> onError;
-    private final Func0<? extends R> onCompleted;
+    private final Function<? super T, ? extends R> onNext;
+    private final Function<? super Throwable, ? extends R> onError;
+    private final Supplier<? extends R> onComplete;
 
-    public OperatorMapNotification(Func1<? super T, ? extends R> onNext, Func1<? super Throwable, ? extends R> onError, Func0<? extends R> onCompleted) {
+    public OperatorMapNotification(Function<? super T, ? extends R> onNext, 
+            Function<? super Throwable, ? extends R> onError, 
+            Supplier<? extends R> onComplete) {
         this.onNext = onNext;
         this.onError = onError;
-        this.onCompleted = onCompleted;
+        this.onComplete = onComplete;
     }
 
     @Override
-    public Subscriber<? super T> call(final Subscriber<? super R> o) {
-        return new Subscriber<T>(o) {
-
+    public Subscriber<? super T> apply(final Subscriber<? super R> o) {
+        return new AbstractSubscriber<T>() {
             @Override
-            public void onCompleted() {
+            protected void onSubscribe() {
+                o.onSubscribe(subscription);
+            }
+            @Override
+            public void onComplete() {
                 try {
-                    o.onNext(onCompleted.call());
-                    o.onCompleted();
+                    o.onNext(onComplete.get());
+                    o.onComplete();
                 } catch (Throwable e) {
                     o.onError(e);
                 }
@@ -56,8 +62,8 @@ public final class OperatorMapNotification<T, R> implements Operator<R, T> {
             @Override
             public void onError(Throwable e) {
                 try {
-                    o.onNext(onError.call(e));
-                    o.onCompleted();
+                    o.onNext(onError.apply(e));
+                    o.onComplete();
                 } catch (Throwable e2) {
                     o.onError(e);
                 }
@@ -66,7 +72,7 @@ public final class OperatorMapNotification<T, R> implements Operator<R, T> {
             @Override
             public void onNext(T t) {
                 try {
-                    o.onNext(onNext.call(t));
+                    o.onNext(onNext.apply(t));
                 } catch (Throwable e) {
                     o.onError(OnErrorThrowable.addValueAsLastCause(e, t));
                 }

@@ -20,29 +20,29 @@ import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 
-import rx.Observable.Operator;
+import rx.Flowable.Operator;
 import rx.Subscriber;
-import rx.functions.Func2;
+import rx.functions.BiFunction;
 
 /**
- * Return an {@code Observable} that emits the items emitted by the source {@code Observable}, in a sorted order
- * (each item emitted by the {@code Observable} must implement {@link Comparable} with respect to all other
+ * Return an {@code Flowable} that emits the items emitted by the source {@code Flowable}, in a sorted order
+ * (each item emitted by the {@code Flowable} must implement {@link Comparable} with respect to all other
  * items in the sequence, or you must pass in a sort function).
  * <p>
  * <img width="640" height="310" src="https://raw.githubusercontent.com/wiki/ReactiveX/RxJava/images/rx-operators/toSortedList.png" alt="">
  * 
  * @param <T>
- *          the type of the items emitted by the source and the resulting {@code Observable}s
+ *          the type of the items emitted by the source and the resulting {@code Flowable}s
  */
-public final class OperatorToObservableSortedList<T> implements Operator<List<T>, T> {
-    private final Func2<? super T, ? super T, Integer> sortFunction;
+public final class OperatorToFlowableSortedList<T> implements Operator<List<T>, T> {
+    private final BiFunction<? super T, ? super T, Integer> sortFunction;
 
     @SuppressWarnings("unchecked")
-    public OperatorToObservableSortedList() {
+    public OperatorToFlowableSortedList() {
         this.sortFunction = defaultSortFunction;
     }
 
-    public OperatorToObservableSortedList(Func2<? super T, ? super T, Integer> sortFunction) {
+    public OperatorToFlowableSortedList(BiFunction<? super T, ? super T, Integer> sortFunction) {
         this.sortFunction = sortFunction;
     }
 
@@ -58,7 +58,7 @@ public final class OperatorToObservableSortedList<T> implements Operator<List<T>
             }
 
             @Override
-            public void onCompleted() {
+            public void onComplete() {
                 try {
 
                     // sort the list before delivery
@@ -72,7 +72,7 @@ public final class OperatorToObservableSortedList<T> implements Operator<List<T>
                     });
 
                     o.onNext(Collections.unmodifiableList(list));
-                    o.onCompleted();
+                    o.onComplete();
                 } catch (Throwable e) {
                     onError(e);
                 }
@@ -93,9 +93,9 @@ public final class OperatorToObservableSortedList<T> implements Operator<List<T>
 
     // raw because we want to support Object for this default
     @SuppressWarnings("rawtypes")
-    private static Func2 defaultSortFunction = new DefaultComparableFunction();
+    private static BiFunction defaultSortFunction = new DefaultComparableFunction();
 
-    private static class DefaultComparableFunction implements Func2<Object, Object, Integer> {
+    private static class DefaultComparableFunction implements BiFunction<Object, Object, Integer> {
 
         // unchecked because we want to support Object for this default
         @SuppressWarnings("unchecked")

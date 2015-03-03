@@ -35,8 +35,8 @@ import java.util.concurrent.atomic.AtomicReference;
 import org.junit.Test;
 import org.mockito.InOrder;
 
-import rx.Observable;
-import rx.Observable.OnSubscribe;
+import rx.Flowable;
+import rx.Flowable.OnSubscribe;
 import rx.Observer;
 import rx.Subscriber;
 import rx.Subscription;
@@ -56,10 +56,10 @@ public class OperatorConcatTest {
         final String[] o = { "1", "3", "5", "7" };
         final String[] e = { "2", "4", "6" };
 
-        final Observable<String> odds = Observable.from(o);
-        final Observable<String> even = Observable.from(e);
+        final Flowable<String> odds = Flowable.from(o);
+        final Flowable<String> even = Flowable.from(e);
 
-        Observable<String> concat = Observable.concat(odds, even);
+        Flowable<String> concat = Flowable.concat(odds, even);
         concat.subscribe(observer);
 
         verify(observer, times(7)).onNext(anyString());
@@ -73,40 +73,40 @@ public class OperatorConcatTest {
         final String[] o = { "1", "3", "5", "7" };
         final String[] e = { "2", "4", "6" };
 
-        final Observable<String> odds = Observable.from(o);
-        final Observable<String> even = Observable.from(e);
-        final List<Observable<String>> list = new ArrayList<Observable<String>>();
+        final Flowable<String> odds = Flowable.from(o);
+        final Flowable<String> even = Flowable.from(e);
+        final List<Flowable<String>> list = new ArrayList<Flowable<String>>();
         list.add(odds);
         list.add(even);
-        Observable<String> concat = Observable.concat(Observable.from(list));
+        Flowable<String> concat = Flowable.concat(Flowable.from(list));
         concat.subscribe(observer);
 
         verify(observer, times(7)).onNext(anyString());
     }
 
     @Test
-    public void testConcatObservableOfObservables() {
+    public void testConcatFlowableOfFlowables() {
         @SuppressWarnings("unchecked")
         Observer<String> observer = mock(Observer.class);
 
         final String[] o = { "1", "3", "5", "7" };
         final String[] e = { "2", "4", "6" };
 
-        final Observable<String> odds = Observable.from(o);
-        final Observable<String> even = Observable.from(e);
+        final Flowable<String> odds = Flowable.from(o);
+        final Flowable<String> even = Flowable.from(e);
 
-        Observable<Observable<String>> observableOfObservables = Observable.create(new Observable.OnSubscribe<Observable<String>>() {
+        Flowable<Flowable<String>> observableOfFlowables = Flowable.create(new Flowable.OnSubscribe<Flowable<String>>() {
 
             @Override
-            public void call(Subscriber<? super Observable<String>> observer) {
+            public void call(Subscriber<? super Flowable<String>> observer) {
                 // simulate what would happen in an observable
                 observer.onNext(odds);
                 observer.onNext(even);
-                observer.onCompleted();
+                observer.onComplete();
             }
 
         });
-        Observable<String> concat = Observable.concat(observableOfObservables);
+        Flowable<String> concat = Flowable.concat(observableOfFlowables);
 
         concat.subscribe(observer);
 
@@ -121,10 +121,10 @@ public class OperatorConcatTest {
     public void testSimpleAsyncConcat() {
         Observer<String> observer = mock(Observer.class);
 
-        TestObservable<String> o1 = new TestObservable<String>("one", "two", "three");
-        TestObservable<String> o2 = new TestObservable<String>("four", "five", "six");
+        TestFlowable<String> o1 = new TestFlowable<String>("one", "two", "three");
+        TestFlowable<String> o2 = new TestFlowable<String>("four", "five", "six");
 
-        Observable.concat(Observable.create(o1), Observable.create(o2)).subscribe(observer);
+        Flowable.concat(Flowable.create(o1), Flowable.create(o2)).subscribe(observer);
 
         try {
             // wait for async observables to complete
@@ -144,24 +144,24 @@ public class OperatorConcatTest {
     }
 
     /**
-     * Test an async Observable that emits more async Observables
+     * Test an async Flowable that emits more async Flowables
      */
     @SuppressWarnings("unchecked")
     @Test
     public void testNestedAsyncConcat() throws Throwable {
         Observer<String> observer = mock(Observer.class);
 
-        final TestObservable<String> o1 = new TestObservable<String>("one", "two", "three");
-        final TestObservable<String> o2 = new TestObservable<String>("four", "five", "six");
-        final TestObservable<String> o3 = new TestObservable<String>("seven", "eight", "nine");
+        final TestFlowable<String> o1 = new TestFlowable<String>("one", "two", "three");
+        final TestFlowable<String> o2 = new TestFlowable<String>("four", "five", "six");
+        final TestFlowable<String> o3 = new TestFlowable<String>("seven", "eight", "nine");
         final CountDownLatch allowThird = new CountDownLatch(1);
 
         final AtomicReference<Thread> parent = new AtomicReference<Thread>();
         final CountDownLatch parentHasStarted = new CountDownLatch(1);
-        Observable<Observable<String>> observableOfObservables = Observable.create(new Observable.OnSubscribe<Observable<String>>() {
+        Flowable<Flowable<String>> observableOfFlowables = Flowable.create(new Flowable.OnSubscribe<Flowable<String>>() {
 
             @Override
-            public void call(final Subscriber<? super Observable<String>> observer) {
+            public void call(final Subscriber<? super Flowable<String>> observer) {
                 final BooleanSubscription s = new BooleanSubscription();
                 observer.add(s);
                 parent.set(new Thread(new Runnable() {
@@ -172,12 +172,12 @@ public class OperatorConcatTest {
                             // emit first
                             if (!s.isUnsubscribed()) {
                                 System.out.println("Emit o1");
-                                observer.onNext(Observable.create(o1));
+                                observer.onNext(Flowable.create(o1));
                             }
                             // emit second
                             if (!s.isUnsubscribed()) {
                                 System.out.println("Emit o2");
-                                observer.onNext(Observable.create(o2));
+                                observer.onNext(Flowable.create(o2));
                             }
 
                             // wait until sometime later and emit third
@@ -188,14 +188,14 @@ public class OperatorConcatTest {
                             }
                             if (!s.isUnsubscribed()) {
                                 System.out.println("Emit o3");
-                                observer.onNext(Observable.create(o3));
+                                observer.onNext(Flowable.create(o3));
                             }
 
                         } catch (Throwable e) {
                             observer.onError(e);
                         } finally {
-                            System.out.println("Done parent Observable");
-                            observer.onCompleted();
+                            System.out.println("Done parent Flowable");
+                            observer.onComplete();
                         }
                     }
                 }));
@@ -204,7 +204,7 @@ public class OperatorConcatTest {
             }
         });
 
-        Observable.concat(observableOfObservables).subscribe(observer);
+        Flowable.concat(observableOfFlowables).subscribe(observer);
 
         // wait for parent to start
         parentHasStarted.await();
@@ -231,7 +231,7 @@ public class OperatorConcatTest {
         inOrder.verify(observer, never()).onNext("eight");
         inOrder.verify(observer, never()).onNext("nine");
         // we should not be completed yet
-        verify(observer, never()).onCompleted();
+        verify(observer, never()).onComplete();
         verify(observer, never()).onError(any(Throwable.class));
 
         // now allow the third
@@ -248,23 +248,23 @@ public class OperatorConcatTest {
         inOrder.verify(observer, times(1)).onNext("eight");
         inOrder.verify(observer, times(1)).onNext("nine");
 
-        inOrder.verify(observer, times(1)).onCompleted();
+        inOrder.verify(observer, times(1)).onComplete();
         verify(observer, never()).onError(any(Throwable.class));
     }
 
     @SuppressWarnings("unchecked")
     @Test
-    public void testBlockedObservableOfObservables() {
+    public void testBlockedFlowableOfFlowables() {
         Observer<String> observer = mock(Observer.class);
 
         final String[] o = { "1", "3", "5", "7" };
         final String[] e = { "2", "4", "6" };
-        final Observable<String> odds = Observable.from(o);
-        final Observable<String> even = Observable.from(e);
+        final Flowable<String> odds = Flowable.from(o);
+        final Flowable<String> even = Flowable.from(e);
         final CountDownLatch callOnce = new CountDownLatch(1);
         final CountDownLatch okToContinue = new CountDownLatch(1);
-        TestObservable<Observable<String>> observableOfObservables = new TestObservable<Observable<String>>(callOnce, okToContinue, odds, even);
-        Observable<String> concatF = Observable.concat(Observable.create(observableOfObservables));
+        TestFlowable<Flowable<String>> observableOfFlowables = new TestFlowable<Flowable<String>>(callOnce, okToContinue, odds, even);
+        Flowable<String> concatF = Flowable.concat(Flowable.create(observableOfFlowables));
         concatF.subscribe(observer);
         try {
             //Block main thread to allow observables to serve up o1.
@@ -282,7 +282,7 @@ public class OperatorConcatTest {
         try {
             // unblock observables so it can serve up o2 and complete
             okToContinue.countDown();
-            observableOfObservables.t.join();
+            observableOfFlowables.t.join();
         } catch (Throwable ex) {
             ex.printStackTrace();
             fail(ex.getMessage());
@@ -295,15 +295,15 @@ public class OperatorConcatTest {
 
     @Test
     public void testConcatConcurrentWithInfinity() {
-        final TestObservable<String> w1 = new TestObservable<String>("one", "two", "three");
+        final TestFlowable<String> w1 = new TestFlowable<String>("one", "two", "three");
         //This observable will send "hello" MAX_VALUE time.
-        final TestObservable<String> w2 = new TestObservable<String>("hello", Integer.MAX_VALUE);
+        final TestFlowable<String> w2 = new TestFlowable<String>("hello", Integer.MAX_VALUE);
 
         @SuppressWarnings("unchecked")
         Observer<String> observer = mock(Observer.class);
         @SuppressWarnings("unchecked")
-        TestObservable<Observable<String>> observableOfObservables = new TestObservable<Observable<String>>(Observable.create(w1), Observable.create(w2));
-        Observable<String> concatF = Observable.concat(Observable.create(observableOfObservables));
+        TestFlowable<Flowable<String>> observableOfFlowables = new TestFlowable<Flowable<String>>(Flowable.create(w1), Flowable.create(w2));
+        Flowable<String> concatF = Flowable.concat(Flowable.create(observableOfFlowables));
 
         concatF.take(50).subscribe(observer);
 
@@ -321,36 +321,36 @@ public class OperatorConcatTest {
         inOrder.verify(observer, times(1)).onNext("two");
         inOrder.verify(observer, times(1)).onNext("three");
         inOrder.verify(observer, times(47)).onNext("hello");
-        verify(observer, times(1)).onCompleted();
+        verify(observer, times(1)).onComplete();
         verify(observer, never()).onError(any(Throwable.class));
     }
 
     @Test
-    public void testConcatNonBlockingObservables() {
+    public void testConcatNonBlockingFlowables() {
 
         final CountDownLatch okToContinueW1 = new CountDownLatch(1);
         final CountDownLatch okToContinueW2 = new CountDownLatch(1);
 
-        final TestObservable<String> w1 = new TestObservable<String>(null, okToContinueW1, "one", "two", "three");
-        final TestObservable<String> w2 = new TestObservable<String>(null, okToContinueW2, "four", "five", "six");
+        final TestFlowable<String> w1 = new TestFlowable<String>(null, okToContinueW1, "one", "two", "three");
+        final TestFlowable<String> w2 = new TestFlowable<String>(null, okToContinueW2, "four", "five", "six");
 
         @SuppressWarnings("unchecked")
         Observer<String> observer = mock(Observer.class);
-        Observable<Observable<String>> observableOfObservables = Observable.create(new Observable.OnSubscribe<Observable<String>>() {
+        Flowable<Flowable<String>> observableOfFlowables = Flowable.create(new Flowable.OnSubscribe<Flowable<String>>() {
 
             @Override
-            public void call(Subscriber<? super Observable<String>> observer) {
+            public void call(Subscriber<? super Flowable<String>> observer) {
                 // simulate what would happen in an observable
-                observer.onNext(Observable.create(w1));
-                observer.onNext(Observable.create(w2));
-                observer.onCompleted();
+                observer.onNext(Flowable.create(w1));
+                observer.onNext(Flowable.create(w2));
+                observer.onComplete();
             }
 
         });
-        Observable<String> concat = Observable.concat(observableOfObservables);
+        Flowable<String> concat = Flowable.concat(observableOfFlowables);
         concat.subscribe(observer);
 
-        verify(observer, times(0)).onCompleted();
+        verify(observer, times(0)).onComplete();
 
         try {
             // release both threads
@@ -370,24 +370,24 @@ public class OperatorConcatTest {
         inOrder.verify(observer, times(1)).onNext("four");
         inOrder.verify(observer, times(1)).onNext("five");
         inOrder.verify(observer, times(1)).onNext("six");
-        verify(observer, times(1)).onCompleted();
+        verify(observer, times(1)).onComplete();
 
     }
 
     /**
-     * Test unsubscribing the concatenated Observable in a single thread.
+     * Test unsubscribing the concatenated Flowable in a single thread.
      */
     @Test
     public void testConcatUnsubscribe() {
         final CountDownLatch callOnce = new CountDownLatch(1);
         final CountDownLatch okToContinue = new CountDownLatch(1);
-        final TestObservable<String> w1 = new TestObservable<String>("one", "two", "three");
-        final TestObservable<String> w2 = new TestObservable<String>(callOnce, okToContinue, "four", "five", "six");
+        final TestFlowable<String> w1 = new TestFlowable<String>("one", "two", "three");
+        final TestFlowable<String> w2 = new TestFlowable<String>(callOnce, okToContinue, "four", "five", "six");
 
         @SuppressWarnings("unchecked")
         final Observer<String> observer = mock(Observer.class);
 
-        final Observable<String> concat = Observable.concat(Observable.create(w1), Observable.create(w2));
+        final Flowable<String> concat = Flowable.concat(Flowable.create(w1), Flowable.create(w2));
 
         try {
             // Subscribe
@@ -412,7 +412,7 @@ public class OperatorConcatTest {
         inOrder.verify(observer, times(1)).onNext("four");
         inOrder.verify(observer, never()).onNext("five");
         inOrder.verify(observer, never()).onNext("six");
-        inOrder.verify(observer, never()).onCompleted();
+        inOrder.verify(observer, never()).onComplete();
 
     }
 
@@ -423,14 +423,14 @@ public class OperatorConcatTest {
     public void testConcatUnsubscribeConcurrent() {
         final CountDownLatch callOnce = new CountDownLatch(1);
         final CountDownLatch okToContinue = new CountDownLatch(1);
-        final TestObservable<String> w1 = new TestObservable<String>("one", "two", "three");
-        final TestObservable<String> w2 = new TestObservable<String>(callOnce, okToContinue, "four", "five", "six");
+        final TestFlowable<String> w1 = new TestFlowable<String>("one", "two", "three");
+        final TestFlowable<String> w2 = new TestFlowable<String>(callOnce, okToContinue, "four", "five", "six");
 
         @SuppressWarnings("unchecked")
         Observer<String> observer = mock(Observer.class);
         @SuppressWarnings("unchecked")
-        TestObservable<Observable<String>> observableOfObservables = new TestObservable<Observable<String>>(Observable.create(w1), Observable.create(w2));
-        Observable<String> concatF = Observable.concat(Observable.create(observableOfObservables));
+        TestFlowable<Flowable<String>> observableOfFlowables = new TestFlowable<Flowable<String>>(Flowable.create(w1), Flowable.create(w2));
+        Flowable<String> concatF = Flowable.concat(Flowable.create(observableOfFlowables));
 
         Subscription s1 = concatF.subscribe(observer);
 
@@ -456,11 +456,11 @@ public class OperatorConcatTest {
         inOrder.verify(observer, times(1)).onNext("four");
         inOrder.verify(observer, never()).onNext("five");
         inOrder.verify(observer, never()).onNext("six");
-        verify(observer, never()).onCompleted();
+        verify(observer, never()).onComplete();
         verify(observer, never()).onError(any(Throwable.class));
     }
 
-    private static class TestObservable<T> implements Observable.OnSubscribe<T> {
+    private static class TestFlowable<T> implements Flowable.OnSubscribe<T> {
 
         private final Subscription s = new Subscription() {
 
@@ -485,11 +485,11 @@ public class OperatorConcatTest {
         private final T seed;
         private final int size;
 
-        public TestObservable(T... values) {
+        public TestFlowable(T... values) {
             this(null, null, values);
         }
 
-        public TestObservable(CountDownLatch once, CountDownLatch okToContinue, T... values) {
+        public TestFlowable(CountDownLatch once, CountDownLatch okToContinue, T... values) {
             this.values = Arrays.asList(values);
             this.size = this.values.size();
             this.once = once;
@@ -497,7 +497,7 @@ public class OperatorConcatTest {
             this.seed = null;
         }
 
-        public TestObservable(T seed, int size) {
+        public TestFlowable(T seed, int size) {
             values = null;
             once = null;
             okToContinue = null;
@@ -527,7 +527,7 @@ public class OperatorConcatTest {
                                 okToContinue.await(5, TimeUnit.SECONDS);
                         }
                         if (subscribed)
-                            observer.onCompleted();
+                            observer.onComplete();
                     } catch (InterruptedException e) {
                         e.printStackTrace();
                         fail(e.getMessage());
@@ -554,8 +554,8 @@ public class OperatorConcatTest {
 
         TestScheduler s = new TestScheduler();
 
-        Observable<Long> timer = Observable.interval(500, TimeUnit.MILLISECONDS, s).take(2);
-        Observable<Long> o = Observable.concat(timer, timer);
+        Flowable<Long> timer = Flowable.interval(500, TimeUnit.MILLISECONDS, s).take(2);
+        Flowable<Long> o = Flowable.concat(timer, timer);
 
         o.subscribe(o1);
         o.subscribe(o2);
@@ -583,30 +583,30 @@ public class OperatorConcatTest {
         inOrder1.verify(o1, times(1)).onNext(1L);
         inOrder2.verify(o2, times(1)).onNext(1L);
 
-        inOrder1.verify(o1, times(1)).onCompleted();
-        inOrder2.verify(o2, times(1)).onCompleted();
+        inOrder1.verify(o1, times(1)).onComplete();
+        inOrder2.verify(o2, times(1)).onComplete();
 
         verify(o1, never()).onError(any(Throwable.class));
         verify(o2, never()).onError(any(Throwable.class));
     }
     
     @Test
-    public void concatVeryLongObservableOfObservables() {
+    public void concatVeryLongFlowableOfFlowables() {
         final int n = 10000;
-        Observable<Observable<Integer>> source = Observable.create(new OnSubscribe<Observable<Integer>>() {
+        Flowable<Flowable<Integer>> source = Flowable.create(new OnSubscribe<Flowable<Integer>>() {
             @Override
-            public void call(Subscriber<? super Observable<Integer>> s) {
+            public void call(Subscriber<? super Flowable<Integer>> s) {
                 for (int i = 0; i < n; i++) {
                     if (s.isUnsubscribed()) {
                         return;
                     }
-                    s.onNext(Observable.just(i));
+                    s.onNext(Flowable.just(i));
                 }
-                s.onCompleted();
+                s.onComplete();
             }
         });
         
-        Observable<List<Integer>> result = Observable.concat(source).toList();
+        Flowable<List<Integer>> result = Flowable.concat(source).toList();
         
         @SuppressWarnings("unchecked")
         Observer<List<Integer>> o = mock(Observer.class);
@@ -619,26 +619,26 @@ public class OperatorConcatTest {
             list.add(i);
         }
         inOrder.verify(o).onNext(list);
-        inOrder.verify(o).onCompleted();
+        inOrder.verify(o).onComplete();
         verify(o, never()).onError(any(Throwable.class));
     }
     @Test
-    public void concatVeryLongObservableOfObservablesTakeHalf() {
+    public void concatVeryLongFlowableOfFlowablesTakeHalf() {
         final int n = 10000;
-        Observable<Observable<Integer>> source = Observable.create(new OnSubscribe<Observable<Integer>>() {
+        Flowable<Flowable<Integer>> source = Flowable.create(new OnSubscribe<Flowable<Integer>>() {
             @Override
-            public void call(Subscriber<? super Observable<Integer>> s) {
+            public void call(Subscriber<? super Flowable<Integer>> s) {
                 for (int i = 0; i < n; i++) {
                     if (s.isUnsubscribed()) {
                         return;
                     }
-                    s.onNext(Observable.just(i));
+                    s.onNext(Flowable.just(i));
                 }
-                s.onCompleted();
+                s.onComplete();
             }
         });
         
-        Observable<List<Integer>> result = Observable.concat(source).take(n / 2).toList();
+        Flowable<List<Integer>> result = Flowable.concat(source).take(n / 2).toList();
         
         @SuppressWarnings("unchecked")
         Observer<List<Integer>> o = mock(Observer.class);
@@ -651,15 +651,15 @@ public class OperatorConcatTest {
             list.add(i);
         }
         inOrder.verify(o).onNext(list);
-        inOrder.verify(o).onCompleted();
+        inOrder.verify(o).onComplete();
         verify(o, never()).onError(any(Throwable.class));
     }
     
     @Test
     public void testConcatOuterBackpressure() {
         assertEquals(1,
-                (int) Observable.<Integer> empty()
-                        .concatWith(Observable.just(1))
+                (int) Flowable.<Integer> empty()
+                        .concatWith(Flowable.just(1))
                         .take(1)
                         .toBlocking().single());
     }
@@ -667,8 +667,8 @@ public class OperatorConcatTest {
     @Test
     public void testInnerBackpressureWithAlignedBoundaries() {
         TestSubscriber<Integer> ts = new TestSubscriber<Integer>();
-        Observable.range(0, RxRingBuffer.SIZE * 2)
-                .concatWith(Observable.range(0, RxRingBuffer.SIZE * 2))
+        Flowable.range(0, RxRingBuffer.SIZE * 2)
+                .concatWith(Flowable.range(0, RxRingBuffer.SIZE * 2))
                 .observeOn(Schedulers.computation()) // observeOn has a backpressured RxRingBuffer
                 .subscribe(ts);
 
@@ -679,15 +679,15 @@ public class OperatorConcatTest {
 
     /*
      * Testing without counts aligned with buffer sizes because concat must prevent the subscription
-     * to the next Observable if request == 0 which can happen at the end of a subscription
+     * to the next Flowable if request == 0 which can happen at the end of a subscription
      * if the request size == emitted size. It needs to delay subscription until the next request when aligned, 
      * when not aligned, it just subscribesNext with the outstanding request amount.
      */
     @Test
     public void testInnerBackpressureWithoutAlignedBoundaries() {
         TestSubscriber<Integer> ts = new TestSubscriber<Integer>();
-        Observable.range(0, (RxRingBuffer.SIZE * 2) + 10)
-                .concatWith(Observable.range(0, (RxRingBuffer.SIZE * 2) + 10))
+        Flowable.range(0, (RxRingBuffer.SIZE * 2) + 10)
+                .concatWith(Flowable.range(0, (RxRingBuffer.SIZE * 2) + 10))
                 .observeOn(Schedulers.computation()) // observeOn has a backpressured RxRingBuffer
                 .subscribe(ts);
 
@@ -699,19 +699,19 @@ public class OperatorConcatTest {
     // https://github.com/ReactiveX/RxJava/issues/1818
     @Test
     public void testConcatWithNonCompliantSourceDoubleOnComplete() {
-        Observable<String> o = Observable.create(new OnSubscribe<String>() {
+        Flowable<String> o = Flowable.create(new OnSubscribe<String>() {
 
             @Override
             public void call(Subscriber<? super String> s) {
                 s.onNext("hello");
-                s.onCompleted();
-                s.onCompleted();
+                s.onComplete();
+                s.onComplete();
             }
             
         });
         
         TestSubscriber<String> ts = new TestSubscriber<String>();
-        Observable.concat(o, o).subscribe(ts);
+        Flowable.concat(o, o).subscribe(ts);
         ts.awaitTerminalEvent(500, TimeUnit.MILLISECONDS);
         ts.assertTerminalEvent();
         ts.assertNoErrors();

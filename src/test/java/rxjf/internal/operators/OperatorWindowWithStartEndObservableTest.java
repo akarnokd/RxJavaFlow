@@ -25,17 +25,17 @@ import java.util.concurrent.TimeUnit;
 import org.junit.Before;
 import org.junit.Test;
 
-import rx.Observable;
+import rx.Flowable;
 import rx.Observer;
 import rx.Scheduler;
 import rx.Subscriber;
 import rx.functions.Action0;
 import rx.functions.Action1;
 import rx.functions.Func0;
-import rx.functions.Func1;
+import rx.functions.Function;
 import rx.schedulers.TestScheduler;
 
-public class OperatorWindowWithStartEndObservableTest {
+public class OperatorWindowWithStartEndFlowableTest {
 
     private TestScheduler scheduler;
     private Scheduler.Worker innerScheduler;
@@ -47,11 +47,11 @@ public class OperatorWindowWithStartEndObservableTest {
     }
 
     @Test
-    public void testObservableBasedOpenerAndCloser() {
+    public void testFlowableBasedOpenerAndCloser() {
         final List<String> list = new ArrayList<String>();
         final List<List<String>> lists = new ArrayList<List<String>>();
 
-        Observable<String> source = Observable.create(new Observable.OnSubscribe<String>() {
+        Flowable<String> source = Flowable.create(new Flowable.OnSubscribe<String>() {
             @Override
             public void call(Subscriber<? super String> observer) {
                 push(observer, "one", 10);
@@ -63,7 +63,7 @@ public class OperatorWindowWithStartEndObservableTest {
             }
         });
 
-        Observable<Object> openings = Observable.create(new Observable.OnSubscribe<Object>() {
+        Flowable<Object> openings = Flowable.create(new Flowable.OnSubscribe<Object>() {
             @Override
             public void call(Subscriber<? super Object> observer) {
                 push(observer, new Object(), 50);
@@ -72,10 +72,10 @@ public class OperatorWindowWithStartEndObservableTest {
             }
         });
 
-        Func1<Object, Observable<Object>> closer = new Func1<Object, Observable<Object>>() {
+        Function<Object, Flowable<Object>> closer = new Function<Object, Flowable<Object>>() {
             @Override
-            public Observable<Object> call(Object opening) {
-                return Observable.create(new Observable.OnSubscribe<Object>() {
+            public Flowable<Object> call(Object opening) {
+                return Flowable.create(new Flowable.OnSubscribe<Object>() {
                     @Override
                     public void call(Subscriber<? super Object> observer) {
                         push(observer, new Object(), 100);
@@ -85,7 +85,7 @@ public class OperatorWindowWithStartEndObservableTest {
             }
         };
 
-        Observable<Observable<String>> windowed = source.window(openings, closer);
+        Flowable<Flowable<String>> windowed = source.window(openings, closer);
         windowed.subscribe(observeWindow(list, lists));
 
         scheduler.advanceTimeTo(500, TimeUnit.MILLISECONDS);
@@ -95,11 +95,11 @@ public class OperatorWindowWithStartEndObservableTest {
     }
 
     @Test
-    public void testObservableBasedCloser() {
+    public void testFlowableBasedCloser() {
         final List<String> list = new ArrayList<String>();
         final List<List<String>> lists = new ArrayList<List<String>>();
 
-        Observable<String> source = Observable.create(new Observable.OnSubscribe<String>() {
+        Flowable<String> source = Flowable.create(new Flowable.OnSubscribe<String>() {
             @Override
             public void call(Subscriber<? super String> observer) {
                 push(observer, "one", 10);
@@ -111,10 +111,10 @@ public class OperatorWindowWithStartEndObservableTest {
             }
         });
 
-        Func0<Observable<Object>> closer = new Func0<Observable<Object>>() {
+        Func0<Flowable<Object>> closer = new Func0<Flowable<Object>>() {
             @Override
-            public Observable<Object> call() {
-                return Observable.create(new Observable.OnSubscribe<Object>() {
+            public Flowable<Object> call() {
+                return Flowable.create(new Flowable.OnSubscribe<Object>() {
                     @Override
                     public void call(Subscriber<? super Object> observer) {
                         push(observer, new Object(), 100);
@@ -125,7 +125,7 @@ public class OperatorWindowWithStartEndObservableTest {
             }
         };
 
-        Observable<Observable<String>> windowed = source.window(closer);
+        Flowable<Flowable<String>> windowed = source.window(closer);
         windowed.subscribe(observeWindow(list, lists));
 
         scheduler.advanceTimeTo(500, TimeUnit.MILLISECONDS);
@@ -156,18 +156,18 @@ public class OperatorWindowWithStartEndObservableTest {
         innerScheduler.schedule(new Action0() {
             @Override
             public void call() {
-                observer.onCompleted();
+                observer.onComplete();
             }
         }, delay, TimeUnit.MILLISECONDS);
     }
 
-    private Action1<Observable<String>> observeWindow(final List<String> list, final List<List<String>> lists) {
-        return new Action1<Observable<String>>() {
+    private Action1<Flowable<String>> observeWindow(final List<String> list, final List<List<String>> lists) {
+        return new Action1<Flowable<String>>() {
             @Override
-            public void call(Observable<String> stringObservable) {
-                stringObservable.subscribe(new Observer<String>() {
+            public void call(Flowable<String> stringFlowable) {
+                stringFlowable.subscribe(new Observer<String>() {
                     @Override
-                    public void onCompleted() {
+                    public void onComplete() {
                         lists.add(new ArrayList<String>(list));
                         list.clear();
                     }

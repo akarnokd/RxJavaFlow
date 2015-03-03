@@ -18,15 +18,15 @@ package rx.internal.operators;
 import java.util.Arrays;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-import rx.Observable;
-import rx.Observable.OnSubscribe;
+import rx.Flowable;
+import rx.Flowable.OnSubscribe;
 import rx.Subscriber;
 import rx.Subscription;
 import rx.exceptions.CompositeException;
 import rx.functions.Action0;
 import rx.functions.Action1;
 import rx.functions.Func0;
-import rx.functions.Func1;
+import rx.functions.Function;
 
 /**
  * Constructs an observable sequence that depends on a resource object.
@@ -34,12 +34,12 @@ import rx.functions.Func1;
 public final class OnSubscribeUsing<T, Resource> implements OnSubscribe<T> {
 
     private final Func0<Resource> resourceFactory;
-    private final Func1<? super Resource, ? extends Observable<? extends T>> observableFactory;
+    private final Function<? super Resource, ? extends Flowable<? extends T>> observableFactory;
     private final Action1<? super Resource> dispose;
     private final boolean disposeEagerly;
 
     public OnSubscribeUsing(Func0<Resource> resourceFactory,
-            Func1<? super Resource, ? extends Observable<? extends T>> observableFactory,
+            Function<? super Resource, ? extends Flowable<? extends T>> observableFactory,
             Action1<? super Resource> dispose, boolean disposeEagerly) {
         this.resourceFactory = resourceFactory;
         this.observableFactory = observableFactory;
@@ -60,10 +60,10 @@ public final class OnSubscribeUsing<T, Resource> implements OnSubscribe<T> {
             // dispose on unsubscription
             subscriber.add(disposeOnceOnly);
             // create the observable
-            final Observable<? extends T> source = observableFactory
+            final Flowable<? extends T> source = observableFactory
             // create the observable
                     .call(resource);
-            final Observable<? extends T> observable;
+            final Flowable<? extends T> observable;
             // supplement with on termination disposal if requested
             if (disposeEagerly)
                 observable = source

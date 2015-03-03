@@ -29,14 +29,14 @@ import org.junit.Before;
 import org.junit.Test;
 import org.mockito.InOrder;
 
-import rx.Observable;
+import rx.Flowable;
 import rx.Observer;
 import rx.Producer;
 import rx.Scheduler;
 import rx.Subscriber;
 import rx.exceptions.TestException;
 import rx.functions.Action0;
-import rx.functions.Func1;
+import rx.functions.Function;
 import rx.observers.TestSubscriber;
 import rx.schedulers.TestScheduler;
 
@@ -56,10 +56,10 @@ public class OperatorSwitchTest {
 
     @Test
     public void testSwitchWhenOuterCompleteBeforeInner() {
-        Observable<Observable<String>> source = Observable.create(new Observable.OnSubscribe<Observable<String>>() {
+        Flowable<Flowable<String>> source = Flowable.create(new Flowable.OnSubscribe<Flowable<String>>() {
             @Override
-            public void call(Subscriber<? super Observable<String>> observer) {
-                publishNext(observer, 50, Observable.create(new Observable.OnSubscribe<String>() {
+            public void call(Subscriber<? super Flowable<String>> observer) {
+                publishNext(observer, 50, Flowable.create(new Flowable.OnSubscribe<String>() {
                     @Override
                     public void call(Subscriber<? super String> observer) {
                         publishNext(observer, 70, "one");
@@ -71,22 +71,22 @@ public class OperatorSwitchTest {
             }
         });
 
-        Observable<String> sampled = Observable.switchOnNext(source);
+        Flowable<String> sampled = Flowable.switchOnNext(source);
         sampled.subscribe(observer);
 
         InOrder inOrder = inOrder(observer);
 
         scheduler.advanceTimeTo(350, TimeUnit.MILLISECONDS);
         inOrder.verify(observer, times(2)).onNext(anyString());
-        inOrder.verify(observer, times(1)).onCompleted();
+        inOrder.verify(observer, times(1)).onComplete();
     }
 
     @Test
     public void testSwitchWhenInnerCompleteBeforeOuter() {
-        Observable<Observable<String>> source = Observable.create(new Observable.OnSubscribe<Observable<String>>() {
+        Flowable<Flowable<String>> source = Flowable.create(new Flowable.OnSubscribe<Flowable<String>>() {
             @Override
-            public void call(Subscriber<? super Observable<String>> observer) {
-                publishNext(observer, 10, Observable.create(new Observable.OnSubscribe<String>() {
+            public void call(Subscriber<? super Flowable<String>> observer) {
+                publishNext(observer, 10, Flowable.create(new Flowable.OnSubscribe<String>() {
                     @Override
                     public void call(Subscriber<? super String> observer) {
                         publishNext(observer, 0, "one");
@@ -95,7 +95,7 @@ public class OperatorSwitchTest {
                     }
                 }));
 
-                publishNext(observer, 100, Observable.create(new Observable.OnSubscribe<String>() {
+                publishNext(observer, 100, Flowable.create(new Flowable.OnSubscribe<String>() {
                     @Override
                     public void call(Subscriber<? super String> observer) {
                         publishNext(observer, 0, "three");
@@ -107,13 +107,13 @@ public class OperatorSwitchTest {
             }
         });
 
-        Observable<String> sampled = Observable.switchOnNext(source);
+        Flowable<String> sampled = Flowable.switchOnNext(source);
         sampled.subscribe(observer);
 
         InOrder inOrder = inOrder(observer);
 
         scheduler.advanceTimeTo(150, TimeUnit.MILLISECONDS);
-        inOrder.verify(observer, never()).onCompleted();
+        inOrder.verify(observer, never()).onComplete();
         inOrder.verify(observer, times(1)).onNext("one");
         inOrder.verify(observer, times(1)).onNext("two");
         inOrder.verify(observer, times(1)).onNext("three");
@@ -121,15 +121,15 @@ public class OperatorSwitchTest {
 
         scheduler.advanceTimeTo(250, TimeUnit.MILLISECONDS);
         inOrder.verify(observer, never()).onNext(anyString());
-        inOrder.verify(observer, times(1)).onCompleted();
+        inOrder.verify(observer, times(1)).onComplete();
     }
 
     @Test
     public void testSwitchWithComplete() {
-        Observable<Observable<String>> source = Observable.create(new Observable.OnSubscribe<Observable<String>>() {
+        Flowable<Flowable<String>> source = Flowable.create(new Flowable.OnSubscribe<Flowable<String>>() {
             @Override
-            public void call(Subscriber<? super Observable<String>> observer) {
-                publishNext(observer, 50, Observable.create(new Observable.OnSubscribe<String>() {
+            public void call(Subscriber<? super Flowable<String>> observer) {
+                publishNext(observer, 50, Flowable.create(new Flowable.OnSubscribe<String>() {
                     @Override
                     public void call(final Subscriber<? super String> observer) {
                         publishNext(observer, 60, "one");
@@ -137,7 +137,7 @@ public class OperatorSwitchTest {
                     }
                 }));
 
-                publishNext(observer, 200, Observable.create(new Observable.OnSubscribe<String>() {
+                publishNext(observer, 200, Flowable.create(new Flowable.OnSubscribe<String>() {
                     @Override
                     public void call(final Subscriber<? super String> observer) {
                         publishNext(observer, 0, "three");
@@ -149,43 +149,43 @@ public class OperatorSwitchTest {
             }
         });
 
-        Observable<String> sampled = Observable.switchOnNext(source);
+        Flowable<String> sampled = Flowable.switchOnNext(source);
         sampled.subscribe(observer);
 
         InOrder inOrder = inOrder(observer);
 
         scheduler.advanceTimeTo(90, TimeUnit.MILLISECONDS);
         inOrder.verify(observer, never()).onNext(anyString());
-        verify(observer, never()).onCompleted();
+        verify(observer, never()).onComplete();
         verify(observer, never()).onError(any(Throwable.class));
 
         scheduler.advanceTimeTo(125, TimeUnit.MILLISECONDS);
         inOrder.verify(observer, times(1)).onNext("one");
-        verify(observer, never()).onCompleted();
+        verify(observer, never()).onComplete();
         verify(observer, never()).onError(any(Throwable.class));
 
         scheduler.advanceTimeTo(175, TimeUnit.MILLISECONDS);
         inOrder.verify(observer, times(1)).onNext("two");
-        verify(observer, never()).onCompleted();
+        verify(observer, never()).onComplete();
         verify(observer, never()).onError(any(Throwable.class));
 
         scheduler.advanceTimeTo(225, TimeUnit.MILLISECONDS);
         inOrder.verify(observer, times(1)).onNext("three");
-        verify(observer, never()).onCompleted();
+        verify(observer, never()).onComplete();
         verify(observer, never()).onError(any(Throwable.class));
 
         scheduler.advanceTimeTo(350, TimeUnit.MILLISECONDS);
         inOrder.verify(observer, times(1)).onNext("four");
-        verify(observer, never()).onCompleted();
+        verify(observer, never()).onComplete();
         verify(observer, never()).onError(any(Throwable.class));
     }
 
     @Test
     public void testSwitchWithError() {
-        Observable<Observable<String>> source = Observable.create(new Observable.OnSubscribe<Observable<String>>() {
+        Flowable<Flowable<String>> source = Flowable.create(new Flowable.OnSubscribe<Flowable<String>>() {
             @Override
-            public void call(Subscriber<? super Observable<String>> observer) {
-                publishNext(observer, 50, Observable.create(new Observable.OnSubscribe<String>() {
+            public void call(Subscriber<? super Flowable<String>> observer) {
+                publishNext(observer, 50, Flowable.create(new Flowable.OnSubscribe<String>() {
                     @Override
                     public void call(final Subscriber<? super String> observer) {
                         publishNext(observer, 50, "one");
@@ -193,7 +193,7 @@ public class OperatorSwitchTest {
                     }
                 }));
 
-                publishNext(observer, 200, Observable.create(new Observable.OnSubscribe<String>() {
+                publishNext(observer, 200, Flowable.create(new Flowable.OnSubscribe<String>() {
                     @Override
                     public void call(Subscriber<? super String> observer) {
                         publishNext(observer, 0, "three");
@@ -205,43 +205,43 @@ public class OperatorSwitchTest {
             }
         });
 
-        Observable<String> sampled = Observable.switchOnNext(source);
+        Flowable<String> sampled = Flowable.switchOnNext(source);
         sampled.subscribe(observer);
 
         InOrder inOrder = inOrder(observer);
 
         scheduler.advanceTimeTo(90, TimeUnit.MILLISECONDS);
         inOrder.verify(observer, never()).onNext(anyString());
-        verify(observer, never()).onCompleted();
+        verify(observer, never()).onComplete();
         verify(observer, never()).onError(any(Throwable.class));
 
         scheduler.advanceTimeTo(125, TimeUnit.MILLISECONDS);
         inOrder.verify(observer, times(1)).onNext("one");
-        verify(observer, never()).onCompleted();
+        verify(observer, never()).onComplete();
         verify(observer, never()).onError(any(Throwable.class));
 
         scheduler.advanceTimeTo(175, TimeUnit.MILLISECONDS);
         inOrder.verify(observer, times(1)).onNext("two");
-        verify(observer, never()).onCompleted();
+        verify(observer, never()).onComplete();
         verify(observer, never()).onError(any(Throwable.class));
 
         scheduler.advanceTimeTo(225, TimeUnit.MILLISECONDS);
         inOrder.verify(observer, times(1)).onNext("three");
-        verify(observer, never()).onCompleted();
+        verify(observer, never()).onComplete();
         verify(observer, never()).onError(any(Throwable.class));
 
         scheduler.advanceTimeTo(350, TimeUnit.MILLISECONDS);
         inOrder.verify(observer, never()).onNext(anyString());
-        verify(observer, never()).onCompleted();
+        verify(observer, never()).onComplete();
         verify(observer, times(1)).onError(any(TestException.class));
     }
 
     @Test
     public void testSwitchWithSubsequenceComplete() {
-        Observable<Observable<String>> source = Observable.create(new Observable.OnSubscribe<Observable<String>>() {
+        Flowable<Flowable<String>> source = Flowable.create(new Flowable.OnSubscribe<Flowable<String>>() {
             @Override
-            public void call(Subscriber<? super Observable<String>> observer) {
-                publishNext(observer, 50, Observable.create(new Observable.OnSubscribe<String>() {
+            public void call(Subscriber<? super Flowable<String>> observer) {
+                publishNext(observer, 50, Flowable.create(new Flowable.OnSubscribe<String>() {
                     @Override
                     public void call(Subscriber<? super String> observer) {
                         publishNext(observer, 50, "one");
@@ -249,14 +249,14 @@ public class OperatorSwitchTest {
                     }
                 }));
 
-                publishNext(observer, 130, Observable.create(new Observable.OnSubscribe<String>() {
+                publishNext(observer, 130, Flowable.create(new Flowable.OnSubscribe<String>() {
                     @Override
                     public void call(Subscriber<? super String> observer) {
                         publishCompleted(observer, 0);
                     }
                 }));
 
-                publishNext(observer, 150, Observable.create(new Observable.OnSubscribe<String>() {
+                publishNext(observer, 150, Flowable.create(new Flowable.OnSubscribe<String>() {
                     @Override
                     public void call(Subscriber<? super String> observer) {
                         publishNext(observer, 50, "three");
@@ -265,33 +265,33 @@ public class OperatorSwitchTest {
             }
         });
 
-        Observable<String> sampled = Observable.switchOnNext(source);
+        Flowable<String> sampled = Flowable.switchOnNext(source);
         sampled.subscribe(observer);
 
         InOrder inOrder = inOrder(observer);
 
         scheduler.advanceTimeTo(90, TimeUnit.MILLISECONDS);
         inOrder.verify(observer, never()).onNext(anyString());
-        verify(observer, never()).onCompleted();
+        verify(observer, never()).onComplete();
         verify(observer, never()).onError(any(Throwable.class));
 
         scheduler.advanceTimeTo(125, TimeUnit.MILLISECONDS);
         inOrder.verify(observer, times(1)).onNext("one");
-        verify(observer, never()).onCompleted();
+        verify(observer, never()).onComplete();
         verify(observer, never()).onError(any(Throwable.class));
 
         scheduler.advanceTimeTo(250, TimeUnit.MILLISECONDS);
         inOrder.verify(observer, times(1)).onNext("three");
-        verify(observer, never()).onCompleted();
+        verify(observer, never()).onComplete();
         verify(observer, never()).onError(any(Throwable.class));
     }
 
     @Test
     public void testSwitchWithSubsequenceError() {
-        Observable<Observable<String>> source = Observable.create(new Observable.OnSubscribe<Observable<String>>() {
+        Flowable<Flowable<String>> source = Flowable.create(new Flowable.OnSubscribe<Flowable<String>>() {
             @Override
-            public void call(Subscriber<? super Observable<String>> observer) {
-                publishNext(observer, 50, Observable.create(new Observable.OnSubscribe<String>() {
+            public void call(Subscriber<? super Flowable<String>> observer) {
+                publishNext(observer, 50, Flowable.create(new Flowable.OnSubscribe<String>() {
                     @Override
                     public void call(Subscriber<? super String> observer) {
                         publishNext(observer, 50, "one");
@@ -299,14 +299,14 @@ public class OperatorSwitchTest {
                     }
                 }));
 
-                publishNext(observer, 130, Observable.create(new Observable.OnSubscribe<String>() {
+                publishNext(observer, 130, Flowable.create(new Flowable.OnSubscribe<String>() {
                     @Override
                     public void call(Subscriber<? super String> observer) {
                         publishError(observer, 0, new TestException());
                     }
                 }));
 
-                publishNext(observer, 150, Observable.create(new Observable.OnSubscribe<String>() {
+                publishNext(observer, 150, Flowable.create(new Flowable.OnSubscribe<String>() {
                     @Override
                     public void call(Subscriber<? super String> observer) {
                         publishNext(observer, 50, "three");
@@ -316,24 +316,24 @@ public class OperatorSwitchTest {
             }
         });
 
-        Observable<String> sampled = Observable.switchOnNext(source);
+        Flowable<String> sampled = Flowable.switchOnNext(source);
         sampled.subscribe(observer);
 
         InOrder inOrder = inOrder(observer);
 
         scheduler.advanceTimeTo(90, TimeUnit.MILLISECONDS);
         inOrder.verify(observer, never()).onNext(anyString());
-        verify(observer, never()).onCompleted();
+        verify(observer, never()).onComplete();
         verify(observer, never()).onError(any(Throwable.class));
 
         scheduler.advanceTimeTo(125, TimeUnit.MILLISECONDS);
         inOrder.verify(observer, times(1)).onNext("one");
-        verify(observer, never()).onCompleted();
+        verify(observer, never()).onComplete();
         verify(observer, never()).onError(any(Throwable.class));
 
         scheduler.advanceTimeTo(250, TimeUnit.MILLISECONDS);
         inOrder.verify(observer, never()).onNext("three");
-        verify(observer, never()).onCompleted();
+        verify(observer, never()).onComplete();
         verify(observer, times(1)).onError(any(TestException.class));
     }
 
@@ -341,7 +341,7 @@ public class OperatorSwitchTest {
         innerScheduler.schedule(new Action0() {
             @Override
             public void call() {
-                observer.onCompleted();
+                observer.onComplete();
             }
         }, delay, TimeUnit.MILLISECONDS);
     }
@@ -367,10 +367,10 @@ public class OperatorSwitchTest {
     @Test
     public void testSwitchIssue737() {
         // https://github.com/ReactiveX/RxJava/issues/737
-        Observable<Observable<String>> source = Observable.create(new Observable.OnSubscribe<Observable<String>>() {
+        Flowable<Flowable<String>> source = Flowable.create(new Flowable.OnSubscribe<Flowable<String>>() {
             @Override
-            public void call(Subscriber<? super Observable<String>> observer) {
-                publishNext(observer, 0, Observable.create(new Observable.OnSubscribe<String>() {
+            public void call(Subscriber<? super Flowable<String>> observer) {
+                publishNext(observer, 0, Flowable.create(new Flowable.OnSubscribe<String>() {
                     @Override
                     public void call(Subscriber<? super String> observer) {
                         publishNext(observer, 10, "1-one");
@@ -380,7 +380,7 @@ public class OperatorSwitchTest {
                         publishCompleted(observer, 40);
                     }
                 }));
-                publishNext(observer, 25, Observable.create(new Observable.OnSubscribe<String>() {
+                publishNext(observer, 25, Flowable.create(new Flowable.OnSubscribe<String>() {
                     @Override
                     public void call(Subscriber<? super String> observer) {
                         publishNext(observer, 10, "2-one");
@@ -393,7 +393,7 @@ public class OperatorSwitchTest {
             }
         });
 
-        Observable<String> sampled = Observable.switchOnNext(source);
+        Flowable<String> sampled = Flowable.switchOnNext(source);
         sampled.subscribe(observer);
 
         scheduler.advanceTimeTo(1000, TimeUnit.MILLISECONDS);
@@ -404,13 +404,13 @@ public class OperatorSwitchTest {
         inOrder.verify(observer, times(1)).onNext("2-one");
         inOrder.verify(observer, times(1)).onNext("2-two");
         inOrder.verify(observer, times(1)).onNext("2-three");
-        inOrder.verify(observer, times(1)).onCompleted();
+        inOrder.verify(observer, times(1)).onComplete();
         inOrder.verifyNoMoreInteractions();
     }
 
     @Test
     public void testBackpressure() {
-        final Observable<String> o1 = Observable.create(new Observable.OnSubscribe<String>() {
+        final Flowable<String> o1 = Flowable.create(new Flowable.OnSubscribe<String>() {
             @Override
             public void call(final Subscriber<? super String> observer) {
                 observer.setProducer(new Producer() {
@@ -425,13 +425,13 @@ public class OperatorSwitchTest {
                             observer.onNext("a" + emitted);
                         }
                         if(emitted == 10) {
-                            observer.onCompleted();
+                            observer.onComplete();
                         }
                     }
                 });
             }
         });
-        final Observable<String> o2 = Observable.create(new Observable.OnSubscribe<String>() {
+        final Flowable<String> o2 = Flowable.create(new Flowable.OnSubscribe<String>() {
             @Override
             public void call(final Subscriber<? super String> observer) {
                 observer.setProducer(new Producer() {
@@ -446,13 +446,13 @@ public class OperatorSwitchTest {
                             observer.onNext("b" + emitted);
                         }
                         if(emitted == 10) {
-                            observer.onCompleted();
+                            observer.onComplete();
                         }
                     }
                 });
             }
         });
-        final Observable<String> o3 = Observable.create(new Observable.OnSubscribe<String>() {
+        final Flowable<String> o3 = Flowable.create(new Flowable.OnSubscribe<String>() {
             @Override
             public void call(final Subscriber<? super String> observer) {
                 observer.setProducer(new Producer() {
@@ -466,15 +466,15 @@ public class OperatorSwitchTest {
                             observer.onNext("c" + emitted);
                         }
                         if(emitted == 10) {
-                            observer.onCompleted();
+                            observer.onComplete();
                         }
                     }
                 });
             }
         });
-        Observable<Observable<String>> o = Observable.create(new Observable.OnSubscribe<Observable<String>>() {
+        Flowable<Flowable<String>> o = Flowable.create(new Flowable.OnSubscribe<Flowable<String>>() {
             @Override
-            public void call(Subscriber<? super Observable<String>> observer) {
+            public void call(Subscriber<? super Flowable<String>> observer) {
                 publishNext(observer, 10, o1);
                 publishNext(observer, 20, o2);
                 publishNext(observer, 30, o3);
@@ -482,7 +482,7 @@ public class OperatorSwitchTest {
             }
         });
         final TestSubscriber<String> testSubscriber = new TestSubscriber<String>();
-        Observable.switchOnNext(o).subscribe(new Subscriber<String>() {
+        Flowable.switchOnNext(o).subscribe(new Subscriber<String>() {
 
             private int requested = 0;
 
@@ -493,8 +493,8 @@ public class OperatorSwitchTest {
             }
 
             @Override
-            public void onCompleted() {
-                testSubscriber.onCompleted();
+            public void onComplete() {
+                testSubscriber.onComplete();
             }
 
             @Override
@@ -521,11 +521,11 @@ public class OperatorSwitchTest {
     @Test
     public void testUnsubscribe() {
         final AtomicBoolean isUnsubscribed = new AtomicBoolean();
-        Observable.switchOnNext(
-                Observable.create(new Observable.OnSubscribe<Observable<Integer>>() {
+        Flowable.switchOnNext(
+                Flowable.create(new Flowable.OnSubscribe<Flowable<Integer>>() {
                     @Override
-                    public void call(final Subscriber<? super Observable<Integer>> subscriber) {
-                        subscriber.onNext(Observable.just(1));
+                    public void call(final Subscriber<? super Flowable<Integer>> subscriber) {
+                        subscriber.onNext(Flowable.just(1));
                         isUnsubscribed.set(subscriber.isUnsubscribed());
                     }
                 })
@@ -535,14 +535,14 @@ public class OperatorSwitchTest {
     /** The upstream producer hijacked the switch producer stopping the requests aimed at the inner observables. */
     @Test
     public void testIssue2654() {
-        Observable<String> oneItem = Observable.just("Hello").mergeWith(Observable.<String>never());
+        Flowable<String> oneItem = Flowable.just("Hello").mergeWith(Flowable.<String>never());
         
-        Observable<String> src = oneItem.switchMap(new Func1<String, Observable<String>>() {
+        Flowable<String> src = oneItem.switchMap(new Function<String, Flowable<String>>() {
             @Override
-            public Observable<String> call(final String s) {
-                return Observable.just(s)
-                        .mergeWith(Observable.interval(10, TimeUnit.MILLISECONDS)
-                        .map(new Func1<Long, String>() {
+            public Flowable<String> call(final String s) {
+                return Flowable.just(s)
+                        .mergeWith(Flowable.interval(10, TimeUnit.MILLISECONDS)
+                        .map(new Function<Long, String>() {
                             @Override
                             public String call(Long i) {
                                 return s + " " + i;
@@ -558,7 +558,7 @@ public class OperatorSwitchTest {
             public void onNext(String t) {
                 super.onNext(t);
                 if (getOnNextEvents().size() == 250) {
-                    onCompleted();
+                    onComplete();
                     unsubscribe();
                 }
             }

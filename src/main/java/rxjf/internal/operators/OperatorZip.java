@@ -18,14 +18,14 @@ package rx.internal.operators;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicLongFieldUpdater;
 
-import rx.Observable;
-import rx.Observable.Operator;
+import rx.Flowable;
+import rx.Flowable.Operator;
 import rx.Observer;
 import rx.Producer;
 import rx.Subscriber;
 import rx.exceptions.MissingBackpressureException;
 import rx.exceptions.OnErrorThrowable;
-import rx.functions.Func2;
+import rx.functions.BiFunction;
 import rx.functions.Func3;
 import rx.functions.Func4;
 import rx.functions.Func5;
@@ -39,23 +39,23 @@ import rx.internal.util.RxRingBuffer;
 import rx.subscriptions.CompositeSubscription;
 
 /**
- * Returns an Observable that emits the results of a function applied to sets of items emitted, in
- * sequence, by two or more other Observables.
+ * Returns an Flowable that emits the results of a function applied to sets of items emitted, in
+ * sequence, by two or more other Flowables.
  * <p>
  * <img width="640" src="https://github.com/ReactiveX/RxJava/wiki/images/rx-operators/zip.png" alt="">
  * <p>
  * The zip operation applies this function in strict sequence, so the first item emitted by the new
- * Observable will be the result of the function applied to the first item emitted by each zipped
- * Observable; the second item emitted by the new Observable will be the result of the function
- * applied to the second item emitted by each zipped Observable; and so forth.
+ * Flowable will be the result of the function applied to the first item emitted by each zipped
+ * Flowable; the second item emitted by the new Flowable will be the result of the function
+ * applied to the second item emitted by each zipped Flowable; and so forth.
  * <p>
- * The resulting Observable returned from zip will invoke <code>onNext</code> as many times as the
- * number of <code>onNext</code> invocations of the source Observable that emits the fewest items.
+ * The resulting Flowable returned from zip will invoke <code>onNext</code> as many times as the
+ * number of <code>onNext</code> invocations of the source Flowable that emits the fewest items.
  * 
  * @param <R>
  *            the result type
  */
-public final class OperatorZip<R> implements Operator<R, Observable<?>[]> {
+public final class OperatorZip<R> implements Operator<R, Flowable<?>[]> {
     /*
      * Raw types are used so we can use a single implementation for all arities such as zip(t1, t2) and zip(t1, t2, t3) etc.
      * The types will be cast on the edges so usage will be the type-safe but the internals are not.
@@ -68,7 +68,7 @@ public final class OperatorZip<R> implements Operator<R, Observable<?>[]> {
     }
 
     @SuppressWarnings({ "unchecked", "rawtypes" })
-    public OperatorZip(Func2 f) {
+    public OperatorZip(BiFunction f) {
         this.zipFunction = Functions.fromFunc(f);
     }
 
@@ -109,7 +109,7 @@ public final class OperatorZip<R> implements Operator<R, Observable<?>[]> {
 
     @SuppressWarnings("rawtypes")
     @Override
-    public Subscriber<? super Observable[]> call(final Subscriber<? super R> child) {
+    public Subscriber<? super Flowable[]> call(final Subscriber<? super R> child) {
         final Zip<R> zipper = new Zip<R>(child, zipFunction);
         final ZipProducer<R> producer = new ZipProducer<R>(zipper);
         child.setProducer(producer);
@@ -118,7 +118,7 @@ public final class OperatorZip<R> implements Operator<R, Observable<?>[]> {
     }
 
     @SuppressWarnings("rawtypes")
-    private final class ZipSubscriber extends Subscriber<Observable[]> {
+    private final class ZipSubscriber extends Subscriber<Flowable[]> {
 
         final Subscriber<? super R> child;
         final Zip<R> zipper;
@@ -134,10 +134,10 @@ public final class OperatorZip<R> implements Operator<R, Observable<?>[]> {
         boolean started = false;
 
         @Override
-        public void onCompleted() {
+        public void onComplete() {
             if (!started) {
-                // this means we have not received a valid onNext before termination so we emit the onCompleted
-                child.onCompleted();
+                // this means we have not received a valid onNext before termination so we emit the onComplete()
+                child.onComplete();
             }
         }
 
@@ -147,9 +147,9 @@ public final class OperatorZip<R> implements Operator<R, Observable<?>[]> {
         }
 
         @Override
-        public void onNext(Observable[] observables) {
+        public void onNext(Flowable[] observables) {
             if (observables == null || observables.length == 0) {
-                child.onCompleted();
+                child.onComplete();
             } else {
                 started = true;
                 zipper.start(observables, producer);
@@ -200,7 +200,7 @@ public final class OperatorZip<R> implements Operator<R, Observable<?>[]> {
         }
 
         @SuppressWarnings("unchecked")
-        public void start(@SuppressWarnings("rawtypes") Observable[] os, AtomicLong requested) {
+        public void start(@SuppressWarnings("rawtypes") Flowable[] os, AtomicLong requested) {
             observers = new Object[os.length];
             this.requested = requested;
             for (int i = 0; i < os.length; i++) {
@@ -234,7 +234,7 @@ public final class OperatorZip<R> implements Operator<R, Observable<?>[]> {
                 final AtomicLong requested = this.requested;
                 do {
                     while (true) {
-                        // peek for a potential onCompleted event
+                        // peek for a potential onComplete() event
                         final Object[] vs = new Object[length];
                         boolean allHaveValues = true;
                         for (int i = 0; i < length; i++) {
@@ -247,7 +247,7 @@ public final class OperatorZip<R> implements Operator<R, Observable<?>[]> {
                             }
 
                             if (buffer.isCompleted(n)) {
-                                child.onCompleted();
+                                child.onComplete();
                                 // we need to unsubscribe from all children since children are
                                 // independently subscribed
                                 childSubscription.unsubscribe();
@@ -275,7 +275,7 @@ public final class OperatorZip<R> implements Operator<R, Observable<?>[]> {
                                 // eagerly check if the next item on this queue is an onComplete
                                 if (buffer.isCompleted(buffer.peek())) {
                                     // it is an onComplete so shut down
-                                    child.onCompleted();
+                                    child.onComplete();
                                     // we need to unsubscribe from all children since children are independently subscribed
                                     childSubscription.unsubscribe();
                                     return;
@@ -296,7 +296,7 @@ public final class OperatorZip<R> implements Operator<R, Observable<?>[]> {
 
         }
 
-        // used to observe each Observable we are zipping together
+        // used to observe each Flowable we are zipping together
         // it collects all items in an internal queue
         @SuppressWarnings("rawtypes")
         final class InnerSubscriber extends Subscriber {
@@ -313,8 +313,8 @@ public final class OperatorZip<R> implements Operator<R, Observable<?>[]> {
             }
 
             @Override
-            public void onCompleted() {
-                items.onCompleted();
+            public void onComplete() {
+                items.onComplete();
                 tick();
             }
 

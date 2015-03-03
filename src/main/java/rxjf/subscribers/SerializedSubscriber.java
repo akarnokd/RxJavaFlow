@@ -24,7 +24,7 @@ import rxjf.Flow.Subscription;
 import rxjf.internal.Conformance;
 
 /**
- * Serializes invocations of the Subscriber methods onSubscribe, onNext, onError and onCompleted
+ * Serializes invocations of the Subscriber methods onSubscribe, onNext, onError and onComplete()
  * in respect to each other.
  */
 public final class SerializedSubscriber<T> implements Subscriber<T> {

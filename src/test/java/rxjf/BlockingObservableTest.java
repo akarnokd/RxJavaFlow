@@ -30,17 +30,17 @@ import org.junit.Test;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 
-import rx.Observable;
-import rx.Observable.OnSubscribe;
+import rx.Flowable;
+import rx.Flowable.OnSubscribe;
 import rx.Subscriber;
 import rx.exceptions.TestException;
 import rx.functions.Action0;
 import rx.functions.Action1;
-import rx.functions.Func1;
+import rx.functions.Function;
 import rx.schedulers.Schedulers;
 import rx.subscriptions.Subscriptions;
 
-public class BlockingObservableTest {
+public class BlockingFlowableTest {
 
     @Mock
     Subscriber<Integer> w;
@@ -52,21 +52,21 @@ public class BlockingObservableTest {
 
     @Test
     public void testLast() {
-        BlockingObservable<String> obs = BlockingObservable.from(Observable.just("one", "two", "three"));
+        BlockingFlowable<String> obs = BlockingFlowable.from(Flowable.just("one", "two", "three"));
 
         assertEquals("three", obs.last());
     }
 
     @Test(expected = NoSuchElementException.class)
-    public void testLastEmptyObservable() {
-        BlockingObservable<Object> obs = BlockingObservable.from(Observable.empty());
+    public void testLastEmptyFlowable() {
+        BlockingFlowable<Object> obs = BlockingFlowable.from(Flowable.empty());
         obs.last();
     }
 
     @Test
     public void testLastOrDefault() {
-        BlockingObservable<Integer> observable = BlockingObservable.from(Observable.just(1, 0, -1));
-        int last = observable.lastOrDefault(-100, new Func1<Integer, Boolean>() {
+        BlockingFlowable<Integer> observable = BlockingFlowable.from(Flowable.just(1, 0, -1));
+        int last = observable.lastOrDefault(-100, new Function<Integer, Boolean>() {
             @Override
             public Boolean call(Integer args) {
                 return args >= 0;
@@ -77,20 +77,20 @@ public class BlockingObservableTest {
 
     @Test
     public void testLastOrDefault1() {
-        BlockingObservable<String> observable = BlockingObservable.from(Observable.just("one", "two", "three"));
+        BlockingFlowable<String> observable = BlockingFlowable.from(Flowable.just("one", "two", "three"));
         assertEquals("three", observable.lastOrDefault("default"));
     }
 
     @Test
     public void testLastOrDefault2() {
-        BlockingObservable<Object> observable = BlockingObservable.from(Observable.empty());
+        BlockingFlowable<Object> observable = BlockingFlowable.from(Flowable.empty());
         assertEquals("default", observable.lastOrDefault("default"));
     }
 
     @Test
     public void testLastOrDefaultWithPredicate() {
-        BlockingObservable<Integer> observable = BlockingObservable.from(Observable.just(1, 0, -1));
-        int last = observable.lastOrDefault(0, new Func1<Integer, Boolean>() {
+        BlockingFlowable<Integer> observable = BlockingFlowable.from(Flowable.just(1, 0, -1));
+        int last = observable.lastOrDefault(0, new Function<Integer, Boolean>() {
             @Override
             public Boolean call(Integer args) {
                 return args < 0;
@@ -102,8 +102,8 @@ public class BlockingObservableTest {
 
     @Test
     public void testLastOrDefaultWrongPredicate() {
-        BlockingObservable<Integer> observable = BlockingObservable.from(Observable.just(-1, -2, -3));
-        int last = observable.lastOrDefault(0, new Func1<Integer, Boolean>() {
+        BlockingFlowable<Integer> observable = BlockingFlowable.from(Flowable.just(-1, -2, -3));
+        int last = observable.lastOrDefault(0, new Function<Integer, Boolean>() {
             @Override
             public Boolean call(Integer args) {
                 return args >= 0;
@@ -114,8 +114,8 @@ public class BlockingObservableTest {
 
     @Test
     public void testLastWithPredicate() {
-        BlockingObservable<String> obs = BlockingObservable.from(Observable.just("one", "two", "three"));
-        assertEquals("two", obs.last(new Func1<String, Boolean>() {
+        BlockingFlowable<String> obs = BlockingFlowable.from(Flowable.just("one", "two", "three"));
+        assertEquals("two", obs.last(new Function<String, Boolean>() {
             @Override
             public Boolean call(String s) {
                 return s.length() == 3;
@@ -125,19 +125,19 @@ public class BlockingObservableTest {
 
     @Test
     public void testSingle() {
-        BlockingObservable<String> observable = BlockingObservable.from(Observable.just("one"));
+        BlockingFlowable<String> observable = BlockingFlowable.from(Flowable.just("one"));
         assertEquals("one", observable.single());
     }
 
     @Test
     public void testSingleDefault() {
-        BlockingObservable<Object> observable = BlockingObservable.from(Observable.empty());
+        BlockingFlowable<Object> observable = BlockingFlowable.from(Flowable.empty());
         assertEquals("default", observable.singleOrDefault("default"));
     }
 
     @Test(expected = IllegalArgumentException.class)
     public void testSingleDefaultPredicateMatchesMoreThanOne() {
-        BlockingObservable.from(Observable.just("one", "two")).singleOrDefault("default", new Func1<String, Boolean>() {
+        BlockingFlowable.from(Flowable.just("one", "two")).singleOrDefault("default", new Function<String, Boolean>() {
             @Override
             public Boolean call(String args) {
                 return args.length() == 3;
@@ -147,8 +147,8 @@ public class BlockingObservableTest {
 
     @Test
     public void testSingleDefaultPredicateMatchesNothing() {
-        BlockingObservable<String> observable = BlockingObservable.from(Observable.just("one", "two"));
-        String result = observable.singleOrDefault("default", new Func1<String, Boolean>() {
+        BlockingFlowable<String> observable = BlockingFlowable.from(Flowable.just("one", "two"));
+        String result = observable.singleOrDefault("default", new Function<String, Boolean>() {
             @Override
             public Boolean call(String args) {
                 return args.length() == 4;
@@ -159,14 +159,14 @@ public class BlockingObservableTest {
 
     @Test(expected = IllegalArgumentException.class)
     public void testSingleDefaultWithMoreThanOne() {
-        BlockingObservable<String> observable = BlockingObservable.from(Observable.just("one", "two", "three"));
+        BlockingFlowable<String> observable = BlockingFlowable.from(Flowable.just("one", "two", "three"));
         observable.singleOrDefault("default");
     }
 
     @Test
     public void testSingleWithPredicateDefault() {
-        BlockingObservable<String> observable = BlockingObservable.from(Observable.just("one", "two", "four"));
-        assertEquals("four", observable.single(new Func1<String, Boolean>() {
+        BlockingFlowable<String> observable = BlockingFlowable.from(Flowable.just("one", "two", "four"));
+        assertEquals("four", observable.single(new Function<String, Boolean>() {
             @Override
             public Boolean call(String s) {
                 return s.length() == 4;
@@ -176,14 +176,14 @@ public class BlockingObservableTest {
 
     @Test(expected = IllegalArgumentException.class)
     public void testSingleWrong() {
-        BlockingObservable<Integer> observable = BlockingObservable.from(Observable.just(1, 2));
+        BlockingFlowable<Integer> observable = BlockingFlowable.from(Flowable.just(1, 2));
         observable.single();
     }
 
     @Test(expected = NoSuchElementException.class)
     public void testSingleWrongPredicate() {
-        BlockingObservable<Integer> observable = BlockingObservable.from(Observable.just(-1));
-        observable.single(new Func1<Integer, Boolean>() {
+        BlockingFlowable<Integer> observable = BlockingFlowable.from(Flowable.just(-1));
+        observable.single(new Function<Integer, Boolean>() {
             @Override
             public Boolean call(Integer args) {
                 return args > 0;
@@ -193,7 +193,7 @@ public class BlockingObservableTest {
 
     @Test
     public void testToIterable() {
-        BlockingObservable<String> obs = BlockingObservable.from(Observable.just("one", "two", "three"));
+        BlockingFlowable<String> obs = BlockingFlowable.from(Flowable.just("one", "two", "three"));
 
         Iterator<String> it = obs.toIterable().iterator();
 
@@ -212,7 +212,7 @@ public class BlockingObservableTest {
 
     @Test(expected = NoSuchElementException.class)
     public void testToIterableNextOnly() {
-        BlockingObservable<Integer> obs = BlockingObservable.from(Observable.just(1, 2, 3));
+        BlockingFlowable<Integer> obs = BlockingFlowable.from(Flowable.just(1, 2, 3));
 
         Iterator<Integer> it = obs.toIterable().iterator();
 
@@ -225,7 +225,7 @@ public class BlockingObservableTest {
 
     @Test(expected = NoSuchElementException.class)
     public void testToIterableNextOnlyTwice() {
-        BlockingObservable<Integer> obs = BlockingObservable.from(Observable.just(1, 2, 3));
+        BlockingFlowable<Integer> obs = BlockingFlowable.from(Flowable.just(1, 2, 3));
 
         Iterator<Integer> it = obs.toIterable().iterator();
 
@@ -246,7 +246,7 @@ public class BlockingObservableTest {
 
     @Test
     public void testToIterableManyTimes() {
-        BlockingObservable<Integer> obs = BlockingObservable.from(Observable.just(1, 2, 3));
+        BlockingFlowable<Integer> obs = BlockingFlowable.from(Flowable.just(1, 2, 3));
 
         Iterable<Integer> iter = obs.toIterable();
 
@@ -265,7 +265,7 @@ public class BlockingObservableTest {
 
     @Test(expected = TestException.class)
     public void testToIterableWithException() {
-        BlockingObservable<String> obs = BlockingObservable.from(Observable.create(new Observable.OnSubscribe<String>() {
+        BlockingFlowable<String> obs = BlockingFlowable.from(Flowable.create(new Flowable.OnSubscribe<String>() {
 
             @Override
             public void call(Subscriber<? super String> observer) {
@@ -287,7 +287,7 @@ public class BlockingObservableTest {
     @Test
     public void testForEachWithError() {
         try {
-            BlockingObservable.from(Observable.create(new Observable.OnSubscribe<String>() {
+            BlockingFlowable.from(Flowable.create(new Flowable.OnSubscribe<String>() {
 
                 @Override
                 public void call(final Subscriber<? super String> observer) {
@@ -298,7 +298,7 @@ public class BlockingObservableTest {
                             observer.onNext("one");
                             observer.onNext("two");
                             observer.onNext("three");
-                            observer.onCompleted();
+                            observer.onComplete();
                         }
                     }).start();
                 }
@@ -317,19 +317,19 @@ public class BlockingObservableTest {
 
     @Test
     public void testFirst() {
-        BlockingObservable<String> observable = BlockingObservable.from(Observable.just("one", "two", "three"));
+        BlockingFlowable<String> observable = BlockingFlowable.from(Flowable.just("one", "two", "three"));
         assertEquals("one", observable.first());
     }
 
     @Test(expected = NoSuchElementException.class)
     public void testFirstWithEmpty() {
-        BlockingObservable.from(Observable.<String> empty()).first();
+        BlockingFlowable.from(Flowable.<String> empty()).first();
     }
 
     @Test
     public void testFirstWithPredicate() {
-        BlockingObservable<String> observable = BlockingObservable.from(Observable.just("one", "two", "three"));
-        String first = observable.first(new Func1<String, Boolean>() {
+        BlockingFlowable<String> observable = BlockingFlowable.from(Flowable.just("one", "two", "three"));
+        String first = observable.first(new Function<String, Boolean>() {
             @Override
             public Boolean call(String args) {
                 return args.length() > 3;
@@ -340,8 +340,8 @@ public class BlockingObservableTest {
 
     @Test(expected = NoSuchElementException.class)
     public void testFirstWithPredicateAndEmpty() {
-        BlockingObservable<String> observable = BlockingObservable.from(Observable.just("one", "two", "three"));
-        observable.first(new Func1<String, Boolean>() {
+        BlockingFlowable<String> observable = BlockingFlowable.from(Flowable.just("one", "two", "three"));
+        observable.first(new Function<String, Boolean>() {
             @Override
             public Boolean call(String args) {
                 return args.length() > 5;
@@ -351,20 +351,20 @@ public class BlockingObservableTest {
 
     @Test
     public void testFirstOrDefault() {
-        BlockingObservable<String> observable = BlockingObservable.from(Observable.just("one", "two", "three"));
+        BlockingFlowable<String> observable = BlockingFlowable.from(Flowable.just("one", "two", "three"));
         assertEquals("one", observable.firstOrDefault("default"));
     }
 
     @Test
     public void testFirstOrDefaultWithEmpty() {
-        BlockingObservable<String> observable = BlockingObservable.from(Observable.<String> empty());
+        BlockingFlowable<String> observable = BlockingFlowable.from(Flowable.<String> empty());
         assertEquals("default", observable.firstOrDefault("default"));
     }
 
     @Test
     public void testFirstOrDefaultWithPredicate() {
-        BlockingObservable<String> observable = BlockingObservable.from(Observable.just("one", "two", "three"));
-        String first = observable.firstOrDefault("default", new Func1<String, Boolean>() {
+        BlockingFlowable<String> observable = BlockingFlowable.from(Flowable.just("one", "two", "three"));
+        String first = observable.firstOrDefault("default", new Function<String, Boolean>() {
             @Override
             public Boolean call(String args) {
                 return args.length() > 3;
@@ -375,8 +375,8 @@ public class BlockingObservableTest {
 
     @Test
     public void testFirstOrDefaultWithPredicateAndEmpty() {
-        BlockingObservable<String> observable = BlockingObservable.from(Observable.just("one", "two", "three"));
-        String first = observable.firstOrDefault("default", new Func1<String, Boolean>() {
+        BlockingFlowable<String> observable = BlockingFlowable.from(Flowable.just("one", "two", "three"));
+        String first = observable.firstOrDefault("default", new Function<String, Boolean>() {
             @Override
             public Boolean call(String args) {
                 return args.length() > 5;
@@ -388,7 +388,7 @@ public class BlockingObservableTest {
     @Test
     public void testSingleOrDefaultUnsubscribe() throws InterruptedException {
         final CountDownLatch unsubscribe = new CountDownLatch(1);
-        Observable<Integer> o = Observable.create(new OnSubscribe<Integer>() {
+        Flowable<Integer> o = Flowable.create(new OnSubscribe<Integer>() {
             @Override
             public void call(Subscriber<? super Integer> subscriber) {
                 subscriber.add(Subscriptions.create(new Action0() {
@@ -399,7 +399,7 @@ public class BlockingObservableTest {
                 }));
                 subscriber.onNext(1);
                 subscriber.onNext(2);
-                // Don't call `onCompleted` to emulate an infinite stream
+                // Don't call `onComplete()` to emulate an infinite stream
             }
         }).subscribeOn(Schedulers.newThread());
         try {
@@ -413,9 +413,9 @@ public class BlockingObservableTest {
 
     @Test
     public void testUnsubscribeFromSingleWhenInterrupted() throws InterruptedException {
-        new InterruptionTests().assertUnsubscribeIsInvoked("single()", new Action1<BlockingObservable<Void>>() {
+        new InterruptionTests().assertUnsubscribeIsInvoked("single()", new Action1<BlockingFlowable<Void>>() {
             @Override
-            public void call(final BlockingObservable<Void> o) {
+            public void call(final BlockingFlowable<Void> o) {
                 o.single();
             }
         });
@@ -423,9 +423,9 @@ public class BlockingObservableTest {
 
     @Test
     public void testUnsubscribeFromForEachWhenInterrupted() throws InterruptedException {
-        new InterruptionTests().assertUnsubscribeIsInvoked("forEach()", new Action1<BlockingObservable<Void>>() {
+        new InterruptionTests().assertUnsubscribeIsInvoked("forEach()", new Action1<BlockingFlowable<Void>>() {
             @Override
-            public void call(final BlockingObservable<Void> o) {
+            public void call(final BlockingFlowable<Void> o) {
                 o.forEach(new Action1<Void>() {
                     @Override
                     public void call(final Void aVoid) {
@@ -438,9 +438,9 @@ public class BlockingObservableTest {
 
     @Test
     public void testUnsubscribeFromFirstWhenInterrupted() throws InterruptedException {
-        new InterruptionTests().assertUnsubscribeIsInvoked("first()", new Action1<BlockingObservable<Void>>() {
+        new InterruptionTests().assertUnsubscribeIsInvoked("first()", new Action1<BlockingFlowable<Void>>() {
             @Override
-            public void call(final BlockingObservable<Void> o) {
+            public void call(final BlockingFlowable<Void> o) {
                 o.first();
             }
         });
@@ -448,9 +448,9 @@ public class BlockingObservableTest {
 
     @Test
     public void testUnsubscribeFromLastWhenInterrupted() throws InterruptedException {
-        new InterruptionTests().assertUnsubscribeIsInvoked("last()", new Action1<BlockingObservable<Void>>() {
+        new InterruptionTests().assertUnsubscribeIsInvoked("last()", new Action1<BlockingFlowable<Void>>() {
             @Override
-            public void call(final BlockingObservable<Void> o) {
+            public void call(final BlockingFlowable<Void> o) {
                 o.last();
             }
         });
@@ -458,9 +458,9 @@ public class BlockingObservableTest {
 
     @Test
     public void testUnsubscribeFromLatestWhenInterrupted() throws InterruptedException {
-        new InterruptionTests().assertUnsubscribeIsInvoked("latest()", new Action1<BlockingObservable<Void>>() {
+        new InterruptionTests().assertUnsubscribeIsInvoked("latest()", new Action1<BlockingFlowable<Void>>() {
             @Override
-            public void call(final BlockingObservable<Void> o) {
+            public void call(final BlockingFlowable<Void> o) {
                 o.latest().iterator().next();
             }
         });
@@ -468,9 +468,9 @@ public class BlockingObservableTest {
 
     @Test
     public void testUnsubscribeFromNextWhenInterrupted() throws InterruptedException {
-        new InterruptionTests().assertUnsubscribeIsInvoked("next()", new Action1<BlockingObservable<Void>>() {
+        new InterruptionTests().assertUnsubscribeIsInvoked("next()", new Action1<BlockingFlowable<Void>>() {
             @Override
-            public void call(final BlockingObservable<Void> o) {
+            public void call(final BlockingFlowable<Void> o) {
                 o.next().iterator().next();
             }
         });
@@ -478,9 +478,9 @@ public class BlockingObservableTest {
 
     @Test
     public void testUnsubscribeFromGetIteratorWhenInterrupted() throws InterruptedException {
-        new InterruptionTests().assertUnsubscribeIsInvoked("getIterator()", new Action1<BlockingObservable<Void>>() {
+        new InterruptionTests().assertUnsubscribeIsInvoked("getIterator()", new Action1<BlockingFlowable<Void>>() {
             @Override
-            public void call(final BlockingObservable<Void> o) {
+            public void call(final BlockingFlowable<Void> o) {
                 o.getIterator().next();
             }
         });
@@ -488,9 +488,9 @@ public class BlockingObservableTest {
 
     @Test
     public void testUnsubscribeFromToIterableWhenInterrupted() throws InterruptedException {
-        new InterruptionTests().assertUnsubscribeIsInvoked("toIterable()", new Action1<BlockingObservable<Void>>() {
+        new InterruptionTests().assertUnsubscribeIsInvoked("toIterable()", new Action1<BlockingFlowable<Void>>() {
             @Override
-            public void call(final BlockingObservable<Void> o) {
+            public void call(final BlockingFlowable<Void> o) {
                 o.toIterable().iterator().next();
             }
         });
@@ -503,8 +503,8 @@ public class BlockingObservableTest {
         private RuntimeException error;
         private CountDownLatch latch = new CountDownLatch(1);
 
-        private Observable<Void> createObservable() {
-            return Observable.<Void>never().doOnUnsubscribe(new Action0() {
+        private Flowable<Void> createFlowable() {
+            return Flowable.<Void>never().doOnUnsubscribe(new Action0() {
                 @Override
                 public void call() {
                     isUnSubscribed = true;
@@ -512,12 +512,12 @@ public class BlockingObservableTest {
             });
         }
 
-        private void startBlockingAndInterrupt(final Action1<BlockingObservable<Void>> blockingAction) {
+        private void startBlockingAndInterrupt(final Action1<BlockingFlowable<Void>> blockingAction) {
             Thread subscriptionThread = new Thread() {
                 @Override
                 public void run() {
                     try {
-                        blockingAction.call(createObservable().toBlocking());
+                        blockingAction.call(createFlowable().toBlocking());
                     } catch (RuntimeException e) {
                         if (!(e.getCause() instanceof InterruptedException)) {
                             error = e;
@@ -530,7 +530,7 @@ public class BlockingObservableTest {
             subscriptionThread.interrupt();
         }
 
-        void assertUnsubscribeIsInvoked(final String method, final Action1<BlockingObservable<Void>> blockingAction)
+        void assertUnsubscribeIsInvoked(final String method, final Action1<BlockingFlowable<Void>> blockingAction)
             throws InterruptedException {
             startBlockingAndInterrupt(blockingAction);
             assertTrue("Timeout means interruption is not performed", latch.await(30, TimeUnit.SECONDS));

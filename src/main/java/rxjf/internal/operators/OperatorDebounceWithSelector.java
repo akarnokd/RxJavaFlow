@@ -15,10 +15,10 @@
  */
 package rx.internal.operators;
 
-import rx.Observable;
-import rx.Observable.Operator;
+import rx.Flowable;
+import rx.Flowable.Operator;
 import rx.Subscriber;
-import rx.functions.Func1;
+import rx.functions.Function;
 import rx.internal.operators.OperatorDebounceWithTime.DebounceState;
 import rx.observers.SerializedSubscriber;
 import rx.subscriptions.SerialSubscription;
@@ -30,9 +30,9 @@ import rx.subscriptions.SerialSubscription;
  * @param <U> the value type of the boundary sequence
  */
 public final class OperatorDebounceWithSelector<T, U> implements Operator<T, T> {
-    final Func1<? super T, ? extends Observable<U>> selector;
+    final Function<? super T, ? extends Flowable<U>> selector;
     
-    public OperatorDebounceWithSelector(Func1<? super T, ? extends Observable<U>> selector) {
+    public OperatorDebounceWithSelector(Function<? super T, ? extends Flowable<U>> selector) {
         this.selector = selector;
     }
     
@@ -54,7 +54,7 @@ public final class OperatorDebounceWithSelector<T, U> implements Operator<T, T> 
             
             @Override
             public void onNext(T t) {
-                Observable<U> debouncer;
+                Flowable<U> debouncer;
                 
                 try {
                     debouncer = selector.call(t);
@@ -70,7 +70,7 @@ public final class OperatorDebounceWithSelector<T, U> implements Operator<T, T> 
 
                     @Override
                     public void onNext(U t) {
-                        onCompleted();
+                        onComplete();
                     }
 
                     @Override
@@ -79,7 +79,7 @@ public final class OperatorDebounceWithSelector<T, U> implements Operator<T, T> 
                     }
 
                     @Override
-                    public void onCompleted() {
+                    public void onComplete() {
                         state.emit(index, s, self);
                         unsubscribe();
                     }
@@ -98,7 +98,7 @@ public final class OperatorDebounceWithSelector<T, U> implements Operator<T, T> 
             }
 
             @Override
-            public void onCompleted() {
+            public void onComplete() {
                 state.emitAndComplete(s, this);
             }
         };

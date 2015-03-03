@@ -23,7 +23,7 @@ import java.util.concurrent.atomic.*;
 
 import org.junit.*;
 
-import rx.Observable.OnSubscribe;
+import rx.Flowable.OnSubscribe;
 import rx.exceptions.MissingBackpressureException;
 import rx.functions.*;
 import rx.internal.util.RxRingBuffer;
@@ -56,7 +56,7 @@ public class BackpressureTests {
         int NUM = (int) (RxRingBuffer.SIZE * 0.2);
         AtomicInteger c = new AtomicInteger();
         TestSubscriber<Integer> ts = new TestSubscriber<Integer>();
-        incrementingIntegers(c).observeOn(Schedulers.computation()).map(new Func1<Integer, Integer>() {
+        incrementingIntegers(c).observeOn(Schedulers.computation()).map(new Function<Integer, Integer>() {
 
             @Override
             public Integer call(Integer i) {
@@ -82,7 +82,7 @@ public class BackpressureTests {
         AtomicInteger c1 = new AtomicInteger();
         AtomicInteger c2 = new AtomicInteger();
         TestSubscriber<Integer> ts = new TestSubscriber<Integer>();
-        Observable<Integer> merged = Observable.merge(incrementingIntegers(c1), incrementingIntegers(c2));
+        Flowable<Integer> merged = Flowable.merge(incrementingIntegers(c1), incrementingIntegers(c2));
 
         merged.take(NUM).subscribe(ts);
         ts.awaitTerminalEvent();
@@ -103,7 +103,7 @@ public class BackpressureTests {
         AtomicInteger c1 = new AtomicInteger();
         AtomicInteger c2 = new AtomicInteger();
         TestSubscriber<Integer> ts = new TestSubscriber<Integer>();
-        Observable<Integer> merged = Observable.merge(
+        Flowable<Integer> merged = Flowable.merge(
                 incrementingIntegers(c1).subscribeOn(Schedulers.computation()),
                 incrementingIntegers(c2).subscribeOn(Schedulers.computation()));
 
@@ -125,7 +125,7 @@ public class BackpressureTests {
         AtomicInteger c1 = new AtomicInteger();
         AtomicInteger c2 = new AtomicInteger();
         TestSubscriber<Integer> ts = new TestSubscriber<Integer>();
-        Observable<Integer> merged = Observable.merge(
+        Flowable<Integer> merged = Flowable.merge(
                 incrementingIntegers(c1).subscribeOn(Schedulers.computation()),
                 incrementingIntegers(c2).subscribeOn(Schedulers.computation()));
 
@@ -147,10 +147,10 @@ public class BackpressureTests {
         int NUM = (int) (RxRingBuffer.SIZE * 2.1);
         AtomicInteger c = new AtomicInteger();
         TestSubscriber<Integer> ts = new TestSubscriber<Integer>();
-        incrementingIntegers(c).flatMap(new Func1<Integer, Observable<Integer>>() {
+        incrementingIntegers(c).flatMap(new Function<Integer, Flowable<Integer>>() {
 
             @Override
-            public Observable<Integer> call(Integer i) {
+            public Flowable<Integer> call(Integer i) {
                 return incrementingIntegers(new AtomicInteger()).take(10);
             }
 
@@ -169,10 +169,10 @@ public class BackpressureTests {
         int NUM = (int) (RxRingBuffer.SIZE * 2.1);
         AtomicInteger c = new AtomicInteger();
         TestSubscriber<Integer> ts = new TestSubscriber<Integer>();
-        incrementingIntegers(c).subscribeOn(Schedulers.computation()).flatMap(new Func1<Integer, Observable<Integer>>() {
+        incrementingIntegers(c).subscribeOn(Schedulers.computation()).flatMap(new Function<Integer, Flowable<Integer>>() {
 
             @Override
-            public Observable<Integer> call(Integer i) {
+            public Flowable<Integer> call(Integer i) {
                 return incrementingIntegers(new AtomicInteger()).take(10).subscribeOn(Schedulers.computation());
             }
 
@@ -193,10 +193,10 @@ public class BackpressureTests {
         AtomicInteger c1 = new AtomicInteger();
         AtomicInteger c2 = new AtomicInteger();
         TestSubscriber<Integer> ts = new TestSubscriber<Integer>();
-        Observable<Integer> zipped = Observable.zip(
+        Flowable<Integer> zipped = Flowable.zip(
                 incrementingIntegers(c1),
                 incrementingIntegers(c2),
-                new Func2<Integer, Integer, Integer>() {
+                new BiFunction<Integer, Integer, Integer>() {
 
                     @Override
                     public Integer call(Integer t1, Integer t2) {
@@ -220,10 +220,10 @@ public class BackpressureTests {
         AtomicInteger c1 = new AtomicInteger();
         AtomicInteger c2 = new AtomicInteger();
         TestSubscriber<Integer> ts = new TestSubscriber<Integer>();
-        Observable<Integer> zipped = Observable.zip(
+        Flowable<Integer> zipped = Flowable.zip(
                 incrementingIntegers(c1).subscribeOn(Schedulers.computation()),
                 incrementingIntegers(c2).subscribeOn(Schedulers.computation()),
-                new Func2<Integer, Integer, Integer>() {
+                new BiFunction<Integer, Integer, Integer>() {
 
                     @Override
                     public Integer call(Integer t1, Integer t2) {
@@ -280,7 +280,7 @@ public class BackpressureTests {
         TestSubscriber<Integer> ts = new TestSubscriber<Integer>();
         incrementingIntegers(c).observeOn(Schedulers.computation())
                 .skip(10000)
-                .filter(new Func1<Integer, Boolean>() {
+                .filter(new Function<Integer, Boolean>() {
 
                     @Override
                     public Boolean call(Integer i) {
@@ -317,7 +317,7 @@ public class BackpressureTests {
             }
 
             @Override
-            public void onCompleted() {
+            public void onComplete() {
 
             }
 
@@ -363,7 +363,7 @@ public class BackpressureTests {
             }
 
             @Override
-            public void onCompleted() {
+            public void onComplete() {
                 latch.countDown();
             }
 
@@ -463,7 +463,7 @@ public class BackpressureTests {
         int NUM = (int) (RxRingBuffer.SIZE * 1.1); // > 1 so that take doesn't prevent buffer overflow
         AtomicInteger c = new AtomicInteger();
         TestSubscriber<Integer> ts = new TestSubscriber<Integer>();
-        firehose(c).takeWhile(new Func1<Integer, Boolean>() {
+        firehose(c).takeWhile(new Function<Integer, Boolean>() {
 
             @Override
             public Boolean call(Integer t1) {
@@ -480,17 +480,17 @@ public class BackpressureTests {
     }
 
     /**
-     * A synchronous Observable that will emit incrementing integers as requested.
+     * A synchronous Flowable that will emit incrementing integers as requested.
      * 
      * @param counter
      * @return
      */
-    private static Observable<Integer> incrementingIntegers(final AtomicInteger counter) {
+    private static Flowable<Integer> incrementingIntegers(final AtomicInteger counter) {
         return incrementingIntegers(counter, null);
     }
 
-    private static Observable<Integer> incrementingIntegers(final AtomicInteger counter, final ConcurrentLinkedQueue<Thread> threadsSeen) {
-        return Observable.create(new OnSubscribe<Integer>() {
+    private static Flowable<Integer> incrementingIntegers(final AtomicInteger counter, final ConcurrentLinkedQueue<Thread> threadsSeen) {
+        return Flowable.create(new OnSubscribe<Integer>() {
 
             final AtomicLong requested = new AtomicLong();
 
@@ -533,8 +533,8 @@ public class BackpressureTests {
      * @param counter
      * @return
      */
-    private static Observable<Integer> firehose(final AtomicInteger counter) {
-        return Observable.create(new OnSubscribe<Integer>() {
+    private static Flowable<Integer> firehose(final AtomicInteger counter) {
+        return Flowable.create(new OnSubscribe<Integer>() {
 
             int i = 0;
 
@@ -550,7 +550,7 @@ public class BackpressureTests {
         });
     }
 
-    final static Func1<Integer, Integer> SLOW_PASS_THRU = new Func1<Integer, Integer>() {
+    final static Function<Integer, Integer> SLOW_PASS_THRU = new Function<Integer, Integer>() {
         volatile int sink;
         @Override
         public Integer call(Integer t1) {

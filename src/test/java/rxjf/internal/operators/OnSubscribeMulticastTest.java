@@ -25,7 +25,7 @@ import org.junit.Test;
 import rx.Observer;
 import rx.Subscription;
 import rx.functions.Func0;
-import rx.observables.ConnectableObservable;
+import rx.observables.ConnectableFlowable;
 import rx.subjects.PublishSubject;
 import rx.subjects.Subject;
 
@@ -35,7 +35,7 @@ public class OnSubscribeMulticastTest {
     public void testMulticast() {
         Subject<String, String> source = PublishSubject.create();
 
-        ConnectableObservable<String> multicasted = new OperatorMulticast<String, String>(source, new PublishSubjectFactory());
+        ConnectableFlowable<String> multicasted = new OperatorMulticast<String, String>(source, new PublishSubjectFactory());
 
         @SuppressWarnings("unchecked")
         Observer<String> observer = mock(Observer.class);
@@ -48,13 +48,13 @@ public class OnSubscribeMulticastTest {
 
         source.onNext("three");
         source.onNext("four");
-        source.onCompleted();
+        source.onComplete();
 
         verify(observer, never()).onNext("one");
         verify(observer, never()).onNext("two");
         verify(observer, times(1)).onNext("three");
         verify(observer, times(1)).onNext("four");
-        verify(observer, times(1)).onCompleted();
+        verify(observer, times(1)).onComplete();
 
     }
 
@@ -62,7 +62,7 @@ public class OnSubscribeMulticastTest {
     public void testMulticastConnectTwice() {
         Subject<String, String> source = PublishSubject.create();
 
-        ConnectableObservable<String> multicasted = new OperatorMulticast<String, String>(source, new PublishSubjectFactory());
+        ConnectableFlowable<String> multicasted = new OperatorMulticast<String, String>(source, new PublishSubjectFactory());
 
         @SuppressWarnings("unchecked")
         Observer<String> observer = mock(Observer.class);
@@ -74,11 +74,11 @@ public class OnSubscribeMulticastTest {
         multicasted.connect();
 
         source.onNext("two");
-        source.onCompleted();
+        source.onComplete();
 
         verify(observer, never()).onNext("one");
         verify(observer, times(1)).onNext("two");
-        verify(observer, times(1)).onCompleted();
+        verify(observer, times(1)).onComplete();
 
     }
 
@@ -86,7 +86,7 @@ public class OnSubscribeMulticastTest {
     public void testMulticastDisconnect() {
         Subject<String, String> source = PublishSubject.create();
 
-        ConnectableObservable<String> multicasted = new OperatorMulticast<String, String>(source, new PublishSubjectFactory());
+        ConnectableFlowable<String> multicasted = new OperatorMulticast<String, String>(source, new PublishSubjectFactory());
 
         @SuppressWarnings("unchecked")
         Observer<String> observer = mock(Observer.class);
@@ -105,13 +105,13 @@ public class OnSubscribeMulticastTest {
         // reconnect
         multicasted.connect();
         source.onNext("four");
-        source.onCompleted();
+        source.onComplete();
 
         verify(observer, never()).onNext("one");
         verify(observer, times(1)).onNext("two");
         verify(observer, never()).onNext("three");
         verify(observer, times(1)).onNext("four");
-        verify(observer, times(1)).onCompleted();
+        verify(observer, times(1)).onComplete();
 
     }
     

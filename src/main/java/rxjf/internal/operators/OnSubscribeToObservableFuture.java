@@ -18,39 +18,39 @@ package rx.internal.operators;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 
-import rx.Observable.OnSubscribe;
+import rx.Flowable.OnSubscribe;
 import rx.Subscriber;
 import rx.functions.Action0;
 import rx.subscriptions.Subscriptions;
 
 /**
- * Converts a {@code Future} into an {@code Observable}.
+ * Converts a {@code Future} into an {@code Flowable}.
  * <p>
  * <img width="640" src="https://github.com/ReactiveX/RxJava/wiki/images/rx-operators/from.Future.png" alt="">
  * <p>
- * You can convert any object that supports the {@code Future} interface into an {@code Observable} that emits
+ * You can convert any object that supports the {@code Future} interface into an {@code Flowable} that emits
  * the return value of the {@code get} method of that object, by using this operator.
  * <p>
  * This is blocking so the {@code Subscription} returned when calling
- * {@code Observable.unsafeSubscribe(Observer)} does nothing.
+ * {@code Flowable.unsafeSubscribe(Observer)} does nothing.
  */
-public final class OnSubscribeToObservableFuture {
-    private OnSubscribeToObservableFuture() {
+public final class OnSubscribeToFlowableFuture {
+    private OnSubscribeToFlowableFuture() {
         throw new IllegalStateException("No instances!");
     }
 
-    /* package accessible for unit tests */static class ToObservableFuture<T> implements OnSubscribe<T> {
+    /* package accessible for unit tests */static class ToFlowableFuture<T> implements OnSubscribe<T> {
         private final Future<? extends T> that;
         private final long time;
         private final TimeUnit unit;
 
-        public ToObservableFuture(Future<? extends T> that) {
+        public ToFlowableFuture(Future<? extends T> that) {
             this.that = that;
             this.time = 0;
             this.unit = null;
         }
 
-        public ToObservableFuture(Future<? extends T> that, long time, TimeUnit unit) {
+        public ToFlowableFuture(Future<? extends T> that, long time, TimeUnit unit) {
             this.that = that;
             this.time = time;
             this.unit = unit;
@@ -72,9 +72,9 @@ public final class OnSubscribeToObservableFuture {
                 }
                 T value = (unit == null) ? (T) that.get() : (T) that.get(time, unit);
                 subscriber.onNext(value);
-                subscriber.onCompleted();
+                subscriber.onComplete();
             } catch (Throwable e) {
-                // If this Observable is unsubscribed, we will receive an CancellationException.
+                // If this Flowable is unsubscribed, we will receive an CancellationException.
                 // However, CancellationException will not be passed to the final Subscriber
                 // since it's already subscribed.
                 // If the Future is canceled in other place, CancellationException will be still
@@ -88,11 +88,11 @@ public final class OnSubscribeToObservableFuture {
         }
     }
 
-    public static <T> OnSubscribe<T> toObservableFuture(final Future<? extends T> that) {
-        return new ToObservableFuture<T>(that);
+    public static <T> OnSubscribe<T> toFlowableFuture(final Future<? extends T> that) {
+        return new ToFlowableFuture<T>(that);
     }
 
-    public static <T> OnSubscribe<T> toObservableFuture(final Future<? extends T> that, long time, TimeUnit unit) {
-        return new ToObservableFuture<T>(that, time, unit);
+    public static <T> OnSubscribe<T> toFlowableFuture(final Future<? extends T> that, long time, TimeUnit unit) {
+        return new ToFlowableFuture<T>(that, time, unit);
     }
 }

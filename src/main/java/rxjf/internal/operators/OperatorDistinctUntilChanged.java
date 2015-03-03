@@ -15,19 +15,19 @@
  */
 package rx.internal.operators;
 
-import rx.Observable.Operator;
+import rx.Flowable.Operator;
 import rx.Subscriber;
-import rx.functions.Func1;
+import rx.functions.Function;
 
 /**
- * Returns an Observable that emits all sequentially distinct items emitted by the source.
+ * Returns an Flowable that emits all sequentially distinct items emitted by the source.
  * @param <T> the value type
  * @param <U> the key type
  */
 public final class OperatorDistinctUntilChanged<T, U> implements Operator<T, T> {
-    final Func1<? super T, ? extends U> keySelector;
+    final Function<? super T, ? extends U> keySelector;
 
-    public OperatorDistinctUntilChanged(Func1<? super T, ? extends U> keySelector) {
+    public OperatorDistinctUntilChanged(Function<? super T, ? extends U> keySelector) {
         this.keySelector = keySelector;
     }
 
@@ -60,8 +60,8 @@ public final class OperatorDistinctUntilChanged<T, U> implements Operator<T, T> 
             }
 
             @Override
-            public void onCompleted() {
-                child.onCompleted();
+            public void onComplete() {
+                child.onComplete();
             }
             
         };

@@ -26,9 +26,9 @@ import java.util.concurrent.atomic.AtomicLong;
 
 import org.junit.Test;
 
-import rx.Observable;
-import rx.Observable.OnSubscribe;
-import rx.Observable.Operator;
+import rx.Flowable;
+import rx.Flowable.OnSubscribe;
+import rx.Flowable.Operator;
 import rx.Observer;
 import rx.Producer;
 import rx.Scheduler;
@@ -50,8 +50,8 @@ public class OperatorSubscribeOnTest {
 
         TestObserver<Integer> observer = new TestObserver<Integer>();
 
-        final Subscription subscription = Observable
-                .create(new Observable.OnSubscribe<Integer>() {
+        final Subscription subscription = Flowable
+                .create(new Flowable.OnSubscribe<Integer>() {
                     @Override
                     public void call(
                             final Subscriber<? super Integer> subscriber) {
@@ -61,10 +61,10 @@ public class OperatorSubscribeOnTest {
                                 latch.await();
                             } catch (InterruptedException e) {
                                 // this means we were unsubscribed (Scheduler shut down and interrupts)
-                                // ... but we'll pretend we are like many Observables that ignore interrupts
+                                // ... but we'll pretend we are like many Flowables that ignore interrupts
                             }
 
-                            subscriber.onCompleted();
+                            subscriber.onComplete();
                         } catch (Throwable e) {
                             subscriber.onError(e);
                         } finally {
@@ -80,13 +80,13 @@ public class OperatorSubscribeOnTest {
         latch.countDown();
         doneLatch.await();
         assertEquals(0, observer.getOnErrorEvents().size());
-        assertEquals(1, observer.getOnCompletedEvents().size());
+        assertEquals(1, observer.getonComplete()Events().size());
     }
 
     @Test
     public void testThrownErrorHandling() {
         TestSubscriber<String> ts = new TestSubscriber<String>();
-        Observable.create(new OnSubscribe<String>() {
+        Flowable.create(new OnSubscribe<String>() {
 
             @Override
             public void call(Subscriber<? super String> s) {
@@ -101,7 +101,7 @@ public class OperatorSubscribeOnTest {
     @Test
     public void testOnError() {
         TestSubscriber<String> ts = new TestSubscriber<String>();
-        Observable.create(new OnSubscribe<String>() {
+        Flowable.create(new OnSubscribe<String>() {
 
             @Override
             public void call(Subscriber<? super String> s) {
@@ -171,7 +171,7 @@ public class OperatorSubscribeOnTest {
     public void testUnsubscribeInfiniteStream() throws InterruptedException {
         TestSubscriber<Integer> ts = new TestSubscriber<Integer>();
         final AtomicInteger count = new AtomicInteger();
-        Observable.create(new OnSubscribe<Integer>() {
+        Flowable.create(new OnSubscribe<Integer>() {
 
             @Override
             public void call(Subscriber<? super Integer> sub) {
@@ -195,7 +195,7 @@ public class OperatorSubscribeOnTest {
         TestSubscriber<Integer> ts = new TestSubscriber<Integer>(new Observer<Integer>() {
 
             @Override
-            public void onCompleted() {
+            public void onComplete() {
             }
 
             @Override
@@ -209,7 +209,7 @@ public class OperatorSubscribeOnTest {
 
         });
         ts.requestMore(10);
-        Observable.range(1, 10000000).subscribeOn(Schedulers.newThread()).take(20).subscribe(ts);
+        Flowable.range(1, 10000000).subscribeOn(Schedulers.newThread()).take(20).subscribe(ts);
         latch.await();
         Thread t = ts.getLastSeenThread();
         System.out.println("First schedule: " + t);
@@ -223,7 +223,7 @@ public class OperatorSubscribeOnTest {
     @Test
     public void testSetProducerSynchronousRequest() {
         TestSubscriber<Integer> ts = new TestSubscriber<Integer>();
-        Observable.just(1, 2, 3).lift(new Operator<Integer, Integer>() {
+        Flowable.just(1, 2, 3).lift(new Operator<Integer, Integer>() {
 
             @Override
             public Subscriber<? super Integer> call(final Subscriber<? super Integer> child) {
@@ -241,8 +241,8 @@ public class OperatorSubscribeOnTest {
                 Subscriber<Integer> parent = new Subscriber<Integer>() {
 
                     @Override
-                    public void onCompleted() {
-                        child.onCompleted();
+                    public void onComplete() {
+                        child.onComplete();
                     }
 
                     @Override

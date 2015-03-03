@@ -20,8 +20,8 @@ import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
-import rx.Observable;
-import rx.Observable.Operator;
+import rx.Flowable;
+import rx.Flowable.Operator;
 import rx.Scheduler;
 import rx.Scheduler.Worker;
 import rx.Subscriber;
@@ -30,10 +30,10 @@ import rx.observers.SerializedSubscriber;
 
 /**
  * This operation takes
- * values from the specified {@link Observable} source and stores them in a buffer. Periodically the buffer
+ * values from the specified {@link Flowable} source and stores them in a buffer. Periodically the buffer
  * is emitted and replaced with a new buffer. How often this is done depends on the specified timespan.
  * The creation of chunks is also periodical. How often this is done depends on the specified timeshift.
- * When the source {@link Observable} completes or produces an error, the current buffer is emitted, and
+ * When the source {@link Flowable} completes or produces an error, the current buffer is emitted, and
  * the event is propagated to all subscribed {@link Subscriber}s.
  * <p>
  * Note that this operation can produce <strong>non-connected, or overlapping chunks</strong> depending
@@ -144,7 +144,7 @@ public final class OperatorBufferWithTime<T> implements Operator<List<T>, T> {
         }
 
         @Override
-        public void onCompleted() {
+        public void onComplete() {
             try {
                 List<List<T>> sizeReached;
                 synchronized (this) {
@@ -162,7 +162,7 @@ public final class OperatorBufferWithTime<T> implements Operator<List<T>, T> {
                 child.onError(t);
                 return;
             }
-            child.onCompleted();
+            child.onComplete();
             unsubscribe();
         }
         void scheduleChunk() {
@@ -259,7 +259,7 @@ public final class OperatorBufferWithTime<T> implements Operator<List<T>, T> {
         }
 
         @Override
-        public void onCompleted() {
+        public void onComplete() {
             try {
                 inner.unsubscribe();
                 List<T> toEmit;
@@ -276,7 +276,7 @@ public final class OperatorBufferWithTime<T> implements Operator<List<T>, T> {
                 child.onError(t);
                 return;
             }
-            child.onCompleted();
+            child.onComplete();
             unsubscribe();
         }
         void scheduleExact() {

@@ -28,12 +28,12 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import org.junit.Test;
 
-import rx.Observable;
+import rx.Flowable;
 import rx.Subscriber;
 import rx.functions.Action0;
 import rx.functions.Action1;
-import rx.functions.Func1;
-import rx.functions.Func2;
+import rx.functions.Function;
+import rx.functions.BiFunction;
 import rx.observers.TestSubscriber;
 import rx.schedulers.Schedulers;
 import rx.subjects.AsyncSubject;
@@ -47,7 +47,7 @@ public class OnSubscribeCacheTest {
     @Test
     public void testCache() throws InterruptedException {
         final AtomicInteger counter = new AtomicInteger();
-        Observable<String> o = Observable.create(new Observable.OnSubscribe<String>() {
+        Flowable<String> o = Flowable.create(new Flowable.OnSubscribe<String>() {
 
             @Override
             public void call(final Subscriber<? super String> observer) {
@@ -58,7 +58,7 @@ public class OnSubscribeCacheTest {
                         counter.incrementAndGet();
                         System.out.println("published observable being executed");
                         observer.onNext("one");
-                        observer.onCompleted();
+                        observer.onComplete();
                     }
                 }).start();
             }
@@ -96,12 +96,12 @@ public class OnSubscribeCacheTest {
     }
 
     private void testWithCustomSubjectAndRepeat(Subject<Integer, Integer> subject, Integer... expected) {
-        Observable<Integer> source0 = Observable.just(1, 2, 3)
+        Flowable<Integer> source0 = Flowable.just(1, 2, 3)
                 .subscribeOn(Schedulers.io())
-                .flatMap(new Func1<Integer, Observable<Integer>>() {
+                .flatMap(new Function<Integer, Flowable<Integer>>() {
                     @Override
-                    public Observable<Integer> call(final Integer i) {
-                        return Observable.timer(i * 20, TimeUnit.MILLISECONDS).map(new Func1<Long, Integer>() {
+                    public Flowable<Integer> call(final Integer i) {
+                        return Flowable.timer(i * 20, TimeUnit.MILLISECONDS).map(new Function<Long, Integer>() {
                             @Override
                             public Integer call(Long t1) {
                                 return i;
@@ -110,11 +110,11 @@ public class OnSubscribeCacheTest {
                     }
                 });
 
-        Observable<Integer> source1 = Observable.create(new OnSubscribeCache<Integer>(source0, subject));
+        Flowable<Integer> source1 = Flowable.create(new OnSubscribeCache<Integer>(source0, subject));
 
-        Observable<Integer> source2 = source1
+        Flowable<Integer> source2 = source1
                 .repeat(4)
-                .zipWith(Observable.timer(0, 10, TimeUnit.MILLISECONDS, Schedulers.newThread()), new Func2<Integer, Long, Integer>() {
+                .zipWith(Flowable.timer(0, 10, TimeUnit.MILLISECONDS, Schedulers.newThread()), new BiFunction<Integer, Long, Integer>() {
                     @Override
                     public Integer call(Integer t1, Long t2) {
                         return t1;
@@ -155,7 +155,7 @@ public class OnSubscribeCacheTest {
     @Test
     public void testUnsubscribeSource() {
         Action0 unsubscribe = mock(Action0.class);
-        Observable<Integer> o = Observable.just(1).doOnUnsubscribe(unsubscribe).cache();
+        Flowable<Integer> o = Flowable.just(1).doOnUnsubscribe(unsubscribe).cache();
         o.subscribe();
         o.subscribe();
         o.subscribe();

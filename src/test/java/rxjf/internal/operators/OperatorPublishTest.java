@@ -24,10 +24,10 @@ import java.util.concurrent.atomic.*;
 import org.junit.Test;
 
 import rx.*;
-import rx.Observable.OnSubscribe;
+import rx.Flowable.OnSubscribe;
 import rx.functions.*;
 import rx.internal.util.RxRingBuffer;
-import rx.observables.ConnectableObservable;
+import rx.observables.ConnectableFlowable;
 import rx.observers.TestSubscriber;
 import rx.schedulers.Schedulers;
 
@@ -36,7 +36,7 @@ public class OperatorPublishTest {
     @Test
     public void testPublish() throws InterruptedException {
         final AtomicInteger counter = new AtomicInteger();
-        ConnectableObservable<String> o = Observable.create(new OnSubscribe<String>() {
+        ConnectableFlowable<String> o = Flowable.create(new OnSubscribe<String>() {
 
             @Override
             public void call(final Subscriber<? super String> observer) {
@@ -46,7 +46,7 @@ public class OperatorPublishTest {
                     public void run() {
                         counter.incrementAndGet();
                         observer.onNext("one");
-                        observer.onCompleted();
+                        observer.onComplete();
                     }
                 }).start();
             }
@@ -87,8 +87,8 @@ public class OperatorPublishTest {
 
     @Test
     public void testBackpressureFastSlow() {
-        ConnectableObservable<Integer> is = Observable.range(1, RxRingBuffer.SIZE * 2).publish();
-        Observable<Integer> fast = is.observeOn(Schedulers.computation()).doOnCompleted(new Action0() {
+        ConnectableFlowable<Integer> is = Flowable.range(1, RxRingBuffer.SIZE * 2).publish();
+        Flowable<Integer> fast = is.observeOn(Schedulers.computation()).doonComplete()(new Action0() {
 
             @Override
             public void call() {
@@ -96,7 +96,7 @@ public class OperatorPublishTest {
             }
 
         });
-        Observable<Integer> slow = is.observeOn(Schedulers.computation()).map(new Func1<Integer, Integer>() {
+        Flowable<Integer> slow = is.observeOn(Schedulers.computation()).map(new Function<Integer, Integer>() {
             int c = 0;
 
             @Override
@@ -111,7 +111,7 @@ public class OperatorPublishTest {
                 return i;
             }
 
-        }).doOnCompleted(new Action0() {
+        }).doonComplete()(new Action0() {
 
             @Override
             public void call() {
@@ -121,7 +121,7 @@ public class OperatorPublishTest {
         });
 
         TestSubscriber<Integer> ts = new TestSubscriber<Integer>();
-        Observable.merge(fast, slow).subscribe(ts);
+        Flowable.merge(fast, slow).subscribe(ts);
         is.connect();
         ts.awaitTerminalEvent();
         ts.assertNoErrors();
@@ -132,7 +132,7 @@ public class OperatorPublishTest {
     @Test
     public void testTakeUntilWithPublishedStreamUsingSelector() {
         final AtomicInteger emitted = new AtomicInteger();
-        Observable<Integer> xs = Observable.range(0, RxRingBuffer.SIZE * 2).doOnNext(new Action1<Integer>() {
+        Flowable<Integer> xs = Flowable.range(0, RxRingBuffer.SIZE * 2).doOnNext(new Action1<Integer>() {
 
             @Override
             public void call(Integer t1) {
@@ -141,11 +141,11 @@ public class OperatorPublishTest {
 
         });
         TestSubscriber<Integer> ts = new TestSubscriber<Integer>();
-        xs.publish(new Func1<Observable<Integer>, Observable<Integer>>() {
+        xs.publish(new Function<Flowable<Integer>, Flowable<Integer>>() {
 
             @Override
-            public Observable<Integer> call(Observable<Integer> xs) {
-                return xs.takeUntil(xs.skipWhile(new Func1<Integer, Boolean>() {
+            public Flowable<Integer> call(Flowable<Integer> xs) {
+                return xs.takeUntil(xs.skipWhile(new Function<Integer, Boolean>() {
 
                     @Override
                     public Boolean call(Integer i) {
@@ -166,10 +166,10 @@ public class OperatorPublishTest {
     // use case from https://github.com/ReactiveX/RxJava/issues/1732
     @Test
     public void testTakeUntilWithPublishedStream() {
-        Observable<Integer> xs = Observable.range(0, RxRingBuffer.SIZE * 2);
+        Flowable<Integer> xs = Flowable.range(0, RxRingBuffer.SIZE * 2);
         TestSubscriber<Integer> ts = new TestSubscriber<Integer>();
-        ConnectableObservable<Integer> xsp = xs.publish();
-        xsp.takeUntil(xsp.skipWhile(new Func1<Integer, Boolean>() {
+        ConnectableFlowable<Integer> xsp = xs.publish();
+        xsp.takeUntil(xsp.skipWhile(new Function<Integer, Boolean>() {
 
             @Override
             public Boolean call(Integer i) {
@@ -185,7 +185,7 @@ public class OperatorPublishTest {
     public void testBackpressureTwoConsumers() {
         final AtomicInteger sourceEmission = new AtomicInteger();
         final AtomicBoolean sourceUnsubscribed = new AtomicBoolean();
-        final Observable<Integer> source = Observable.range(1, 100)
+        final Flowable<Integer> source = Flowable.range(1, 100)
                 .doOnNext(new Action1<Integer>() {
                     @Override
                     public void call(Integer t1) {

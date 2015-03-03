@@ -29,9 +29,9 @@ import org.junit.Test;
 import org.mockito.InOrder;
 import org.mockito.Mock;
 
-import rx.Observable;
+import rx.Flowable;
 import rx.Observer;
-import rx.functions.Func1;
+import rx.functions.Function;
 
 public class OperatorDistinctTest {
 
@@ -41,7 +41,7 @@ public class OperatorDistinctTest {
     Observer<String> w2;
 
     // nulls lead to exceptions
-    final Func1<String, String> TO_UPPER_WITH_EXCEPTION = new Func1<String, String>() {
+    final Function<String, String> TO_UPPER_WITH_EXCEPTION = new Function<String, String>() {
         @Override
         public String call(String s) {
             if (s.equals("x")) {
@@ -58,27 +58,27 @@ public class OperatorDistinctTest {
 
     @Test
     public void testDistinctOfNone() {
-        Observable<String> src = Observable.empty();
+        Flowable<String> src = Flowable.empty();
         src.distinct().subscribe(w);
 
         verify(w, never()).onNext(anyString());
         verify(w, never()).onError(any(Throwable.class));
-        verify(w, times(1)).onCompleted();
+        verify(w, times(1)).onComplete();
     }
 
     @Test
     public void testDistinctOfNoneWithKeySelector() {
-        Observable<String> src = Observable.empty();
+        Flowable<String> src = Flowable.empty();
         src.distinct(TO_UPPER_WITH_EXCEPTION).subscribe(w);
 
         verify(w, never()).onNext(anyString());
         verify(w, never()).onError(any(Throwable.class));
-        verify(w, times(1)).onCompleted();
+        verify(w, times(1)).onComplete();
     }
 
     @Test
     public void testDistinctOfNormalSource() {
-        Observable<String> src = Observable.just("a", "b", "c", "c", "c", "b", "b", "a", "e");
+        Flowable<String> src = Flowable.just("a", "b", "c", "c", "c", "b", "b", "a", "e");
         src.distinct().subscribe(w);
 
         InOrder inOrder = inOrder(w);
@@ -86,14 +86,14 @@ public class OperatorDistinctTest {
         inOrder.verify(w, times(1)).onNext("b");
         inOrder.verify(w, times(1)).onNext("c");
         inOrder.verify(w, times(1)).onNext("e");
-        inOrder.verify(w, times(1)).onCompleted();
+        inOrder.verify(w, times(1)).onComplete();
         inOrder.verify(w, never()).onNext(anyString());
         verify(w, never()).onError(any(Throwable.class));
     }
 
     @Test
     public void testDistinctOfNormalSourceWithKeySelector() {
-        Observable<String> src = Observable.just("a", "B", "c", "C", "c", "B", "b", "a", "E");
+        Flowable<String> src = Flowable.just("a", "B", "c", "C", "c", "B", "b", "a", "E");
         src.distinct(TO_UPPER_WITH_EXCEPTION).subscribe(w);
 
         InOrder inOrder = inOrder(w);
@@ -101,28 +101,28 @@ public class OperatorDistinctTest {
         inOrder.verify(w, times(1)).onNext("B");
         inOrder.verify(w, times(1)).onNext("c");
         inOrder.verify(w, times(1)).onNext("E");
-        inOrder.verify(w, times(1)).onCompleted();
+        inOrder.verify(w, times(1)).onComplete();
         inOrder.verify(w, never()).onNext(anyString());
         verify(w, never()).onError(any(Throwable.class));
     }
 
     @Test
     public void testDistinctOfSourceWithNulls() {
-        Observable<String> src = Observable.just(null, "a", "a", null, null, "b", null);
+        Flowable<String> src = Flowable.just(null, "a", "a", null, null, "b", null);
         src.distinct().subscribe(w);
 
         InOrder inOrder = inOrder(w);
         inOrder.verify(w, times(1)).onNext(null);
         inOrder.verify(w, times(1)).onNext("a");
         inOrder.verify(w, times(1)).onNext("b");
-        inOrder.verify(w, times(1)).onCompleted();
+        inOrder.verify(w, times(1)).onComplete();
         inOrder.verify(w, never()).onNext(anyString());
         verify(w, never()).onError(any(Throwable.class));
     }
 
     @Test
     public void testDistinctOfSourceWithExceptionsFromKeySelector() {
-        Observable<String> src = Observable.just("a", "b", null, "c");
+        Flowable<String> src = Flowable.just("a", "b", null, "c");
         src.distinct(TO_UPPER_WITH_EXCEPTION).subscribe(w);
 
         InOrder inOrder = inOrder(w);
@@ -130,6 +130,6 @@ public class OperatorDistinctTest {
         inOrder.verify(w, times(1)).onNext("b");
         inOrder.verify(w, times(1)).onError(any(NullPointerException.class));
         inOrder.verify(w, never()).onNext(anyString());
-        inOrder.verify(w, never()).onCompleted();
+        inOrder.verify(w, never()).onComplete();
     }
 }

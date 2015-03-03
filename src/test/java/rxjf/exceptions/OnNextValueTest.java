@@ -16,9 +16,9 @@
 package rx.exceptions;
 
 import org.junit.Test;
-import rx.Observable;
+import rx.Flowable;
 import rx.Observer;
-import rx.functions.Func1;
+import rx.functions.Function;
 
 import java.io.PrintWriter;
 import java.io.StringWriter;
@@ -60,7 +60,7 @@ public final class OnNextValueTest {
 
     private static class BadToStringObserver implements Observer<BadToString> {
         @Override
-        public void onCompleted() {
+        public void onComplete() {
             System.out.println("On Complete");
             fail("OnComplete shouldn't be reached");
         }
@@ -95,8 +95,8 @@ public final class OnNextValueTest {
     public void addOnNextValueExceptionAdded() throws Exception {
         Observer<BadToString> observer = new BadToStringObserver();
 
-        Observable.just(new BadToString(false))
-                .map(new Func1<BadToString, BadToString>() {
+        Flowable.just(new BadToString(false))
+                .map(new Function<BadToString, BadToString>() {
                     @Override
                     public BadToString call(BadToString badToString) {
                         throw new IllegalArgumentException("Failure while handling");
@@ -109,8 +109,8 @@ public final class OnNextValueTest {
     public void addOnNextValueExceptionNotAddedWithBadString() throws Exception {
         Observer<BadToString> observer = new BadToStringObserver();
 
-        Observable.just(new BadToString(true))
-                .map(new Func1<BadToString, BadToString>() {
+        Flowable.just(new BadToString(true))
+                .map(new Function<BadToString, BadToString>() {
                     @Override
                     public BadToString call(BadToString badToString) {
                         throw new IllegalArgumentException("Failure while handling");

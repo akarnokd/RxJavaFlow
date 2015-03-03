@@ -24,17 +24,17 @@ import java.util.List;
 import org.junit.Test;
 
 import rx.functions.Action1;
-import rx.functions.Func1;
+import rx.functions.Function;
 
-public class ObservableWindowTests {
+public class FlowableWindowTests {
 
     @Test
     public void testWindow() {
         final ArrayList<List<Integer>> lists = new ArrayList<List<Integer>>();
 
-        Observable.concat(Observable.just(1, 2, 3, 4, 5, 6).window(3).map(new Func1<Observable<Integer>, Observable<List<Integer>>>() {
+        Flowable.concat(Flowable.just(1, 2, 3, 4, 5, 6).window(3).map(new Function<Flowable<Integer>, Flowable<List<Integer>>>() {
             @Override
-            public Observable<List<Integer>> call(Observable<Integer> xs) {
+            public Flowable<List<Integer>> call(Flowable<Integer> xs) {
                 return xs.toList();
             }
         })).toBlocking().forEach(new Action1<List<Integer>>() {

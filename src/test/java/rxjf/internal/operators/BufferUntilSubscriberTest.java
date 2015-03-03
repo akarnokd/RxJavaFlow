@@ -17,9 +17,9 @@ package rx.internal.operators;
 
 import org.junit.Assert;
 import org.junit.Test;
-import rx.Observable;
+import rx.Flowable;
 import rx.functions.Action1;
-import rx.functions.Func1;
+import rx.functions.Function;
 import rx.schedulers.Schedulers;
 import rx.subjects.PublishSubject;
 
@@ -43,19 +43,19 @@ public class BufferUntilSubscriberTest {
             final CountDownLatch innerLatch = new CountDownLatch(1);
             final PublishSubject<Void> s = PublishSubject.create();
             final AtomicBoolean completed = new AtomicBoolean();
-            Observable.from(numbers)
+            Flowable.from(numbers)
                     .takeUntil(s)
                     .window(50)
-                    .flatMap(new Func1<Observable<Integer>, Observable<Integer>>() {
+                    .flatMap(new Function<Flowable<Integer>, Flowable<Integer>>() {
                         @Override
-                        public Observable<Integer> call(Observable<Integer> integerObservable) {
-                            return integerObservable
+                        public Flowable<Integer> call(Flowable<Integer> integerFlowable) {
+                            return integerFlowable
                                     .subscribeOn(Schedulers.computation())
-                                    .map(new Func1<Integer, Integer>() {
+                                    .map(new Function<Integer, Integer>() {
                                         @Override
                                         public Integer call(Integer integer) {
                                             if (integer >= 5 && completed.compareAndSet(false, true)) {
-                                                s.onCompleted();
+                                                s.onComplete();
                                             }
                                             // do some work
                                             Math.pow(Math.random(), Math.random());

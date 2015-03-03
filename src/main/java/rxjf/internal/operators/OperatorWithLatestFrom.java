@@ -18,8 +18,8 @@ package rx.internal.operators;
 import java.util.concurrent.atomic.AtomicReference;
 
 import rx.*;
-import rx.Observable.Operator;
-import rx.functions.Func2;
+import rx.Flowable.Operator;
+import rx.functions.BiFunction;
 import rx.observers.SerializedSubscriber;
 
 /**
@@ -29,18 +29,18 @@ import rx.observers.SerializedSubscriber;
  * @param <R> the result element type
  */
 public final class OperatorWithLatestFrom<T, U, R> implements Operator<R, T>  {
-    final Func2<? super T, ? super U, ? extends R> resultSelector;
-    final Observable<? extends U> other;
+    final BiFunction<? super T, ? super U, ? extends R> resultSelector;
+    final Flowable<? extends U> other;
     /** Indicates the other has not yet emitted a value. */
     static final Object EMPTY = new Object();
     
-    public OperatorWithLatestFrom(Observable<? extends U> other, Func2<? super T, ? super U, ? extends R> resultSelector) {
+    public OperatorWithLatestFrom(Flowable<? extends U> other, BiFunction<? super T, ? super U, ? extends R> resultSelector) {
         this.other = other;
         this.resultSelector = resultSelector;
     }
     @Override
     public Subscriber<? super T> call(Subscriber<? super R> child) {
-        // onError and onCompleted may happen either from the main or from other.
+        // onError and onComplete() may happen either from the main or from other.
         final SerializedSubscriber<R> s = new SerializedSubscriber<R>(child, false);
         child.add(s);
         
@@ -69,8 +69,8 @@ public final class OperatorWithLatestFrom<T, U, R> implements Operator<R, T>  {
                 s.unsubscribe();
             }
             @Override
-            public void onCompleted() {
-                s.onCompleted();
+            public void onComplete() {
+                s.onComplete();
                 s.unsubscribe();
             }
         };
@@ -86,9 +86,9 @@ public final class OperatorWithLatestFrom<T, U, R> implements Operator<R, T>  {
                 s.unsubscribe();
             }
             @Override
-            public void onCompleted() {
+            public void onComplete() {
                 if (current.get() == EMPTY) {
-                    s.onCompleted();
+                    s.onComplete();
                     s.unsubscribe();
                 }
             }

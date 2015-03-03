@@ -15,7 +15,7 @@
  */
 package rx.internal.operators;
 
-import rx.Observable.Operator;
+import rx.Flowable.Operator;
 import rx.Subscriber;
 
 import java.util.ArrayList;
@@ -23,33 +23,33 @@ import java.util.LinkedList;
 import java.util.List;
 
 /**
- * Returns an {@code Observable} that emits a single item, a list composed of all the items emitted by the
- * source {@code Observable}.
+ * Returns an {@code Flowable} that emits a single item, a list composed of all the items emitted by the
+ * source {@code Flowable}.
  * <p>
  * <img width="640" height="305" src="https://raw.githubusercontent.com/wiki/ReactiveX/RxJava/images/rx-operators/toList.png" alt="">
  * <p>
- * Normally, an {@code Observable} that returns multiple items will do so by invoking its subscriber's
+ * Normally, an {@code Flowable} that returns multiple items will do so by invoking its subscriber's
  * {@link Subscriber#onNext onNext} method for each such item. You can change this behavior, instructing the
- * {@code Observable} to compose a list of all of these multiple items and then to invoke the subscriber's
+ * {@code Flowable} to compose a list of all of these multiple items and then to invoke the subscriber's
  * {@code onNext} method once, passing it the entire list, by using this operator.
  * <p>
- * Be careful not to use this operator on {@code Observable}s that emit infinite or very large numbers of items,
+ * Be careful not to use this operator on {@code Flowable}s that emit infinite or very large numbers of items,
  * as you do not have the option to unsubscribe.
  */
-public final class OperatorToObservableList<T> implements Operator<List<T>, T> {
+public final class OperatorToFlowableList<T> implements Operator<List<T>, T> {
     /** Lazy initialization via inner-class holder. */
     private static final class Holder {
         /** A singleton instance. */
-        static final OperatorToObservableList<Object> INSTANCE = new OperatorToObservableList<Object>();
+        static final OperatorToFlowableList<Object> INSTANCE = new OperatorToFlowableList<Object>();
     }
     /**
      * @return a singleton instance of this stateless operator.
      */
     @SuppressWarnings({ "unchecked" })
-    public static <T> OperatorToObservableList<T> instance() {
-        return (OperatorToObservableList<T>)Holder.INSTANCE;
+    public static <T> OperatorToFlowableList<T> instance() {
+        return (OperatorToFlowableList<T>)Holder.INSTANCE;
     }
-    private OperatorToObservableList() { }
+    private OperatorToFlowableList() { }
     @Override
     public Subscriber<? super T> call(final Subscriber<? super List<T>> o) {
         return new Subscriber<T>(o) {
@@ -63,7 +63,7 @@ public final class OperatorToObservableList<T> implements Operator<List<T>, T> {
             }
 
             @Override
-            public void onCompleted() {
+            public void onComplete() {
                 try {
                     completed = true;
                     /*
@@ -82,7 +82,7 @@ public final class OperatorToObservableList<T> implements Operator<List<T>, T> {
                      *     ... 419 more
                      */
                     o.onNext(new ArrayList<T>(list));
-                    o.onCompleted();
+                    o.onComplete();
                 } catch (Throwable e) {
                     onError(e);
                 }

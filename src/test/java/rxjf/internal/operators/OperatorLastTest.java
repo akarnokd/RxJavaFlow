@@ -26,39 +26,39 @@ import java.util.NoSuchElementException;
 import org.junit.Test;
 import org.mockito.InOrder;
 
-import rx.Observable;
+import rx.Flowable;
 import rx.Observer;
-import rx.functions.Func1;
+import rx.functions.Function;
 
 public class OperatorLastTest {
 
     @Test
     public void testLastWithElements() {
-        Observable<Integer> last = Observable.just(1, 2, 3).last();
+        Flowable<Integer> last = Flowable.just(1, 2, 3).last();
         assertEquals(3, last.toBlocking().single().intValue());
     }
 
     @Test(expected = NoSuchElementException.class)
     public void testLastWithNoElements() {
-        Observable<?> last = Observable.empty().last();
+        Flowable<?> last = Flowable.empty().last();
         last.toBlocking().single();
     }
 
     @Test
     public void testLastMultiSubscribe() {
-        Observable<Integer> last = Observable.just(1, 2, 3).last();
+        Flowable<Integer> last = Flowable.just(1, 2, 3).last();
         assertEquals(3, last.toBlocking().single().intValue());
         assertEquals(3, last.toBlocking().single().intValue());
     }
 
     @Test
-    public void testLastViaObservable() {
-        Observable.just(1, 2, 3).last();
+    public void testLastViaFlowable() {
+        Flowable.just(1, 2, 3).last();
     }
 
     @Test
     public void testLast() {
-        Observable<Integer> observable = Observable.just(1, 2, 3).last();
+        Flowable<Integer> observable = Flowable.just(1, 2, 3).last();
 
         @SuppressWarnings("unchecked")
         Observer<Integer> observer = mock(Observer.class);
@@ -66,13 +66,13 @@ public class OperatorLastTest {
 
         InOrder inOrder = inOrder(observer);
         inOrder.verify(observer, times(1)).onNext(3);
-        inOrder.verify(observer, times(1)).onCompleted();
+        inOrder.verify(observer, times(1)).onComplete();
         inOrder.verifyNoMoreInteractions();
     }
 
     @Test
     public void testLastWithOneElement() {
-        Observable<Integer> observable = Observable.just(1).last();
+        Flowable<Integer> observable = Flowable.just(1).last();
 
         @SuppressWarnings("unchecked")
         Observer<Integer> observer = mock(Observer.class);
@@ -80,13 +80,13 @@ public class OperatorLastTest {
 
         InOrder inOrder = inOrder(observer);
         inOrder.verify(observer, times(1)).onNext(1);
-        inOrder.verify(observer, times(1)).onCompleted();
+        inOrder.verify(observer, times(1)).onComplete();
         inOrder.verifyNoMoreInteractions();
     }
 
     @Test
     public void testLastWithEmpty() {
-        Observable<Integer> observable = Observable.<Integer> empty().last();
+        Flowable<Integer> observable = Flowable.<Integer> empty().last();
 
         @SuppressWarnings("unchecked")
         Observer<Integer> observer = mock(Observer.class);
@@ -100,8 +100,8 @@ public class OperatorLastTest {
 
     @Test
     public void testLastWithPredicate() {
-        Observable<Integer> observable = Observable.just(1, 2, 3, 4, 5, 6)
-                .last(new Func1<Integer, Boolean>() {
+        Flowable<Integer> observable = Flowable.just(1, 2, 3, 4, 5, 6)
+                .last(new Function<Integer, Boolean>() {
 
                     @Override
                     public Boolean call(Integer t1) {
@@ -115,14 +115,14 @@ public class OperatorLastTest {
 
         InOrder inOrder = inOrder(observer);
         inOrder.verify(observer, times(1)).onNext(6);
-        inOrder.verify(observer, times(1)).onCompleted();
+        inOrder.verify(observer, times(1)).onComplete();
         inOrder.verifyNoMoreInteractions();
     }
 
     @Test
     public void testLastWithPredicateAndOneElement() {
-        Observable<Integer> observable = Observable.just(1, 2).last(
-                new Func1<Integer, Boolean>() {
+        Flowable<Integer> observable = Flowable.just(1, 2).last(
+                new Function<Integer, Boolean>() {
 
                     @Override
                     public Boolean call(Integer t1) {
@@ -136,14 +136,14 @@ public class OperatorLastTest {
 
         InOrder inOrder = inOrder(observer);
         inOrder.verify(observer, times(1)).onNext(2);
-        inOrder.verify(observer, times(1)).onCompleted();
+        inOrder.verify(observer, times(1)).onComplete();
         inOrder.verifyNoMoreInteractions();
     }
 
     @Test
     public void testLastWithPredicateAndEmpty() {
-        Observable<Integer> observable = Observable.just(1).last(
-                new Func1<Integer, Boolean>() {
+        Flowable<Integer> observable = Flowable.just(1).last(
+                new Function<Integer, Boolean>() {
 
                     @Override
                     public Boolean call(Integer t1) {
@@ -162,7 +162,7 @@ public class OperatorLastTest {
 
     @Test
     public void testLastOrDefault() {
-        Observable<Integer> observable = Observable.just(1, 2, 3)
+        Flowable<Integer> observable = Flowable.just(1, 2, 3)
                 .lastOrDefault(4);
 
         @SuppressWarnings("unchecked")
@@ -171,13 +171,13 @@ public class OperatorLastTest {
 
         InOrder inOrder = inOrder(observer);
         inOrder.verify(observer, times(1)).onNext(3);
-        inOrder.verify(observer, times(1)).onCompleted();
+        inOrder.verify(observer, times(1)).onComplete();
         inOrder.verifyNoMoreInteractions();
     }
 
     @Test
     public void testLastOrDefaultWithOneElement() {
-        Observable<Integer> observable = Observable.just(1).lastOrDefault(2);
+        Flowable<Integer> observable = Flowable.just(1).lastOrDefault(2);
 
         @SuppressWarnings("unchecked")
         Observer<Integer> observer = mock(Observer.class);
@@ -185,13 +185,13 @@ public class OperatorLastTest {
 
         InOrder inOrder = inOrder(observer);
         inOrder.verify(observer, times(1)).onNext(1);
-        inOrder.verify(observer, times(1)).onCompleted();
+        inOrder.verify(observer, times(1)).onComplete();
         inOrder.verifyNoMoreInteractions();
     }
 
     @Test
     public void testLastOrDefaultWithEmpty() {
-        Observable<Integer> observable = Observable.<Integer> empty()
+        Flowable<Integer> observable = Flowable.<Integer> empty()
                 .lastOrDefault(1);
 
         @SuppressWarnings("unchecked")
@@ -200,14 +200,14 @@ public class OperatorLastTest {
 
         InOrder inOrder = inOrder(observer);
         inOrder.verify(observer, times(1)).onNext(1);
-        inOrder.verify(observer, times(1)).onCompleted();
+        inOrder.verify(observer, times(1)).onComplete();
         inOrder.verifyNoMoreInteractions();
     }
 
     @Test
     public void testLastOrDefaultWithPredicate() {
-        Observable<Integer> observable = Observable.just(1, 2, 3, 4, 5, 6)
-                .lastOrDefault(8, new Func1<Integer, Boolean>() {
+        Flowable<Integer> observable = Flowable.just(1, 2, 3, 4, 5, 6)
+                .lastOrDefault(8, new Function<Integer, Boolean>() {
 
                     @Override
                     public Boolean call(Integer t1) {
@@ -221,14 +221,14 @@ public class OperatorLastTest {
 
         InOrder inOrder = inOrder(observer);
         inOrder.verify(observer, times(1)).onNext(6);
-        inOrder.verify(observer, times(1)).onCompleted();
+        inOrder.verify(observer, times(1)).onComplete();
         inOrder.verifyNoMoreInteractions();
     }
 
     @Test
     public void testLastOrDefaultWithPredicateAndOneElement() {
-        Observable<Integer> observable = Observable.just(1, 2).lastOrDefault(4,
-                new Func1<Integer, Boolean>() {
+        Flowable<Integer> observable = Flowable.just(1, 2).lastOrDefault(4,
+                new Function<Integer, Boolean>() {
 
                     @Override
                     public Boolean call(Integer t1) {
@@ -242,14 +242,14 @@ public class OperatorLastTest {
 
         InOrder inOrder = inOrder(observer);
         inOrder.verify(observer, times(1)).onNext(2);
-        inOrder.verify(observer, times(1)).onCompleted();
+        inOrder.verify(observer, times(1)).onComplete();
         inOrder.verifyNoMoreInteractions();
     }
 
     @Test
     public void testLastOrDefaultWithPredicateAndEmpty() {
-        Observable<Integer> observable = Observable.just(1).lastOrDefault(2,
-                new Func1<Integer, Boolean>() {
+        Flowable<Integer> observable = Flowable.just(1).lastOrDefault(2,
+                new Function<Integer, Boolean>() {
 
                     @Override
                     public Boolean call(Integer t1) {
@@ -263,7 +263,7 @@ public class OperatorLastTest {
 
         InOrder inOrder = inOrder(observer);
         inOrder.verify(observer, times(1)).onNext(2);
-        inOrder.verify(observer, times(1)).onCompleted();
+        inOrder.verify(observer, times(1)).onComplete();
         inOrder.verifyNoMoreInteractions();
     }
 }

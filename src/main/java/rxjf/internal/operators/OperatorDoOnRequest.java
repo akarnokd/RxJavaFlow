@@ -13,69 +13,62 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package rx.internal.operators;
+package rxjf.internal.operators;
 
-import rx.Observable.Operator;
-import rx.Producer;
-import rx.Subscriber;
-import rx.functions.Action1;
+import java.util.function.LongConsumer;
+
+import rxjf.Flow.Subscriber;
+import rxjf.Flow.Subscription;
+import rxjf.Flowable.Operator;
+import rxjf.subscribers.AbstractSubscriber;
 
 /**
- * This operator modifies an {@link rx.Observable} so a given action is invoked when the {@link rx.Observable.Producer} receives a request.
+ * This operator modifies an {@link rx.Flowable} so a given action is invoked when the {@link rx.Flowable.Producer} receives a request.
  * 
  * @param <T>
- *            The type of the elements in the {@link rx.Observable} that this operator modifies
+ *            The type of the elements in the {@link rx.Flowable} that this operator modifies
  */
 public class OperatorDoOnRequest<T> implements Operator<T, T> {
 
-    private final Action1<Long> request;
+    private final LongConsumer request;
 
-    public OperatorDoOnRequest(Action1<Long> request) {
+    public OperatorDoOnRequest(LongConsumer request) {
         this.request = request;
     }
 
     @Override
-    public Subscriber<? super T> call(final Subscriber<? super T> child) {
-
-        final ParentSubscriber<T> parent = new ParentSubscriber<T>(child);
-
-        child.setProducer(new Producer() {
-
+    public Subscriber<? super T> apply(final Subscriber<? super T> child) {
+        return new AbstractSubscriber<T>() {
             @Override
-            public void request(long n) {
-                request.call(n);
-                parent.requestMore(n);
+            protected void onSubscribe() {
+                child.onSubscribe(new Subscription() {
+                    @Override
+                    public void request(long n) {
+                        request.accept(n);
+                        subscription.request(n);
+                    }
+                    @Override
+                    public void cancel() {
+                        subscription.cancel();
+                    }
+                });
             }
-
-        });
-
-        return parent;
+            @Override
+            public void onNext(T item) {
+                // TODO Auto-generated method stub
+                
+            }
+            @Override
+            public void onError(Throwable throwable) {
+                // TODO Auto-generated method stub
+                
+            }
+            @Override
+            public void onComplete() {
+                // TODO Auto-generated method stub
+                
+            }
+        };
     }
 
-    private static final class ParentSubscriber<T> extends Subscriber<T> {
-        private final Subscriber<? super T> child;
-
-        private ParentSubscriber(Subscriber<? super T> child) {
-            this.child = child;
-        }
-
-        private void requestMore(long n) {
-            request(n);
-        }
-
-        @Override
-        public void onCompleted() {
-            child.onCompleted();
-        }
-
-        @Override
-        public void onError(Throwable e) {
-            child.onError(e);
-        }
-
-        @Override
-        public void onNext(T t) {
-            child.onNext(t);
-        }
-    }
 }

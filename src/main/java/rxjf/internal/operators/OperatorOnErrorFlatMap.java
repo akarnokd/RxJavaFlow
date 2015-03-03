@@ -15,11 +15,11 @@
  */
 package rx.internal.operators;
 
-import rx.Observable;
-import rx.Observable.Operator;
+import rx.Flowable;
+import rx.Flowable.Operator;
 import rx.Subscriber;
 import rx.exceptions.OnErrorThrowable;
-import rx.functions.Func1;
+import rx.functions.Function;
 import rx.plugins.RxJavaPlugins;
 
 /**
@@ -29,9 +29,9 @@ import rx.plugins.RxJavaPlugins;
  */
 public final class OperatorOnErrorFlatMap<T> implements Operator<T, T> {
 
-    private final Func1<OnErrorThrowable, ? extends Observable<? extends T>> resumeFunction;
+    private final Function<OnErrorThrowable, ? extends Flowable<? extends T>> resumeFunction;
 
-    public OperatorOnErrorFlatMap(Func1<OnErrorThrowable, ? extends Observable<? extends T>> f) {
+    public OperatorOnErrorFlatMap(Function<OnErrorThrowable, ? extends Flowable<? extends T>> f) {
         this.resumeFunction = f;
     }
 
@@ -40,20 +40,20 @@ public final class OperatorOnErrorFlatMap<T> implements Operator<T, T> {
         return new Subscriber<T>(child) {
 
             @Override
-            public void onCompleted() {
-                child.onCompleted();
+            public void onComplete() {
+                child.onComplete();
             }
 
             @Override
             public void onError(Throwable e) {
                 try {
                     RxJavaPlugins.getInstance().getErrorHandler().handleError(e);
-                    Observable<? extends T> resume = resumeFunction.call(OnErrorThrowable.from(e));
+                    Flowable<? extends T> resume = resumeFunction.call(OnErrorThrowable.from(e));
                     resume.unsafeSubscribe(new Subscriber<T>() {
 
                         @Override
-                        public void onCompleted() {
-                            // ignore as we will continue the parent Observable
+                        public void onComplete() {
+                            // ignore as we will continue the parent Flowable
                         }
 
                         @Override

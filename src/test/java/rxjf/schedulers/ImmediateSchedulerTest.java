@@ -19,10 +19,10 @@ import static org.junit.Assert.assertTrue;
 
 import org.junit.Test;
 
-import rx.Observable;
+import rx.Flowable;
 import rx.Scheduler;
 import rx.functions.Action1;
-import rx.functions.Func1;
+import rx.functions.Function;
 
 public class ImmediateSchedulerTest extends AbstractSchedulerTests {
 
@@ -57,9 +57,9 @@ public class ImmediateSchedulerTest extends AbstractSchedulerTests {
 
         final String currentThreadName = Thread.currentThread().getName();
 
-        Observable<Integer> o1 = Observable.<Integer> just(1, 2, 3, 4, 5);
-        Observable<Integer> o2 = Observable.<Integer> just(6, 7, 8, 9, 10);
-        Observable<String> o = Observable.<Integer> merge(o1, o2).map(new Func1<Integer, String>() {
+        Flowable<Integer> o1 = Flowable.<Integer> just(1, 2, 3, 4, 5);
+        Flowable<Integer> o2 = Flowable.<Integer> just(6, 7, 8, 9, 10);
+        Flowable<String> o = Flowable.<Integer> merge(o1, o2).map(new Function<Integer, String>() {
 
             @Override
             public String call(Integer t) {
@@ -82,9 +82,9 @@ public class ImmediateSchedulerTest extends AbstractSchedulerTests {
 
         final String currentThreadName = Thread.currentThread().getName();
 
-        Observable<Integer> o1 = Observable.<Integer> just(1, 2, 3, 4, 5);
-        Observable<Integer> o2 = Observable.<Integer> just(6, 7, 8, 9, 10);
-        Observable<String> o = Observable.<Integer> merge(o1, o2).subscribeOn(Schedulers.immediate()).map(new Func1<Integer, String>() {
+        Flowable<Integer> o1 = Flowable.<Integer> just(1, 2, 3, 4, 5);
+        Flowable<Integer> o2 = Flowable.<Integer> just(6, 7, 8, 9, 10);
+        Flowable<String> o = Flowable.<Integer> merge(o1, o2).subscribeOn(Schedulers.immediate()).map(new Function<Integer, String>() {
 
             @Override
             public String call(Integer t) {

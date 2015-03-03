@@ -20,12 +20,12 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import rx.Observable;
-import rx.Observable.OnSubscribe;
+import rx.Flowable;
+import rx.Flowable.OnSubscribe;
 import rx.Subscriber;
 import rx.Subscription;
-import rx.functions.Func1;
-import rx.functions.Func2;
+import rx.functions.Function;
+import rx.functions.BiFunction;
 import rx.observers.SerializedSubscriber;
 import rx.subscriptions.CompositeSubscription;
 import rx.subscriptions.SerialSubscription;
@@ -40,18 +40,18 @@ import rx.subscriptions.SerialSubscription;
  * @param <R> the result type
  */
 public final class OnSubscribeJoin<TLeft, TRight, TLeftDuration, TRightDuration, R> implements OnSubscribe<R> {
-    final Observable<TLeft> left;
-    final Observable<TRight> right;
-    final Func1<TLeft, Observable<TLeftDuration>> leftDurationSelector;
-    final Func1<TRight, Observable<TRightDuration>> rightDurationSelector;
-    final Func2<TLeft, TRight, R> resultSelector;
+    final Flowable<TLeft> left;
+    final Flowable<TRight> right;
+    final Function<TLeft, Flowable<TLeftDuration>> leftDurationSelector;
+    final Function<TRight, Flowable<TRightDuration>> rightDurationSelector;
+    final BiFunction<TLeft, TRight, R> resultSelector;
 
     public OnSubscribeJoin(
-            Observable<TLeft> left,
-            Observable<TRight> right,
-            Func1<TLeft, Observable<TLeftDuration>> leftDurationSelector,
-            Func1<TRight, Observable<TRightDuration>> rightDurationSelector,
-            Func2<TLeft, TRight, R> resultSelector) {
+            Flowable<TLeft> left,
+            Flowable<TRight> right,
+            Function<TLeft, Flowable<TLeftDuration>> leftDurationSelector,
+            Function<TRight, Flowable<TRightDuration>> rightDurationSelector,
+            BiFunction<TLeft, TRight, R> resultSelector) {
         this.left = left;
         this.right = right;
         this.leftDurationSelector = leftDurationSelector;
@@ -114,7 +114,7 @@ public final class OnSubscribeJoin<TLeft, TRight, TLeftDuration, TRightDuration,
                     }
                 }
                 if (complete) {
-                    subscriber.onCompleted();
+                    subscriber.onComplete();
                     subscriber.unsubscribe();
                 } else {
                     group.remove(resource);
@@ -132,7 +132,7 @@ public final class OnSubscribeJoin<TLeft, TRight, TLeftDuration, TRightDuration,
                     highRightId = rightId;
                 }
 
-                Observable<TLeftDuration> duration;
+                Flowable<TLeftDuration> duration;
                 try {
                     duration = leftDurationSelector.call(args);
 
@@ -165,7 +165,7 @@ public final class OnSubscribeJoin<TLeft, TRight, TLeftDuration, TRightDuration,
             }
 
             @Override
-            public void onCompleted() {
+            public void onComplete() {
                 boolean complete = false;
                 synchronized (guard) {
                     leftDone = true;
@@ -174,7 +174,7 @@ public final class OnSubscribeJoin<TLeft, TRight, TLeftDuration, TRightDuration,
                     }
                 }
                 if (complete) {
-                    subscriber.onCompleted();
+                    subscriber.onComplete();
                     subscriber.unsubscribe();
                 } else {
                     group.remove(this);
@@ -192,7 +192,7 @@ public final class OnSubscribeJoin<TLeft, TRight, TLeftDuration, TRightDuration,
 
                 @Override
                 public void onNext(TLeftDuration args) {
-                    onCompleted();
+                    onComplete();
                 }
 
                 @Override
@@ -201,7 +201,7 @@ public final class OnSubscribeJoin<TLeft, TRight, TLeftDuration, TRightDuration,
                 }
 
                 @Override
-                public void onCompleted() {
+                public void onComplete() {
                     if (once) {
                         once = false;
                         expire(id, this);
@@ -222,7 +222,7 @@ public final class OnSubscribeJoin<TLeft, TRight, TLeftDuration, TRightDuration,
                     }
                 }
                 if (complete) {
-                    subscriber.onCompleted();
+                    subscriber.onComplete();
                     subscriber.unsubscribe();
                 } else {
                     group.remove(resource);
@@ -241,7 +241,7 @@ public final class OnSubscribeJoin<TLeft, TRight, TLeftDuration, TRightDuration,
                 SerialSubscription md = new SerialSubscription();
                 group.add(md);
 
-                Observable<TRightDuration> duration;
+                Flowable<TRightDuration> duration;
                 try {
                     duration = rightDurationSelector.call(args);
 
@@ -277,7 +277,7 @@ public final class OnSubscribeJoin<TLeft, TRight, TLeftDuration, TRightDuration,
             }
 
             @Override
-            public void onCompleted() {
+            public void onComplete() {
                 boolean complete = false;
                 synchronized (guard) {
                     rightDone = true;
@@ -286,7 +286,7 @@ public final class OnSubscribeJoin<TLeft, TRight, TLeftDuration, TRightDuration,
                     }
                 }
                 if (complete) {
-                    subscriber.onCompleted();
+                    subscriber.onComplete();
                     subscriber.unsubscribe();
                 } else {
                     group.remove(this);
@@ -304,7 +304,7 @@ public final class OnSubscribeJoin<TLeft, TRight, TLeftDuration, TRightDuration,
 
                 @Override
                 public void onNext(TRightDuration args) {
-                    onCompleted();
+                    onComplete();
                 }
 
                 @Override
@@ -313,7 +313,7 @@ public final class OnSubscribeJoin<TLeft, TRight, TLeftDuration, TRightDuration,
                 }
 
                 @Override
-                public void onCompleted() {
+                public void onComplete() {
                     if (once) {
                         once = false;
                         expire(id, this);

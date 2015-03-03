@@ -27,30 +27,30 @@ import java.util.List;
 import org.junit.Test;
 import org.mockito.Mockito;
 
-import rx.Observable;
+import rx.Flowable;
 import rx.Observer;
-import rx.functions.Func2;
-import rx.internal.operators.OperatorToObservableSortedList;
+import rx.functions.BiFunction;
+import rx.internal.operators.OperatorToFlowableSortedList;
 
-public class OperatorToObservableSortedListTest {
+public class OperatorToFlowableSortedListTest {
 
     @Test
     public void testSortedList() {
-        Observable<Integer> w = Observable.just(1, 3, 2, 5, 4);
-        Observable<List<Integer>> observable = w.lift(new OperatorToObservableSortedList<Integer>());
+        Flowable<Integer> w = Flowable.just(1, 3, 2, 5, 4);
+        Flowable<List<Integer>> observable = w.lift(new OperatorToFlowableSortedList<Integer>());
 
         @SuppressWarnings("unchecked")
         Observer<List<Integer>> observer = mock(Observer.class);
         observable.subscribe(observer);
         verify(observer, times(1)).onNext(Arrays.asList(1, 2, 3, 4, 5));
         verify(observer, Mockito.never()).onError(any(Throwable.class));
-        verify(observer, times(1)).onCompleted();
+        verify(observer, times(1)).onComplete();
     }
 
     @Test
     public void testSortedListWithCustomFunction() {
-        Observable<Integer> w = Observable.just(1, 3, 2, 5, 4);
-        Observable<List<Integer>> observable = w.lift(new OperatorToObservableSortedList<Integer>(new Func2<Integer, Integer, Integer>() {
+        Flowable<Integer> w = Flowable.just(1, 3, 2, 5, 4);
+        Flowable<List<Integer>> observable = w.lift(new OperatorToFlowableSortedList<Integer>(new BiFunction<Integer, Integer, Integer>() {
 
             @Override
             public Integer call(Integer t1, Integer t2) {
@@ -64,12 +64,12 @@ public class OperatorToObservableSortedListTest {
         observable.subscribe(observer);
         verify(observer, times(1)).onNext(Arrays.asList(5, 4, 3, 2, 1));
         verify(observer, Mockito.never()).onError(any(Throwable.class));
-        verify(observer, times(1)).onCompleted();
+        verify(observer, times(1)).onComplete();
     }
 
     @Test
     public void testWithFollowingFirst() {
-        Observable<Integer> o = Observable.just(1, 3, 2, 5, 4);
+        Flowable<Integer> o = Flowable.just(1, 3, 2, 5, 4);
         assertEquals(Arrays.asList(1, 2, 3, 4, 5), o.toSortedList().toBlocking().first());
     }
 }

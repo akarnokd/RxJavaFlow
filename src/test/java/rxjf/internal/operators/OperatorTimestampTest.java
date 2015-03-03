@@ -29,7 +29,7 @@ import org.mockito.InOrder;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 
-import rx.Observable;
+import rx.Flowable;
 import rx.Observer;
 import rx.schedulers.TestScheduler;
 import rx.schedulers.Timestamped;
@@ -49,7 +49,7 @@ public class OperatorTimestampTest {
         TestScheduler scheduler = new TestScheduler();
 
         PublishSubject<Integer> source = PublishSubject.create();
-        Observable<Timestamped<Integer>> m = source.timestamp(scheduler);
+        Flowable<Timestamped<Integer>> m = source.timestamp(scheduler);
         m.subscribe(observer);
 
         source.onNext(1);
@@ -65,7 +65,7 @@ public class OperatorTimestampTest {
         inOrder.verify(observer, times(1)).onNext(new Timestamped<Integer>(200, 3));
 
         verify(observer, never()).onError(any(Throwable.class));
-        verify(observer, never()).onCompleted();
+        verify(observer, never()).onComplete();
     }
 
     @Test
@@ -73,7 +73,7 @@ public class OperatorTimestampTest {
         TestScheduler scheduler = new TestScheduler();
 
         PublishSubject<Integer> source = PublishSubject.create();
-        Observable<Timestamped<Integer>> m = source.timestamp(scheduler);
+        Flowable<Timestamped<Integer>> m = source.timestamp(scheduler);
         m.subscribe(observer);
 
         source.onNext(1);
@@ -89,6 +89,6 @@ public class OperatorTimestampTest {
         inOrder.verify(observer, times(1)).onNext(new Timestamped<Integer>(200, 3));
 
         verify(observer, never()).onError(any(Throwable.class));
-        verify(observer, never()).onCompleted();
+        verify(observer, never()).onComplete();
     }
 }

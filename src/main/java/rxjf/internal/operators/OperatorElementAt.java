@@ -15,7 +15,7 @@
  */
 package rx.internal.operators;
 
-import rx.Observable.Operator;
+import rx.Flowable.Operator;
 import rx.Subscriber;
 
 /**
@@ -54,7 +54,7 @@ public final class OperatorElementAt<T> implements Operator<T, T> {
             public void onNext(T value) {
                 if (currentIndex == index) {
                     subscriber.onNext(value);
-                    subscriber.onCompleted();
+                    subscriber.onComplete();
                 } else {
                     request(1);
                 }
@@ -67,12 +67,12 @@ public final class OperatorElementAt<T> implements Operator<T, T> {
             }
 
             @Override
-            public void onCompleted() {
+            public void onComplete() {
                 if (currentIndex <= index) {
                     // If "subscriber.onNext(value)" is called, currentIndex must be greater than index
                     if (hasDefault) {
                         subscriber.onNext(defaultValue);
-                        subscriber.onCompleted();
+                        subscriber.onComplete();
                     } else {
                         subscriber.onError(new IndexOutOfBoundsException(index + " is out of bounds"));
                     }

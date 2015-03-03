@@ -28,12 +28,12 @@ import org.junit.Test;
 import rx.functions.Action0;
 import rx.functions.Action1;
 
-public class ObservableDoOnTest {
+public class FlowableDoOnTest {
 
     @Test
     public void testDoOnEach() {
         final AtomicReference<String> r = new AtomicReference<String>();
-        String output = Observable.just("one").doOnNext(new Action1<String>() {
+        String output = Flowable.just("one").doOnNext(new Action1<String>() {
 
             @Override
             public void call(String v) {
@@ -50,7 +50,7 @@ public class ObservableDoOnTest {
         final AtomicReference<Throwable> r = new AtomicReference<Throwable>();
         Throwable t = null;
         try {
-            Observable.<String> error(new RuntimeException("an error")).doOnError(new Action1<Throwable>() {
+            Flowable.<String> error(new RuntimeException("an error")).doOnError(new Action1<Throwable>() {
 
                 @Override
                 public void call(Throwable v) {
@@ -67,9 +67,9 @@ public class ObservableDoOnTest {
     }
 
     @Test
-    public void testDoOnCompleted() {
+    public void testDoonComplete() {
         final AtomicBoolean r = new AtomicBoolean();
-        String output = Observable.just("one").doOnCompleted(new Action0() {
+        String output = Flowable.just("one").doonComplete()(new Action0() {
 
             @Override
             public void call() {

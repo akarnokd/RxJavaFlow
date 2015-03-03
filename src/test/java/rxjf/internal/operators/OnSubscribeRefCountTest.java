@@ -27,8 +27,8 @@ import org.junit.*;
 import org.mockito.*;
 
 import rx.*;
-import rx.Observable.OnSubscribe;
-import rx.Observable;
+import rx.Flowable.OnSubscribe;
+import rx.Flowable;
 import rx.Observer;
 import rx.functions.*;
 import rx.observers.*;
@@ -47,7 +47,7 @@ public class OnSubscribeRefCountTest {
     public void testRefCountAsync() {
         final AtomicInteger subscribeCount = new AtomicInteger();
         final AtomicInteger nextCount = new AtomicInteger();
-        Observable<Long> r = Observable.timer(0, 5, TimeUnit.MILLISECONDS)
+        Flowable<Long> r = Flowable.timer(0, 5, TimeUnit.MILLISECONDS)
                 .doOnSubscribe(new Action0() {
 
                     @Override
@@ -99,7 +99,7 @@ public class OnSubscribeRefCountTest {
     public void testRefCountSynchronous() {
         final AtomicInteger subscribeCount = new AtomicInteger();
         final AtomicInteger nextCount = new AtomicInteger();
-        Observable<Integer> r = Observable.just(1, 2, 3, 4, 5, 6, 7, 8, 9)
+        Flowable<Integer> r = Flowable.just(1, 2, 3, 4, 5, 6, 7, 8, 9)
                 .doOnSubscribe(new Action0() {
 
                     @Override
@@ -150,7 +150,7 @@ public class OnSubscribeRefCountTest {
     @Test
     public void testRefCountSynchronousTake() {
         final AtomicInteger nextCount = new AtomicInteger();
-        Observable<Integer> r = Observable.just(1, 2, 3, 4, 5, 6, 7, 8, 9)
+        Flowable<Integer> r = Flowable.just(1, 2, 3, 4, 5, 6, 7, 8, 9)
                 .doOnNext(new Action1<Integer>() {
 
                     @Override
@@ -183,7 +183,7 @@ public class OnSubscribeRefCountTest {
     public void testRepeat() {
         final AtomicInteger subscribeCount = new AtomicInteger();
         final AtomicInteger unsubscribeCount = new AtomicInteger();
-        Observable<Long> r = Observable.timer(0, 1, TimeUnit.MILLISECONDS)
+        Flowable<Long> r = Flowable.timer(0, 1, TimeUnit.MILLISECONDS)
                 .doOnSubscribe(new Action0() {
 
                     @Override
@@ -231,7 +231,7 @@ public class OnSubscribeRefCountTest {
     public void testConnectUnsubscribe() throws InterruptedException {
         final CountDownLatch unsubscribeLatch = new CountDownLatch(1);
         final CountDownLatch subscribeLatch = new CountDownLatch(1);
-        Observable<Long> o = synchronousInterval()
+        Flowable<Long> o = synchronousInterval()
                 .doOnSubscribe(new Action0() {
 
                     @Override
@@ -280,7 +280,7 @@ public class OnSubscribeRefCountTest {
     @Test
     public void testConnectUnsubscribeRaceCondition() throws InterruptedException {
         final AtomicInteger subUnsubCount = new AtomicInteger();
-        Observable<Long> o = synchronousInterval()
+        Flowable<Long> o = synchronousInterval()
                 .doOnUnsubscribe(new Action0() {
 
                     @Override
@@ -321,8 +321,8 @@ public class OnSubscribeRefCountTest {
         s.assertNoErrors();
     }
 
-    private Observable<Long> synchronousInterval() {
-        return Observable.create(new OnSubscribe<Long>() {
+    private Flowable<Long> synchronousInterval() {
+        return Flowable.create(new OnSubscribe<Long>() {
 
             @Override
             public void call(Subscriber<? super Long> subscriber) {
@@ -341,7 +341,7 @@ public class OnSubscribeRefCountTest {
     public void onlyFirstShouldSubscribeAndLastUnsubscribe() {
         final AtomicInteger subscriptionCount = new AtomicInteger();
         final AtomicInteger unsubscriptionCount = new AtomicInteger();
-        Observable<Integer> observable = Observable.create(new OnSubscribe<Integer>() {
+        Flowable<Integer> observable = Flowable.create(new OnSubscribe<Integer>() {
             @Override
             public void call(Subscriber<? super Integer> observer) {
                 subscriptionCount.incrementAndGet();
@@ -353,7 +353,7 @@ public class OnSubscribeRefCountTest {
                 }));
             }
         });
-        Observable<Integer> refCounted = observable.publish().refCount();
+        Flowable<Integer> refCounted = observable.publish().refCount();
         @SuppressWarnings("unchecked")
         Observer<Integer> observer = mock(Observer.class);
         Subscription first = refCounted.subscribe(observer);
@@ -369,7 +369,7 @@ public class OnSubscribeRefCountTest {
     @Test
     public void testRefCount() {
         TestScheduler s = new TestScheduler();
-        Observable<Long> interval = Observable.interval(100, TimeUnit.MILLISECONDS, s).publish().refCount();
+        Flowable<Long> interval = Flowable.interval(100, TimeUnit.MILLISECONDS, s).publish().refCount();
 
         // subscribe list1
         final List<Long> list1 = new ArrayList<Long>();
@@ -459,14 +459,14 @@ public class OnSubscribeRefCountTest {
         @SuppressWarnings("unchecked")
         Observer<Integer> o = mock(Observer.class);
 
-        Observable<Integer> result = Observable.just(1).publish().refCount();
+        Flowable<Integer> result = Flowable.just(1).publish().refCount();
 
         result.subscribe(done);
 
         result.subscribe(o);
 
         verify(o).onNext(1);
-        verify(o).onCompleted();
+        verify(o).onComplete();
         verify(o, never()).onError(any(Throwable.class));
     }
 
@@ -481,7 +481,7 @@ public class OnSubscribeRefCountTest {
         Observer<Integer> o = mock(Observer.class);
         InOrder inOrder = inOrder(o);
 
-        Observable<Integer> result = source.publish().refCount();
+        Flowable<Integer> result = source.publish().refCount();
 
         result.subscribe(o);
 
@@ -490,19 +490,19 @@ public class OnSubscribeRefCountTest {
         result.subscribe(done);
 
         source.onNext(2);
-        source.onCompleted();
+        source.onComplete();
 
         inOrder.verify(o).onNext(1);
         inOrder.verify(o).onNext(2);
-        inOrder.verify(o).onCompleted();
+        inOrder.verify(o).onComplete();
         verify(o, never()).onError(any(Throwable.class));
     }
 
     @Test
     public void testConnectDisconnectConnectAndSubjectState() {
-        Observable<Integer> o1 = Observable.just(10);
-        Observable<Integer> o2 = Observable.just(20);
-        Observable<Integer> combined = Observable.combineLatest(o1, o2, new Func2<Integer, Integer, Integer>() {
+        Flowable<Integer> o1 = Flowable.just(10);
+        Flowable<Integer> o2 = Flowable.just(20);
+        Flowable<Integer> combined = Flowable.combineLatest(o1, o2, new BiFunction<Integer, Integer, Integer>() {
 
             @Override
             public Integer call(Integer t1, Integer t2) {
@@ -529,8 +529,8 @@ public class OnSubscribeRefCountTest {
     @Test(timeout = 10000)
     public void testUpstreamErrorAllowsRetry() throws InterruptedException {
         final AtomicInteger intervalSubscribed = new AtomicInteger();
-        Observable<String> interval =
-                Observable.interval(200,TimeUnit.MILLISECONDS)
+        Flowable<String> interval =
+                Flowable.interval(200,TimeUnit.MILLISECONDS)
                         .doOnSubscribe(
                                 new Action0() {
                                     @Override
@@ -539,21 +539,21 @@ public class OnSubscribeRefCountTest {
                                     }
                                 }
                          )
-                        .flatMap(new Func1<Long, Observable<String>>() {
+                        .flatMap(new Function<Long, Flowable<String>>() {
                             @Override
-                            public Observable<String> call(Long t1) {
-                                return Observable.defer(new Func0<Observable<String>>() {
+                            public Flowable<String> call(Long t1) {
+                                return Flowable.defer(new Func0<Flowable<String>>() {
                                     @Override
-                                    public Observable<String> call() {
-                                        return Observable.<String>error(new Exception("Some exception"));
+                                    public Flowable<String> call() {
+                                        return Flowable.<String>error(new Exception("Some exception"));
                                     }
                                 });
                             }
                         })
-                        .onErrorResumeNext(new Func1<Throwable, Observable<String>>() {
+                        .onErrorResumeNext(new Function<Throwable, Flowable<String>>() {
                             @Override
-                            public Observable<String> call(Throwable t1) {
-                                return Observable.error(t1);
+                            public Flowable<String> call(Throwable t1) {
+                                return Flowable.error(t1);
                             }
                         })
                         .publish()

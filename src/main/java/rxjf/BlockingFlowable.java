@@ -73,7 +73,7 @@ public final class BlockingFlowable<T> {
      * <img width="640" height="330" src="https://github.com/ReactiveX/RxJava/wiki/images/rx-operators/B.forEach.png" alt="">
      * <p>
      * This is similar to {@link Flowable#subscribe(Subscriber)}, but it blocks. Because it blocks it does not
-     * need the {@link Subscriber#onCompleted()} or {@link Subscriber#onError(Throwable)} methods. If the
+     * need the {@link Subscriber#onComplete()} or {@link Subscriber#onError(Throwable)} methods. If the
      * underlying Flowable terminates with an error, rather than calling {@code onError}, this method will
      * throw an exception.
      *
@@ -313,9 +313,9 @@ public final class BlockingFlowable<T> {
      * waiting if necessary for one to become available.
      * <p>
      * If this {@code BlockingFlowable} produces items faster than {@code Iterator.next} takes them,
-     * {@code onNext} events might be skipped, but {@code onError} or {@code onCompleted} events are not.
+     * {@code onNext} events might be skipped, but {@code onError} or {@code onComplete()} events are not.
      * <p>
-     * Note also that an {@code onNext} directly followed by {@code onCompleted} might hide the {@code onNext}
+     * Note also that an {@code onNext} directly followed by {@code onComplete()} might hide the {@code onNext}
      * event.
      *
      * @return an Iterable that always returns the latest item emitted by this {@code BlockingFlowable}

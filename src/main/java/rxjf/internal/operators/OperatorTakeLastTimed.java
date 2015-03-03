@@ -15,7 +15,7 @@
  */
 package rx.internal.operators;
 
-import rx.Observable.Operator;
+import rx.Flowable.Operator;
 import rx.Scheduler;
 import rx.Subscriber;
 
@@ -24,7 +24,7 @@ import java.util.Deque;
 import java.util.concurrent.TimeUnit;
 
 /**
- * Returns an Observable that emits the last <code>count</code> items emitted by the source Observable.
+ * Returns an Flowable that emits the last <code>count</code> items emitted by the source Flowable.
  * <p>
  * <img width="640" src="https://github.com/ReactiveX/RxJava/wiki/images/rx-operators/last.png" alt="">
  */
@@ -99,7 +99,7 @@ public final class OperatorTakeLastTimed<T> implements Operator<T, T> {
             }
 
             @Override
-            public void onCompleted() {
+            public void onComplete() {
                 runEvictionPolicy(scheduler.now());
                 timestampBuffer.clear();
                 buffer.offer(notification.completed());

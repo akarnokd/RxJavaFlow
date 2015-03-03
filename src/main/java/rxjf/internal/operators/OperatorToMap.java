@@ -19,10 +19,10 @@ package rx.internal.operators;
 import java.util.HashMap;
 import java.util.Map;
 
-import rx.Observable.Operator;
+import rx.Flowable.Operator;
 import rx.Subscriber;
 import rx.functions.Func0;
-import rx.functions.Func1;
+import rx.functions.Function;
 
 /**
  * Maps the elements of the source observable into a java.util.Map instance and
@@ -43,9 +43,9 @@ public final class OperatorToMap<T, K, V> implements Operator<Map<K, V>, T> {
     }
 
 
-    private final Func1<? super T, ? extends K> keySelector;
+    private final Function<? super T, ? extends K> keySelector;
 
-    private final Func1<? super T, ? extends V> valueSelector;
+    private final Function<? super T, ? extends V> valueSelector;
 
     private final Func0<? extends Map<K, V>> mapFactory;
 
@@ -54,8 +54,8 @@ public final class OperatorToMap<T, K, V> implements Operator<Map<K, V>, T> {
      * ToMap with key selector, value selector and default HashMap factory.
      */
     public OperatorToMap(
-            Func1<? super T, ? extends K> keySelector,
-            Func1<? super T, ? extends V> valueSelector) {
+            Function<? super T, ? extends K> keySelector,
+            Function<? super T, ? extends V> valueSelector) {
         this(keySelector, valueSelector, new DefaultToMapFactory<K, V>());
     }
 
@@ -64,8 +64,8 @@ public final class OperatorToMap<T, K, V> implements Operator<Map<K, V>, T> {
      * ToMap with key selector, value selector and custom Map factory.
      */
     public OperatorToMap(
-            Func1<? super T, ? extends K> keySelector,
-            Func1<? super T, ? extends V> valueSelector,
+            Function<? super T, ? extends K> keySelector,
+            Function<? super T, ? extends V> valueSelector,
             Func0<? extends Map<K, V>> mapFactory) {
         this.keySelector = keySelector;
         this.valueSelector = valueSelector;
@@ -98,11 +98,11 @@ public final class OperatorToMap<T, K, V> implements Operator<Map<K, V>, T> {
             }
 
             @Override
-            public void onCompleted() {
+            public void onComplete() {
                 Map<K, V> map0 = map;
                 map = null;
                 subscriber.onNext(map0);
-                subscriber.onCompleted();
+                subscriber.onComplete();
             }
         };
     }

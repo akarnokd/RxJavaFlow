@@ -27,11 +27,11 @@ import org.junit.Test;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 
-import rx.Observable;
+import rx.Flowable;
 import rx.Observer;
 import rx.exceptions.TestException;
-import rx.functions.Func1;
-import rx.functions.Func2;
+import rx.functions.Function;
+import rx.functions.BiFunction;
 import rx.internal.util.UtilityFunctions;
 
 public class OperatorReduceTest {
@@ -43,7 +43,7 @@ public class OperatorReduceTest {
         MockitoAnnotations.initMocks(this);
     }
 
-    Func2<Integer, Integer, Integer> sum = new Func2<Integer, Integer, Integer>() {
+    BiFunction<Integer, Integer, Integer> sum = new BiFunction<Integer, Integer, Integer>() {
         @Override
         public Integer call(Integer t1, Integer t2) {
             return t1 + t2;
@@ -53,51 +53,51 @@ public class OperatorReduceTest {
     @Test
     public void testAggregateAsIntSum() {
 
-        Observable<Integer> result = Observable.just(1, 2, 3, 4, 5).reduce(0, sum).map(UtilityFunctions.<Integer> identity());
+        Flowable<Integer> result = Flowable.just(1, 2, 3, 4, 5).reduce(0, sum).map(UtilityFunctions.<Integer> identity());
 
         result.subscribe(observer);
 
         verify(observer).onNext(1 + 2 + 3 + 4 + 5);
-        verify(observer).onCompleted();
+        verify(observer).onComplete();
         verify(observer, never()).onError(any(Throwable.class));
     }
 
     @Test
     public void testAggregateAsIntSumSourceThrows() {
-        Observable<Integer> result = Observable.concat(Observable.just(1, 2, 3, 4, 5),
-                Observable.<Integer> error(new TestException()))
+        Flowable<Integer> result = Flowable.concat(Flowable.just(1, 2, 3, 4, 5),
+                Flowable.<Integer> error(new TestException()))
                 .reduce(0, sum).map(UtilityFunctions.<Integer> identity());
 
         result.subscribe(observer);
 
         verify(observer, never()).onNext(any());
-        verify(observer, never()).onCompleted();
+        verify(observer, never()).onComplete();
         verify(observer, times(1)).onError(any(TestException.class));
     }
 
     @Test
     public void testAggregateAsIntSumAccumulatorThrows() {
-        Func2<Integer, Integer, Integer> sumErr = new Func2<Integer, Integer, Integer>() {
+        BiFunction<Integer, Integer, Integer> sumErr = new BiFunction<Integer, Integer, Integer>() {
             @Override
             public Integer call(Integer t1, Integer t2) {
                 throw new TestException();
             }
         };
 
-        Observable<Integer> result = Observable.just(1, 2, 3, 4, 5)
+        Flowable<Integer> result = Flowable.just(1, 2, 3, 4, 5)
                 .reduce(0, sumErr).map(UtilityFunctions.<Integer> identity());
 
         result.subscribe(observer);
 
         verify(observer, never()).onNext(any());
-        verify(observer, never()).onCompleted();
+        verify(observer, never()).onComplete();
         verify(observer, times(1)).onError(any(TestException.class));
     }
 
     @Test
     public void testAggregateAsIntSumResultSelectorThrows() {
 
-        Func1<Integer, Integer> error = new Func1<Integer, Integer>() {
+        Function<Integer, Integer> error = new Function<Integer, Integer>() {
 
             @Override
             public Integer call(Integer t1) {
@@ -105,20 +105,20 @@ public class OperatorReduceTest {
             }
         };
 
-        Observable<Integer> result = Observable.just(1, 2, 3, 4, 5)
+        Flowable<Integer> result = Flowable.just(1, 2, 3, 4, 5)
                 .reduce(0, sum).map(error);
 
         result.subscribe(observer);
 
         verify(observer, never()).onNext(any());
-        verify(observer, never()).onCompleted();
+        verify(observer, never()).onComplete();
         verify(observer, times(1)).onError(any(TestException.class));
     }
 
     @Test
     public void testBackpressureWithNoInitialValue() throws InterruptedException {
-        Observable<Integer> source = Observable.just(1, 2, 3, 4, 5, 6);
-        Observable<Integer> reduced = source.reduce(sum);
+        Flowable<Integer> source = Flowable.just(1, 2, 3, 4, 5, 6);
+        Flowable<Integer> reduced = source.reduce(sum);
 
         Integer r = reduced.toBlocking().first();
         assertEquals(21, r.intValue());
@@ -126,8 +126,8 @@ public class OperatorReduceTest {
 
     @Test
     public void testBackpressureWithInitialValue() throws InterruptedException {
-        Observable<Integer> source = Observable.just(1, 2, 3, 4, 5, 6);
-        Observable<Integer> reduced = source.reduce(0, sum);
+        Flowable<Integer> source = Flowable.just(1, 2, 3, 4, 5, 6);
+        Flowable<Integer> reduced = source.reduce(0, sum);
 
         Integer r = reduced.toBlocking().first();
         assertEquals(21, r.intValue());
