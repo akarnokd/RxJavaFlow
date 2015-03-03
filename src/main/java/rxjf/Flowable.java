@@ -164,8 +164,7 @@ public class Flowable<T> implements Publisher<T> {
         }
     }
     static void handleUncaught(Throwable t) {
-        Thread currentThread = Thread.currentThread();
-        currentThread.getUncaughtExceptionHandler().uncaughtException(currentThread, t);
+        Exceptions.handleUncaught(t);
         RxJavaFlowPlugins.getInstance().getErrorHandler().handleError(t);
     }
     /**
@@ -242,7 +241,7 @@ public class Flowable<T> implements Publisher<T> {
         @Override
         public void onComplete() {
         }
-    }.toChecked();
+    };
     
     /**
      * Subscribes to an Flowable but ignore its emissions and notifications.
@@ -258,9 +257,7 @@ public class Flowable<T> implements Publisher<T> {
      * @see <a href="http://reactivex.io/documentation/operators/subscribe.html">ReactiveX operators documentation: Subscribe</a>
      */
     public final Disposable subscribe() {
-        AbstractDisposableSubscriber<Object> cs = EMPTY_SUBSCRIBER.toDisposable();
-        subscribe(cs);
-        return cs;
+        return subscribeDisposable(EMPTY_SUBSCRIBER);
     }
 
     /**
@@ -282,7 +279,7 @@ public class Flowable<T> implements Publisher<T> {
      */
     public final Disposable subscribe(Consumer<? super T> onNext) {
         Objects.requireNonNull(onNext);
-        AbstractDisposableSubscriber<T> cs = new AbstractSubscriber<T>() {
+        AbstractSubscriber<T> cs = new AbstractSubscriber<T>() {
             @Override
             public void onNext(T item) {
                 onNext.accept(item);
@@ -294,9 +291,8 @@ public class Flowable<T> implements Publisher<T> {
             @Override
             public void onComplete() {
             }
-        }.toDisposable();
-        subscribe(cs);
-        return cs;
+        };
+        return subscribeDisposable(cs);
     }
 
     /**
@@ -322,7 +318,7 @@ public class Flowable<T> implements Publisher<T> {
     public final Disposable subscribe(Consumer<? super T> onNext, Consumer<Throwable> onError) {
         Objects.requireNonNull(onNext);
         Objects.requireNonNull(onError);
-        AbstractDisposableSubscriber<T> cs = new AbstractSubscriber<T>() {
+        AbstractSubscriber<T> cs = new AbstractSubscriber<T>() {
             @Override
             public void onNext(T item) {
                 onNext.accept(item);
@@ -334,9 +330,8 @@ public class Flowable<T> implements Publisher<T> {
             @Override
             public void onComplete() {
             }
-        }.toDisposable();
-        subscribe(cs);
-        return cs;
+        };
+        return subscribeDisposable(cs);
     }
 
     /**
@@ -367,7 +362,7 @@ public class Flowable<T> implements Publisher<T> {
         Objects.requireNonNull(onNext);
         Objects.requireNonNull(onError);
         Objects.requireNonNull(onComplete);
-        AbstractDisposableSubscriber<T> cs = new AbstractSubscriber<T>() {
+        AbstractSubscriber<T> cs = new AbstractSubscriber<T>() {
             @Override
             public void onNext(T item) {
                 onNext.accept(item);
@@ -380,22 +375,53 @@ public class Flowable<T> implements Publisher<T> {
             public void onComplete() {
                 onComplete.run();
             }
-        }.toDisposable();
-        subscribe(cs);
-        return cs;
+        };
+        return subscribeDisposable(cs);
     }
     
-    // TODO javadoc
+    /**
+     * Subscribes the given subscription with this Flowable, wrapping it into a Disposable
+     * resource if necessary, and returning a Disposable reference to it. 
+     * @param subscriber the subscriber to subscribe and wrap if itself doesn't implement Disposable.
+     * @return the disposable that allows cancelling the subscription/subscriber from outside.
+     * @since 2.0
+     */
     public final Disposable subscribeDisposable(Subscriber<? super T> subscriber) {
-        AbstractDisposableSubscriber<? super T> cs = DefaultDisposableSubscriber.wrap(subscriber);
-        subscribe(cs);
-        return cs;
+        if (subscriber instanceof Disposable) {
+            subscribe(subscriber);
+            return (Disposable)subscriber;
+        }
+        DisposableSubscriber<T> ds = DisposableSubscriber.from(subscriber);
+        subscribe(ds);
+        return ds;
+    }
+
+    /**
+     * Subscribes the given subscription unsafely with this Flowable, wrapping it into a Disposable
+     * resource if necessary, and returning a Disposable reference to it. 
+     * @param subscriber the subscriber to subscribe and wrap if itself doesn't implement Disposable.
+     * @return the disposable that allows cancelling the subscription/subscriber from outside.
+     * @since 2.0
+     */
+    public final Disposable unsafeSubscribeDisposable(Subscriber<? super T> subscriber) {
+        if (subscriber instanceof Disposable) {
+            unsafeSubscribe(subscriber);
+            return (Disposable)subscriber;
+        }
+        DisposableSubscriber<T> ds = DisposableSubscriber.from(subscriber);
+        unsafeSubscribe(ds);
+        return ds;
     }
 
     // -----------------------------------------------------------
     // -  OPERATORS ----------------------------------------------
     // -----------------------------------------------------------
-    // TODO javadoc
+    /**
+     * Wraps a general Publisher instance into a Flowable instance (if not already a Flowable).
+     * @param publisher the publisher to wrap
+     * @return the Flowable instance
+     * @since 2.0
+     */
     public static <T> Flowable<T> from(Publisher<? extends T> publisher) {
         Objects.requireNonNull(publisher);
         if (publisher instanceof Flowable) {
@@ -430,7 +456,7 @@ public class Flowable<T> implements Publisher<T> {
      * @see <a href="http://reactivex.io/documentation/operators/just.html">ReactiveX operators documentation: Just</a>
      */
     public static <T> Flowable<T> just(T value) {
-        return ScalarSynchronousFlow.create(Conformance.itemNonNull(value));
+        return ScalarSynchronousFlowable.create(Conformance.itemNonNull(value));
     }
     
     /**
@@ -468,6 +494,7 @@ public class Flowable<T> implements Publisher<T> {
      *            the type of items in the Array and the type of items to be emitted by the resulting Flowable
      * @return an Flowable that emits each item in the source Array
      * @see <a href="http://reactivex.io/documentation/operators/from.html">ReactiveX operators documentation: From</a>
+     * @since 2.0
      */
     @SafeVarargs
     public static <T> Flowable<T> from(T... values) {
@@ -501,6 +528,7 @@ public class Flowable<T> implements Publisher<T> {
         Objects.requireNonNull(function);
         return lift(new OperatorMap<>(function));
     }
+    /** A common, stateless empty flowable. */
     static final Flowable<Object> EMPTY = create(new OnSubscribeEmpty<>());
     /**
      * Returns an Flowable that emits no items to the {@link Subscriber} and immediately invokes its
@@ -522,6 +550,7 @@ public class Flowable<T> implements Publisher<T> {
     public static <T> Flowable<T> empty() {
         return (Flowable<T>)EMPTY;
     }
+    /** A common, stateless never Flowable. */
     static final Flowable<Object> NEVER = create(new OnSubscribeNever<>());
     /**
      * Returns an Flowable that never sends any items or notifications to an {@link Subscriber}.
@@ -618,6 +647,7 @@ public class Flowable<T> implements Publisher<T> {
      *             if {@code count} is less than zero, or if {@code start} + {@code count} &minus; 1 exceeds
      *             {@code Integer.MAX_VALUE}
      * @see <a href="http://reactivex.io/documentation/operators/range.html">ReactiveX operators documentation: Range</a>
+     * @since 2.0
      */
     public static Flowable<Long> rangeLong(long start, long count) {
         if (count < 0) {
@@ -724,6 +754,8 @@ public class Flowable<T> implements Publisher<T> {
      * <p>
      * <img width="640" height="200" src="https://raw.github.com/wiki/ReactiveX/RxJava/images/rx-operators/interval.s.png" alt="">
      * <dl>
+     *  <dt><b>Backpressure:</b></dt>
+     *  <dd>ignores any downstream requests, using one of the onBackpressureXXX operators is advised</dd>
      *  <dt><b>Scheduler:</b></dt>
      *  <dd>you specify which {@link Scheduler} this operator will use</dd>
      * </dl>
@@ -873,8 +905,8 @@ public class Flowable<T> implements Publisher<T> {
      */
     public final Flowable<T> observeOn(Scheduler scheduler) {
         Objects.requireNonNull(scheduler);
-        if (this instanceof ScalarSynchronousFlow) {
-            return ((ScalarSynchronousFlow<T>)this).scalarScheduleOn(scheduler);
+        if (this instanceof ScalarSynchronousFlowable) {
+            return ((ScalarSynchronousFlowable<T>)this).scalarScheduleOn(scheduler);
         }
         return lift(new OperatorObserveOn<T>(scheduler));
     }
@@ -897,8 +929,8 @@ public class Flowable<T> implements Publisher<T> {
      */
     public final Flowable<T> subscribeOn(Scheduler scheduler) {
         Objects.requireNonNull(scheduler);
-        if (this instanceof ScalarSynchronousFlow) {
-            return ((ScalarSynchronousFlow<T>)this).scalarScheduleOn(scheduler);
+        if (this instanceof ScalarSynchronousFlowable) {
+            return ((ScalarSynchronousFlowable<T>)this).scalarScheduleOn(scheduler);
         }
         return nest().lift(new OperatorSubscribeOn<T>(scheduler));
     }
@@ -1137,6 +1169,7 @@ public class Flowable<T> implements Publisher<T> {
      *            the Array of Flowables
      * @return an Flowable that emits all of the items emitted by the Flowables in the Array
      * @see <a href="http://reactivex.io/documentation/operators/merge.html">ReactiveX operators documentation: Merge</a>
+     * @since 2.0
      */
     @SafeVarargs
     public final static <T> Flowable<T> merge(int maxConcurrent, Flowable<? extends T>... sequences) {
@@ -1168,6 +1201,7 @@ public class Flowable<T> implements Publisher<T> {
      * @return an Flowable that emits all of the items emitted by the Flowables emitted by the
      *         {@code source} Flowable
      * @see <a href="http://reactivex.io/documentation/operators/merge.html">ReactiveX operators documentation: Merge</a>
+     * @since 2.0
      */
     public final static <T> Flowable<T> mergeDelayError(Flowable<? extends Flowable<? extends T>> source, int maxConcurrent) {
         return source.lift(OperatorMerge.<T>instance(true, maxConcurrent));
@@ -1622,7 +1656,13 @@ public class Flowable<T> implements Publisher<T> {
     public final Flowable<Integer> count() {
         return reduce(0, (t1, t2) -> t1 + 1);
     }
-    // TODO javadoc
+    /**
+     * Returns a Flowable which returns the value or error produced by the given CompletableFuture
+     * asynchronously.
+     * @param future the CompletableFuture to listen to
+     * @return the Flowable instance
+     * @since 2.0
+     */
     public static <T> Flowable<T> from(CompletableFuture<T> future) {
         return create(new OnSubscribeCompletableFuture<>(future));
     }

@@ -173,4 +173,13 @@ public final class Exceptions {
                     "Multiple exceptions", exceptions);
         }
     }
+    
+    /**
+     * Forwards the throwable to the current thread's default uncaught exception handler
+     * @param throwable the throwable to forward
+     */
+    public static void handleUncaught(Throwable throwable) {
+        Thread thread = Thread.currentThread();
+        thread.getUncaughtExceptionHandler().uncaughtException(thread, throwable);
+    }
 }

@@ -26,7 +26,7 @@ import rxjf.subscribers.TestSubscriber;
 public class ProcessorSubscriptionManagerTest {
     @Test
     public void simpleAddRemove() {
-        ProcessorSubscriptionManager<Integer> psm = new ProcessorSubscriptionManager<>();
+        ProcessorSubscriberManager<Integer> psm = new ProcessorSubscriberManager<>();
         TestSubscriber<Integer> ts = new TestSubscriber<>();
         
         psm.add(ts);
@@ -36,7 +36,7 @@ public class ProcessorSubscriptionManagerTest {
     }
     @Test
     public void simpleMultiAddRemoveFirst() {
-        ProcessorSubscriptionManager<Integer> psm = new ProcessorSubscriptionManager<>();
+        ProcessorSubscriberManager<Integer> psm = new ProcessorSubscriberManager<>();
         TestSubscriber<Integer> ts1 = new TestSubscriber<>();
         TestSubscriber<Integer> ts2 = new TestSubscriber<>();
         TestSubscriber<Integer> ts3 = new TestSubscriber<>();
@@ -50,7 +50,7 @@ public class ProcessorSubscriptionManagerTest {
     }
     @Test
     public void simpleMultiAddRemoveMiddle() {
-        ProcessorSubscriptionManager<Integer> psm = new ProcessorSubscriptionManager<>();
+        ProcessorSubscriberManager<Integer> psm = new ProcessorSubscriberManager<>();
         TestSubscriber<Integer> ts1 = new TestSubscriber<>();
         TestSubscriber<Integer> ts2 = new TestSubscriber<>();
         TestSubscriber<Integer> ts3 = new TestSubscriber<>();
@@ -64,7 +64,7 @@ public class ProcessorSubscriptionManagerTest {
     }
     @Test
     public void simpleMultiAddRemoveLast() {
-        ProcessorSubscriptionManager<Integer> psm = new ProcessorSubscriptionManager<>();
+        ProcessorSubscriberManager<Integer> psm = new ProcessorSubscriberManager<>();
         TestSubscriber<Integer> ts1 = new TestSubscriber<>();
         TestSubscriber<Integer> ts2 = new TestSubscriber<>();
         TestSubscriber<Integer> ts3 = new TestSubscriber<>();

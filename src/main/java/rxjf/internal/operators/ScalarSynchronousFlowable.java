@@ -17,38 +17,25 @@
 package rxjf.internal.operators;
 
 import rxjf.Flow.Subscriber;
-import rxjf.Flow.Subscription;
 import rxjf.*;
 import rxjf.internal.schedulers.EventLoopsScheduler;
-import rxjf.internal.subscriptions.AbstractSubscription;
+import rxjf.internal.subscriptions.*;
 import rxjf.schedulers.Scheduler;
-import rxjf.subscribers.*;
-import static rxjf.internal.UnsafeAccess.*;
+import rxjf.subscribers.DisposableSubscriber;
 
 /**
  * 
  */
-public final class ScalarSynchronousFlow<T> extends Flowable<T> {
+public final class ScalarSynchronousFlowable<T> extends Flowable<T> {
     final T value;
-    private ScalarSynchronousFlow(OnSubscribe<T> onSubscribe, T value) {
+    private ScalarSynchronousFlowable(OnSubscribe<T> onSubscribe, T value) {
         super(onSubscribe);
         this.value = value;
     }
     
-    public static <T> ScalarSynchronousFlow<T> create(T value) {
-        return new ScalarSynchronousFlow<>(
-                s -> {
-                    s.onSubscribe(new AbstractSubscription<T>(s) {
-                        @Override
-                        protected void onRequested(long n) {
-                            s.onNext(value);
-                            s.onComplete();
-                        }
-                    });
-                },
-                value);
+    public static <T> ScalarSynchronousFlowable<T> create(T value) {
+        return new ScalarSynchronousFlowable<>(s -> s.onSubscribe(new ScalarSubscription<>(s, value)), value);
     }
-    
     
     public T get() {
         return value;
@@ -77,8 +64,8 @@ public final class ScalarSynchronousFlow<T> extends Flowable<T> {
         }
         @Override
         public void accept(final Subscriber<? super T> child) {
-            AbstractDisposableSubscriber<? super T> cs = DefaultDisposableSubscriber.wrap(child);
-            cs.add(es.scheduleDirect(new ScalarSynchronousAction<>(cs, value)));
+            DisposableSubscriber<? super T> cs = DisposableSubscriber.from(child);
+            cs.add(es.scheduleDirect(new ScalarSubscription<>(cs, value)));
         }
     }
     /** Emits a scalar value on a general scheduler. */
@@ -93,44 +80,10 @@ public final class ScalarSynchronousFlow<T> extends Flowable<T> {
         
         @Override
         public void accept(final Subscriber<? super T> child) {
-            AbstractDisposableSubscriber<? super T> cs = DefaultDisposableSubscriber.wrap(child);
+            DisposableSubscriber<? super T> cs = DisposableSubscriber.from(child);
             Scheduler.Worker worker = scheduler.createWorker();
             cs.add(worker);
-            worker.schedule(new ScalarSynchronousAction<>(cs, value));
-        }
-    }
-    /** Action that emits a single value when called. */
-    static final class ScalarSynchronousAction<T> implements Runnable, Subscription {
-        private final Subscriber<? super T> subscriber;
-        private final T value;
-        volatile int once;
-        static final long ONCE = addressOf(ScalarSynchronousAction.class, "once");
-
-        private ScalarSynchronousAction(Subscriber<? super T> subscriber,
-                T value) {
-            this.subscriber = subscriber;
-            this.value = value;
-        }
-
-        @Override
-        public void run() {
-            subscriber.onSubscribe(this);
-        }
-        @Override
-        public void request(long n) {
-            if (UNSAFE.getAndSetInt(this, ONCE, 1) == 0) {
-                try {
-                    subscriber.onNext(value);
-                } catch (Throwable t) {
-                    subscriber.onError(t);
-                    return;
-                }
-                subscriber.onComplete();
-            }
-        }
-        @Override
-        public void cancel() {
-            UNSAFE.getAndSetInt(this, ONCE, 1);
+            worker.schedule(new ScalarSubscription<>(cs, value));
         }
     }
 }

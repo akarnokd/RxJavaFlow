@@ -37,7 +37,7 @@ public final class PublishProcessor<T> extends Flowable<T> implements ProcessorE
      * @return the new {@code PublishSubject}
      */
     public static <T> PublishProcessor<T> create() {
-        ProcessorSubscriptionManager<T> psm = new ProcessorSubscriptionManager<>();
+        ProcessorSubscriberManager<T> psm = new ProcessorSubscriberManager<>();
         OnSubscribe<T> onSubscribe = subscriber -> {
             Subscription empty = AbstractSubscription.createEmpty(subscriber);
             DisposableSubscription ds = new DisposableSubscription(empty);
@@ -63,12 +63,12 @@ public final class PublishProcessor<T> extends Flowable<T> implements ProcessorE
         return new PublishProcessor<>(onSubscribe, psm);
     }
     
-    final ProcessorSubscriptionManager<T> psm;
+    final ProcessorSubscriberManager<T> psm;
     private final NotificationLite<T> nl = NotificationLite.instance();
     /** Keeps the subscription to be able to report setting it multiple times. */
     Subscription subscription;
     
-    protected PublishProcessor(OnSubscribe<T> onSubscribe, ProcessorSubscriptionManager<T> psm) {
+    protected PublishProcessor(OnSubscribe<T> onSubscribe, ProcessorSubscriberManager<T> psm) {
         super(onSubscribe);
         this.psm = psm;
     }

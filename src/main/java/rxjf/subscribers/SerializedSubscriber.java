@@ -225,7 +225,7 @@ public final class SerializedSubscriber<T> implements Subscriber<T> {
         }
     };
     
-    public AbstractDisposableSubscriber<T> toDisposable() {
-        return DefaultDisposableSubscriber.wrap(this);
+    public DisposableSubscriber<T> toDisposable() {
+        return DisposableSubscriber.from(this);
     }
 }

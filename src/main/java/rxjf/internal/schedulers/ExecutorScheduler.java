@@ -21,6 +21,7 @@ import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import rxjf.disposables.*;
+import rxjf.exceptions.Exceptions;
 import rxjf.internal.disposables.BooleanDisposable;
 import rxjf.internal.queues.MpscLinkedQueue;
 import rxjf.plugins.RxJavaFlowPlugins;
@@ -160,9 +161,8 @@ public final class ExecutorScheduler implements Scheduler {
             try {
                 actual.run();
             } catch (Throwable t) {
+                Exceptions.handleUncaught(t);
                 RxJavaFlowPlugins.getInstance().getErrorHandler().handleError(t);
-                Thread thread = Thread.currentThread();
-                thread.getUncaughtExceptionHandler().uncaughtException(thread, t);
             } finally {
                 dispose();
             }

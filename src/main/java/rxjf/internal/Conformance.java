@@ -99,7 +99,7 @@ public final class Conformance {
             return true;
         }
         if (currentSubscription != null) {
-            subscriber.onError(new IllegalArgumentException("Rule \u00a72.12: onSubscribe MUST be called at most once"));
+            subscriber.onError(new IllegalStateException("Rule \u00a72.12: onSubscribe MUST be called at most once"));
             return false;
         }
         return true;
@@ -129,5 +129,53 @@ public final class Conformance {
      */
     public static MissingBackpressureException mustRequestFirst() {
         return new MissingBackpressureException("Rule \u00a71.1: Producer MUST NOT produce an onNext event without a preceding request(n | n > 0)");
+    }
+    /**
+     * Creates an exception citing rule &#xa7;3.15: Subscription.cancel MUST return normally.
+     * @param throwable the throwable thrown
+     * @return the IllegalStateException with the exception and rule quote
+     */
+    public static IllegalStateException cancelThrew(Throwable throwable) {
+        return new IllegalStateException("Rule \u00a73.15: Subscription.cancel MUST return normally", throwable);
+    }
+    /**
+     * Creates an exception citing rule &#xa7;3.16: Subscription.request MUST return normally.
+     * @param throwable the throwable thrown
+     * @return the IllegalStateException with the exception and rule quote
+     */
+    public static IllegalStateException requestThrew(Throwable throwable) {
+        return new IllegalStateException("Rule \u00a73.16: Subscription.request MUST return normally", throwable);
+    }
+    /**
+     * Creates an exception citing rule &#xa7;2.13: Subscriber.onSubscribe MUST return normally.
+     * @param throwable the throwable thrown
+     * @return the IllegalStateException with the exception and rule quote
+     */
+    public static IllegalStateException onSubscribeThrew(Throwable throwable) {
+        return new IllegalStateException("Rule \u00a72.13: Subscriber.onSubscribe MUST return normally", throwable);
+    }
+    /**
+     * Creates an exception citing rule &#xa7;2.13: Subscriber.onError MUST return normally.
+     * @param throwable the throwable thrown
+     * @return the IllegalStateException with the exception and rule quote
+     */
+    public static IllegalStateException onErrorThrew(Throwable throwable) {
+        return new IllegalStateException("Rule \u00a72.13: Subscriber.onError MUST return normally", throwable);
+    }
+    /**
+     * Creates an exception citing rule &#xa7;2.13: Subscriber.onNext MUST return normally.
+     * @param throwable the throwable thrown
+     * @return the IllegalStateException with the exception and rule quote
+     */
+    public static IllegalStateException onNextThrew(Throwable throwable) {
+        return new IllegalStateException("Rule \u00a72.13: Subscriber.onNext MUST return normally", throwable);
+    }
+    /**
+     * Creates an exception citing rule &#xa7;2.13: Subscriber.onComplete MUST return normally.
+     * @param throwable the throwable thrown
+     * @return the IllegalStateException with the exception and rule quote
+     */
+    public static IllegalStateException onCompleteThrew(Throwable throwable) {
+        return new IllegalStateException("Rule \u00a72.13: Subscriber.onComplete MUST return normally", throwable);
     }
 }

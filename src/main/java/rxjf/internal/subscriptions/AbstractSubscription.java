@@ -140,6 +140,7 @@ public abstract class AbstractSubscription<T> implements Subscription, Disposabl
     protected void onCancelled() {
         
     }
+    
     public static <T> AbstractSubscription<T> create(Subscriber<? super T> subscriber, OnRequested<T> onRequested) {
         return new AbstractSubscription<T>(subscriber) {
             @Override

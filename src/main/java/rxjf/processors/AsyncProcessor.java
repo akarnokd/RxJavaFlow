@@ -38,7 +38,7 @@ public final class AsyncProcessor<T> extends Flowable<T> implements ProcessorEx<
      * @return the new {@code AsyncProcessor}
      */
     public static <T> AsyncProcessor<T> create() {
-        ProcessorSubscriptionManager<T> psm = new ProcessorSubscriptionManager<>();
+        ProcessorSubscriberManager<T> psm = new ProcessorSubscriberManager<>();
         OnSubscribe<T> onSubscribe = subscriber -> {
             ScalarBackpressureSubscription<T> sbs = new ScalarBackpressureSubscription<>(subscriber);
             DisposableSubscription ds = new DisposableSubscription(sbs);
@@ -62,7 +62,7 @@ public final class AsyncProcessor<T> extends Flowable<T> implements ProcessorEx<
         return new AsyncProcessor<>(onSubscribe, psm);
     }
     
-    final ProcessorSubscriptionManager<T> psm;
+    final ProcessorSubscriberManager<T> psm;
     final NotificationLite<T> nl = NotificationLite.instance();
     
     volatile Object lastValue;
@@ -71,7 +71,7 @@ public final class AsyncProcessor<T> extends Flowable<T> implements ProcessorEx<
     /** Keeps the subscription to be able to report setting it multiple times. */
     Subscription subscription;
     
-    private AsyncProcessor(OnSubscribe<T> onSubscribe, ProcessorSubscriptionManager<T> psm) {
+    private AsyncProcessor(OnSubscribe<T> onSubscribe, ProcessorSubscriberManager<T> psm) {
         super(onSubscribe);
         this.psm = psm;
     }

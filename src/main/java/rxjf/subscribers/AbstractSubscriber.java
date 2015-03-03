@@ -43,14 +43,11 @@ public abstract class AbstractSubscriber<T> implements Subscriber<T> {
     protected void onSubscribe() {
         subscription.request(Long.MAX_VALUE);
     }
-    public AbstractDisposableSubscriber<T> toDisposable() {
-        return DefaultDisposableSubscriber.wrap(this);
+    public DisposableSubscriber<T> toDisposable() {
+        return DisposableSubscriber.from(this);
     }
     public SerializedSubscriber<T> toSerialized() {
         return SerializedSubscriber.wrap(this);
-    }
-    public CheckedSubscriber<T> toChecked() {
-        return (CheckedSubscriber<T>)CheckedSubscriber.wrap(this);
     }
     
     /**

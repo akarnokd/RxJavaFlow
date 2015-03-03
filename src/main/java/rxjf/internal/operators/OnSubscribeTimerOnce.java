@@ -19,8 +19,9 @@ import java.util.concurrent.TimeUnit;
 
 import rxjf.Flow.Subscriber;
 import rxjf.Flowable.OnSubscribe;
+import rxjf.exceptions.Exceptions;
+import rxjf.internal.subscriptions.DisposableSubscription;
 import rxjf.schedulers.Scheduler;
-import rxjf.subscribers.*;
 
 /**
  * Timer that emits a single 0L and completes after the specified time.
@@ -39,17 +40,24 @@ public final class OnSubscribeTimerOnce implements OnSubscribe<Long> {
 
     @Override
     public void accept(final Subscriber<? super Long> child) {
+        DisposableSubscription ds = DisposableSubscription.createEmpty(child);
+        
         Scheduler.Worker worker = scheduler.createWorker();
-        AbstractDisposableSubscriber<? super Long> cs = DefaultDisposableSubscriber.wrap(child);
-        cs.add(worker);
+        ds.add(worker);
+        child.onSubscribe(ds);
+        
         worker.schedule(() -> {
             try {
-                cs.onNext(0L);
+                try {
+                    child.onNext(0L);
+                } catch (Throwable t) {
+                    child.onError(t);
+                    return;
+                }
+                child.onComplete();
             } catch (Throwable t) {
-                cs.onError(t);
-                return;
+                Exceptions.handleUncaught(t);
             }
-            cs.onComplete();
         }, time, unit);
     }
     

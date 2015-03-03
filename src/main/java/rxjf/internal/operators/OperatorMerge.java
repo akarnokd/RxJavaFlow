@@ -141,8 +141,8 @@ public final class OperatorMerge<T> implements Operator<T, Flowable<? extends T>
                 return;
             }
             
-            if (item instanceof ScalarSynchronousFlow) {
-                T scalar = ((ScalarSynchronousFlow<? extends T>)item).get();
+            if (item instanceof ScalarSynchronousFlowable) {
+                T scalar = ((ScalarSynchronousFlowable<? extends T>)item).get();
                 getScalarQueue().offer(scalar);
                 if (maxConcurrent != Integer.MAX_VALUE) {
                     subscription.request(1);

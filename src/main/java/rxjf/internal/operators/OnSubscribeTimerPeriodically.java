@@ -19,8 +19,8 @@ import java.util.concurrent.TimeUnit;
 
 import rxjf.Flow.Subscriber;
 import rxjf.Flowable.OnSubscribe;
+import rxjf.internal.subscriptions.DisposableSubscription;
 import rxjf.schedulers.Scheduler;
-import rxjf.subscribers.*;
 
 /**
  * Emit 0L after the initial period and ever increasing number after each period.
@@ -42,19 +42,22 @@ public final class OnSubscribeTimerPeriodically implements OnSubscribe<Long> {
     @Override
     public void accept(final Subscriber<? super Long> child) {
         final Scheduler.Worker worker = scheduler.createWorker();
-        AbstractDisposableSubscriber<? super Long> cs = DefaultDisposableSubscriber.wrap(child);
-        cs.add(worker);
+        DisposableSubscription ds = DisposableSubscription.createEmpty(child);
+        ds.add(worker);
+        
+        child.onSubscribe(ds);
+        
         worker.schedule(new Runnable() {
             long counter;
             @Override
             public void run() {
                 try {
-                    cs.onNext(counter++);
+                    child.onNext(counter++);
                 } catch (Throwable e) {
                     try {
-                        cs.onError(e);
+                        child.onError(e);
                     } finally {
-                        worker.dispose();
+                        ds.dispose();
                     }
                 }
             }

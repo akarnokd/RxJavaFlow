@@ -17,7 +17,9 @@ package rxjf.subscribers;
 
 import rxjf.Flow.Subscriber;
 import rxjf.Flow.Subscription;
+import rxjf.exceptions.Exceptions;
 import rxjf.internal.Conformance;
+import rxjf.plugins.RxJavaFlowPlugins;
 
 /**
  *
@@ -40,15 +42,45 @@ public final class SafeSubscriber<T> implements Subscriber<T> {
     boolean done;
     Subscription subscription;
     @Override
-    public void onSubscribe(Subscription subscription) {
-        Conformance.subscriptionNonNull(subscription);
+    public void onSubscribe(Subscription s) {
+        Conformance.subscriptionNonNull(s);
         Subscription current = this.subscription;
         if (!Conformance.onSubscribeOnce(current, this)) {
-            current.cancel();
+            try {
+                s.cancel();
+            } catch (Throwable t) {
+                handleUncaught(Conformance.cancelThrew(t));
+            }
             return;
         }
-        this.subscription = subscription;
-        actual.onSubscribe(subscription);
+        this.subscription = new Subscription() {
+            @Override
+            public void request(long n) {
+                if (!Conformance.requestPositive(n, SafeSubscriber.this)) {
+                    return;
+                }
+                try {
+                    s.request(n);
+                } catch (Throwable t) {
+                    onError(Conformance.requestThrew(t));
+                }
+            }
+            @Override
+            public void cancel() {
+                try {
+                    s.cancel();
+                } catch (Throwable t) {
+                    handleUncaught(Conformance.cancelThrew(t));
+                }
+            }
+        };
+        try {
+            actual.onSubscribe(subscription);
+        } catch (NullPointerException npe) {
+            throw npe;
+        } catch (Throwable t) {
+            handleUncaught(Conformance.onSubscribeThrew(t));
+        }
     }
     @Override
     public void onNext(T item) {
@@ -57,8 +89,10 @@ public final class SafeSubscriber<T> implements Subscriber<T> {
             Conformance.itemNonNull(item);
             try {
                 actual.onNext(item);
+            } catch (NullPointerException npe) {
+                throw npe;
             } catch (Throwable t) {
-                onError(t);
+                onError(Conformance.onNextThrew(t));
             }
         }
     }
@@ -70,11 +104,15 @@ public final class SafeSubscriber<T> implements Subscriber<T> {
             Conformance.throwableNonNull(throwable);
             done = true;
             try {
-                actual.onError(throwable);
-            } catch (Throwable t) {
-                handleUncaught(t);
+                try {
+                    actual.onError(throwable);
+                } catch (NullPointerException npe) {
+                    throw npe;
+                } catch (Throwable t) {
+                    handleUncaught(Conformance.onErrorThrew(t));
+                }
             } finally {
-                s.cancel();
+                subscription.cancel();
             }
         }
     }
@@ -85,17 +123,28 @@ public final class SafeSubscriber<T> implements Subscriber<T> {
             Conformance.subscriptionNonNull(s);
             done = true;
             try {
-                actual.onComplete();
-            } catch (Throwable t) {
-                handleUncaught(t);
+                try {
+                    actual.onComplete();
+                } catch (NullPointerException npe) {
+                    throw npe;
+                } catch (Throwable t) {
+                    handleUncaught(Conformance.onCompleteThrew(t));
+                }
             } finally {
-                s.cancel();
+                subscription.cancel();
             }
         }
     }
-    
+    /**
+     * Handles the any uncaught exceptions.
+     * @param t the uncaught exception
+     */
     private void handleUncaught(Throwable t) {
-        Thread ct = Thread.currentThread();
-        ct.getUncaughtExceptionHandler().uncaughtException(ct, t);
+        try {
+            Exceptions.handleUncaught(t);
+            RxJavaFlowPlugins.getInstance().getErrorHandler().handleError(t);
+        } catch (Throwable e) {
+            // nowhere to go now
+        }
     }
 }
