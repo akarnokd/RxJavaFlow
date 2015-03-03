@@ -29,7 +29,9 @@ public abstract class AbstractSubscription<T> implements Subscription, Disposabl
     /** The current requested count, negative value indicates cancelled subscription. */
     private volatile long requested;
     private static final long REQUESTED = addressOf(AbstractSubscription.class, "requested");
+    
     private final Subscriber<? super T> subscriber;
+    
     public AbstractSubscription(Subscriber<? super T> subscriber) {
         this.subscriber = Conformance.subscriberNonNull(subscriber);
     }
@@ -39,12 +41,7 @@ public abstract class AbstractSubscription<T> implements Subscription, Disposabl
     }
     @Override
     public final void dispose() {
-        if (requested >= 0) {
-            long r = UNSAFE.getAndSetLong(this, REQUESTED, Long.MIN_VALUE);
-            if (r >= 0) {
-                onCancelled();
-            }
-        }
+        cancel();
     }
     /**
      * Retrieves the remaining requests and disposes the subscription
@@ -62,30 +59,18 @@ public abstract class AbstractSubscription<T> implements Subscription, Disposabl
     }
     @Override
     public final void cancel() {
-        dispose();
+        if (TerminalAtomics.cancel(this, REQUESTED)) {
+            onCancelled();
+        }
     }
     @Override
     public final void request(long n) {
         if (!Conformance.requestPositive(n, subscriber)) {
+            cancel();
             return;
         }
-        if (n > 0) {
-            for (;;) {
-                long r = requested;
-                if (r < 0) {
-                    return;
-                }
-                long u = r + n;
-                if (u < 0) {
-                    u = Long.MAX_VALUE;
-                }
-                if (UNSAFE.compareAndSwapLong(this, REQUESTED, r, u)) {
-                    if (r == 0) {
-                        onRequested(u);
-                    }
-                    return;
-                }
-            }
+        if (TerminalAtomics.request(this, REQUESTED, n) == 0) {
+            onRequested(n);
         }
     }
     
@@ -106,24 +91,7 @@ public abstract class AbstractSubscription<T> implements Subscription, Disposabl
             dispose();
             return Long.MIN_VALUE;
         }
-        for (;;) {
-            long r = requested;
-            if (n == 0) {
-                return r;
-            }
-            if (r < 0) {
-                return Long.MIN_VALUE;
-            }
-            long u = r - n;
-            if (u < 0) {
-                subscriber.onError(new IllegalArgumentException("More produced (" + n + " than requested (" + r + ")!"));
-                dispose();
-                return Long.MIN_VALUE;
-            }
-            if (UNSAFE.compareAndSwapLong(this, REQUESTED, r, u)) {
-                return u;
-            }
-        }
+        return TerminalAtomics.producedChecked(this, REQUESTED, n, subscriber, this);
     }
     @Override
     public final Subscriber<? super T> subscriber() {

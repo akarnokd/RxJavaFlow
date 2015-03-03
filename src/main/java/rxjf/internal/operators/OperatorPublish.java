@@ -25,9 +25,13 @@ import rxjf.Flow.Subscription;
 import rxjf.disposables.Disposable;
 import rxjf.internal.*;
 import rxjf.internal.queues.SpscArrayQueue;
-import rxjf.internal.subscriptions.AbstractSubscription;
 import rxjf.subscribers.*;
 
+/**
+ * TODO javadoc
+ * 
+ * @param <T>
+ */
 public final class OperatorPublish<T> extends ConnectableFlowable<T> {
     final Flowable<? extends T> source;
 
@@ -74,6 +78,8 @@ public final class OperatorPublish<T> extends ConnectableFlowable<T> {
     static final class PublishSubscriber<T> extends AbstractSubscriber<T> {
         final NotificationLite<T> nl;
         final SpscArrayQueue<T> queue;
+        final PublishSubscriptionManager<T> psm;
+        
         Object terminal;
         volatile boolean done;
         
@@ -82,9 +88,10 @@ public final class OperatorPublish<T> extends ConnectableFlowable<T> {
         /** Guarded by this. */
         boolean missed;
         
-        public PublishSubscriber() {
+        public PublishSubscriber(PublishSubscriptionManager<T> psm) {
             this.nl = NotificationLite.instance();
             this.queue = new SpscArrayQueue<>(Flow.defaultBufferSize());
+            this.psm = psm;
         }
         @Override
         protected void onSubscribe() {
@@ -126,21 +133,64 @@ public final class OperatorPublish<T> extends ConnectableFlowable<T> {
         }
         
         void dispatch() {
-            // TODO
+            synchronized (this) {
+                if (emitting) {
+                    missed = true;
+                    return;
+                }
+                emitting = true;
+                missed = false;
+            }
+            boolean skipFinal = false;
+            try {
+                for (;;) {
+                    // TODO
+                    
+                    
+                    
+                    synchronized (this) {
+                        if (!missed) {
+                            skipFinal = true;
+                            emitting = false;
+                            return;
+                        }
+                        missed = false;
+                    }
+                }
+            } finally {
+                if (!skipFinal) {
+                    synchronized (this) {
+                        emitting = false;
+                    }
+                }
+            }
         }
     }
     
     static final class InnerSubscription<T> implements Subscription {
         /** The current requested count, negative value indicates cancelled subscription. */
         volatile long requested;
-        static final long REQUESTED = addressOf(AbstractSubscription.class, "requested");
-        
+        static final long REQUESTED = addressOf(InnerSubscription.class, "requested");
+
         final Subscriber<? super T> subscriber;
         final PublishSubscriber<T> parent;
+
+        volatile Disposable remove;
+        static final long REMOVE = addressOf(InnerSubscription.class, "remove");
         
         public InnerSubscription(Subscriber<? super T> subscriber, PublishSubscriber<T> parent) {
             this.subscriber = Conformance.subscriberNonNull(subscriber);
             this.parent = parent;
+            UNSAFE.putOrderedLong(this, REQUESTED, TerminalAtomics.NO_REQUEST);
+        }
+
+        /**
+         * Assigns a remove action to this Subscription, must be called
+         * before the subscription is set on a Subscriber.
+         */
+        public void setRemover() {
+            Disposable d = Disposable.from(() -> parent.psm.remove(this));
+            UNSAFE.putOrderedObject(this, REMOVE, d);
         }
         
         @Override
@@ -149,12 +199,15 @@ public final class OperatorPublish<T> extends ConnectableFlowable<T> {
                 cancel();
                 return;
             }
+            TerminalAtomics.request(this, REQUESTED, n);
+            parent.dispatch();
         }
         
         @Override
         public void cancel() {
-            // TODO Auto-generated method stub
-            
+            if (TerminalAtomics.cancel(this, REQUESTED)) {
+                TerminalAtomics.dispose(this, REMOVE);
+            }
         }
     }
 }

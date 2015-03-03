@@ -26,7 +26,7 @@ import rxjf.Flow.Subscription;
 import rxjf.Flowable.Operator;
 import rxjf.disposables.*;
 import rxjf.exceptions.CompositeException;
-import rxjf.internal.Conformance;
+import rxjf.internal.*;
 import rxjf.internal.queues.*;
 import rxjf.subscribers.AbstractSubscriber;
 
@@ -191,19 +191,7 @@ public final class OperatorMerge<T> implements Operator<T, Flowable<? extends T>
             if (!Conformance.requestPositive(n, this)) {
                 return;
             }
-            for (;;) {
-                long r = requested;
-                if (r < 0) {
-                    return;
-                }
-                long u = r + n;
-                if (u < 0) {
-                    u = Long.MAX_VALUE;
-                }
-                if (UNSAFE.compareAndSwapLong(this, REQUESTED, r, u)) {
-                    break;
-                }
-            }
+            TerminalAtomics.request(this, REQUESTED, n);
             drain();
         }
         
@@ -258,24 +246,7 @@ public final class OperatorMerge<T> implements Operator<T, Flowable<? extends T>
                 cancel();
                 return Long.MIN_VALUE;
             }
-            for (;;) {
-                long r = requested;
-                if (n == 0) {
-                    return r;
-                }
-                if (r < 0) {
-                    return Long.MIN_VALUE;
-                }
-                long u = r - n;
-                if (u < 0) {
-                    actual.onError(new IllegalArgumentException("More produced (" + n + " than requested (" + r + ")!"));
-                    cancel();
-                    return Long.MIN_VALUE;
-                }
-                if (UNSAFE.compareAndSwapLong(this, REQUESTED, r, u)) {
-                    return u;
-                }
-            }
+            return TerminalAtomics.producedChecked(this, REQUESTED, n, actual, this);
         }
         
         void drain() {
@@ -495,6 +466,7 @@ public final class OperatorMerge<T> implements Operator<T, Flowable<? extends T>
                     return;
                 }
                 done = true;
+                subscription.cancel();
                 errorInner(this, throwable);
             }
             @Override
@@ -504,6 +476,7 @@ public final class OperatorMerge<T> implements Operator<T, Flowable<? extends T>
                     return;
                 }
                 done = true;
+                subscription.cancel();
                 completeInner(this);
             }
         }
