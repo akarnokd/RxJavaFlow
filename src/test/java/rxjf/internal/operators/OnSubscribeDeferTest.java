@@ -28,7 +28,7 @@ import org.junit.Test;
 import rx.Flowable;
 import rx.Observer;
 import rx.exceptions.TestException;
-import rx.functions.Func0;
+import rx.functions.Supplier;
 
 @SuppressWarnings("unchecked")
 public class OnSubscribeDeferTest {
@@ -36,7 +36,7 @@ public class OnSubscribeDeferTest {
     @Test
     public void testDefer() throws Throwable {
 
-        Func0<Flowable<String>> factory = mock(Func0.class);
+        Supplier<Flowable<String>> factory = mock(Supplier.class);
 
         Flowable<String> firstFlowable = Flowable.just("one", "two");
         Flowable<String> secondFlowable = Flowable.just("three", "four");
@@ -70,7 +70,7 @@ public class OnSubscribeDeferTest {
     
     @Test
     public void testDeferFunctionThrows() {
-        Func0<Flowable<String>> factory = mock(Func0.class);
+        Supplier<Flowable<String>> factory = mock(Supplier.class);
         
         when(factory.call()).thenThrow(new TestException());
         

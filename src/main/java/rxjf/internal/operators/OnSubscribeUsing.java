@@ -25,7 +25,7 @@ import rx.Subscription;
 import rx.exceptions.CompositeException;
 import rx.functions.Action0;
 import rx.functions.Action1;
-import rx.functions.Func0;
+import rx.functions.Supplier;
 import rx.functions.Function;
 
 /**
@@ -33,12 +33,12 @@ import rx.functions.Function;
  */
 public final class OnSubscribeUsing<T, Resource> implements OnSubscribe<T> {
 
-    private final Func0<Resource> resourceFactory;
+    private final Supplier<Resource> resourceFactory;
     private final Function<? super Resource, ? extends Flowable<? extends T>> observableFactory;
     private final Action1<? super Resource> dispose;
     private final boolean disposeEagerly;
 
-    public OnSubscribeUsing(Func0<Resource> resourceFactory,
+    public OnSubscribeUsing(Supplier<Resource> resourceFactory,
             Function<? super Resource, ? extends Flowable<? extends T>> observableFactory,
             Action1<? super Resource> dispose, boolean disposeEagerly) {
         this.resourceFactory = resourceFactory;

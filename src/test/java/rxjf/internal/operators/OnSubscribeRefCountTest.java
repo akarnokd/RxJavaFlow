@@ -542,7 +542,7 @@ public class OnSubscribeRefCountTest {
                         .flatMap(new Function<Long, Flowable<String>>() {
                             @Override
                             public Flowable<String> call(Long t1) {
-                                return Flowable.defer(new Func0<Flowable<String>>() {
+                                return Flowable.defer(new Supplier<Flowable<String>>() {
                                     @Override
                                     public Flowable<String> call() {
                                         return Flowable.<String>error(new Exception("Some exception"));

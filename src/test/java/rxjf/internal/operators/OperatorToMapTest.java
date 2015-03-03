@@ -31,7 +31,7 @@ import org.mockito.MockitoAnnotations;
 
 import rx.Flowable;
 import rx.Observer;
-import rx.functions.Func0;
+import rx.functions.Supplier;
 import rx.functions.Function;
 import rx.internal.util.UtilityFunctions;
 
@@ -158,7 +158,7 @@ public class OperatorToMapTest {
     public void testToMapWithFactory() {
         Flowable<String> source = Flowable.just("a", "bb", "ccc", "dddd");
 
-        Func0<Map<Integer, String>> mapFactory = new Func0<Map<Integer, String>>() {
+        Supplier<Map<Integer, String>> mapFactory = new Supplier<Map<Integer, String>>() {
             @Override
             public Map<Integer, String> call() {
                 return new LinkedHashMap<Integer, String>() {
@@ -197,7 +197,7 @@ public class OperatorToMapTest {
     public void testToMapWithErrorThrowingFactory() {
         Flowable<String> source = Flowable.just("a", "bb", "ccc", "dddd");
 
-        Func0<Map<Integer, String>> mapFactory = new Func0<Map<Integer, String>>() {
+        Supplier<Map<Integer, String>> mapFactory = new Supplier<Map<Integer, String>>() {
             @Override
             public Map<Integer, String> call() {
                 throw new RuntimeException("Forced failure");

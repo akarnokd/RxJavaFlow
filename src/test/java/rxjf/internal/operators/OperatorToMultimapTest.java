@@ -36,7 +36,7 @@ import org.mockito.MockitoAnnotations;
 
 import rx.Flowable;
 import rx.Observer;
-import rx.functions.Func0;
+import rx.functions.Supplier;
 import rx.functions.Function;
 import rx.internal.operators.OperatorToMultimap.DefaultMultimapCollectionFactory;
 import rx.internal.operators.OperatorToMultimap.DefaultToMultimapFactory;
@@ -102,7 +102,7 @@ public class OperatorToMultimapTest {
     public void testToMultimapWithMapFactory() {
         Flowable<String> source = Flowable.just("a", "b", "cc", "dd", "eee", "fff");
 
-        Func0<Map<Integer, Collection<String>>> mapFactory = new Func0<Map<Integer, Collection<String>>>() {
+        Supplier<Map<Integer, Collection<String>>> mapFactory = new Supplier<Map<Integer, Collection<String>>>() {
             @Override
             public Map<Integer, Collection<String>> call() {
                 return new LinkedHashMap<Integer, Collection<String>>() {
@@ -221,7 +221,7 @@ public class OperatorToMultimapTest {
     public void testToMultimapWithMapThrowingFactory() {
         Flowable<String> source = Flowable.just("a", "b", "cc", "dd", "eee", "fff");
 
-        Func0<Map<Integer, Collection<String>>> mapFactory = new Func0<Map<Integer, Collection<String>>>() {
+        Supplier<Map<Integer, Collection<String>>> mapFactory = new Supplier<Map<Integer, Collection<String>>>() {
             @Override
             public Map<Integer, Collection<String>> call() {
                 throw new RuntimeException("Forced failure");

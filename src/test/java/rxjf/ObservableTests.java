@@ -50,7 +50,7 @@ import rx.Flowable.Transformer;
 import rx.exceptions.OnErrorNotImplementedException;
 import rx.functions.Action1;
 import rx.functions.Action2;
-import rx.functions.Func0;
+import rx.functions.Supplier;
 import rx.functions.Function;
 import rx.functions.BiFunction;
 import rx.observables.ConnectableFlowable;
@@ -966,7 +966,7 @@ public class FlowableTests {
 
     @Test
     public void testCollectToList() {
-        Flowable<List<Integer>> o = Flowable.just(1, 2, 3).collect(new Func0<List<Integer>>() {
+        Flowable<List<Integer>> o = Flowable.just(1, 2, 3).collect(new Supplier<List<Integer>>() {
 
             @Override
             public List<Integer> call() {
@@ -999,7 +999,7 @@ public class FlowableTests {
 
     @Test
     public void testCollectToString() {
-        String value = Flowable.just(1, 2, 3).collect(new Func0<StringBuilder>() {
+        String value = Flowable.just(1, 2, 3).collect(new Supplier<StringBuilder>() {
 
             @Override
             public StringBuilder call() {

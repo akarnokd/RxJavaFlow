@@ -22,16 +22,16 @@ import rx.Flowable;
 import rx.Flowable.Operator;
 import rx.Observer;
 import rx.Subscriber;
-import rx.functions.Func0;
+import rx.functions.Supplier;
 import rx.observers.SerializedSubscriber;
 import rx.observers.Subscribers;
 
 /**
  * This operation takes
  * values from the specified {@link Flowable} source and stores them in a buffer until the
- * {@link Flowable} constructed using the {@link Func0} argument, produces a value. The buffer is then
+ * {@link Flowable} constructed using the {@link Supplier} argument, produces a value. The buffer is then
  * emitted, and a new buffer is created to replace it. A new {@link Flowable} will be constructed using
- * the provided {@link Func0} object, which will determine when this new buffer is emitted. When the source
+ * the provided {@link Supplier} object, which will determine when this new buffer is emitted. When the source
  * {@link Flowable} completes or produces an error, the current buffer is emitted, and the event is
  * propagated to all subscribed {@link Observer}s.
  * <p>
@@ -43,15 +43,15 @@ import rx.observers.Subscribers;
  */
 
 public final class OperatorBufferWithSingleFlowable<T, TClosing> implements Operator<List<T>, T> {
-    final Func0<? extends Flowable<? extends TClosing>> bufferClosingSelector;
+    final Supplier<? extends Flowable<? extends TClosing>> bufferClosingSelector;
     final int initialCapacity;
     /**
      * @param bufferClosingSelector
-     *            a {@link Func0} object which produces {@link Flowable}s. These {@link Flowable}s determine
+     *            a {@link Supplier} object which produces {@link Flowable}s. These {@link Flowable}s determine
      *            when a buffer is emitted and replaced by simply producing an object.
      * @param initialCapacity the initial capacity of each buffer
      */
-    public OperatorBufferWithSingleFlowable(Func0<? extends Flowable<? extends TClosing>> bufferClosingSelector,
+    public OperatorBufferWithSingleFlowable(Supplier<? extends Flowable<? extends TClosing>> bufferClosingSelector,
             int initialCapacity) {
         this.bufferClosingSelector = bufferClosingSelector;
         this.initialCapacity = initialCapacity;
@@ -64,7 +64,7 @@ public final class OperatorBufferWithSingleFlowable<T, TClosing> implements Oper
      */
     public OperatorBufferWithSingleFlowable(final Flowable<? extends TClosing> bufferClosing,
             int initialCapacity) {
-        this.bufferClosingSelector = new Func0<Flowable<? extends TClosing>>() {
+        this.bufferClosingSelector = new Supplier<Flowable<? extends TClosing>>() {
             @Override
             public Flowable<? extends TClosing> call() {
                 return bufferClosing;

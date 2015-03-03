@@ -13,18 +13,15 @@
  * License for the specific language governing permissions and limitations under
  * the License.
  */
-package rx.internal.operators;
+package rxjf.internal.operators;
 
-import rx.Flowable;
-import rx.Flowable.OnSubscribe;
-import rx.Subscriber;
-import rx.Subscription;
-import rx.functions.Action1;
-import rx.functions.Func0;
-import rx.functions.Function;
-import rx.observables.ConnectableFlowable;
-import rx.observers.SafeSubscriber;
-import rx.subjects.Subject;
+import java.util.function.*;
+
+import rxjf.*;
+import rxjf.Flow.Processor;
+import rxjf.Flow.Subscriber;
+import rxjf.Flowable.OnSubscribe;
+import rxjf.subscribers.*;
 
 /**
  * Returns an observable sequence that contains the elements of a sequence
@@ -38,11 +35,11 @@ import rx.subjects.Subject;
  */
 public final class OnSubscribeMulticastSelector<TInput, TIntermediate, TResult> implements OnSubscribe<TResult> {
     final Flowable<? extends TInput> source;
-    final Func0<? extends Subject<? super TInput, ? extends TIntermediate>> subjectFactory;
+    final Supplier<? extends Processor<? super TInput, ? extends TIntermediate>> subjectFactory;
     final Function<? super Flowable<TIntermediate>, ? extends Flowable<TResult>> resultSelector;
     
     public OnSubscribeMulticastSelector(Flowable<? extends TInput> source,
-            Func0<? extends Subject<? super TInput, ? extends TIntermediate>> subjectFactory,
+            Supplier<? extends Processor<? super TInput, ? extends TIntermediate>> subjectFactory,
             Function<? super Flowable<TIntermediate>, ? extends Flowable<TResult>> resultSelector) {
         this.source = source;
         this.subjectFactory = subjectFactory;
@@ -50,28 +47,23 @@ public final class OnSubscribeMulticastSelector<TInput, TIntermediate, TResult> 
     }
     
     @Override
-    public void call(Subscriber<? super TResult> child) {
+    public void accept(Subscriber<? super TResult> child) {
         Flowable<TResult> observable;
         ConnectableFlowable<TIntermediate> connectable;
         try {
             connectable = new OperatorMulticast<TInput, TIntermediate>(source, subjectFactory);
             
-            observable = resultSelector.call(connectable);
+            observable = resultSelector.apply(connectable);
         } catch (Throwable t) {
             child.onError(t);
             return;
         }
         
-        final SafeSubscriber<TResult> s = new SafeSubscriber<TResult>(child);
+        AbstractDisposableSubscriber<? super TResult> ds = DefaultDisposableSubscriber.wrap(child);
         
-        observable.unsafeSubscribe(s);
+        observable.subscribe(ds);
         
-        connectable.connect(new Action1<Subscription>() {
-            @Override
-            public void call(Subscription t1) {
-                s.add(t1);
-            }
-        });
+        connectable.connect(ds::add);
     }
     
 }

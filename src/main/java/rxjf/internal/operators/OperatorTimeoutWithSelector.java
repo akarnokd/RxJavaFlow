@@ -20,7 +20,7 @@ import rx.Scheduler;
 import rx.Subscriber;
 import rx.Subscription;
 import rx.exceptions.Exceptions;
-import rx.functions.Func0;
+import rx.functions.Supplier;
 import rx.functions.Function;
 import rx.schedulers.Schedulers;
 import rx.subscriptions.Subscriptions;
@@ -35,7 +35,7 @@ public class OperatorTimeoutWithSelector<T, U, V> extends
         OperatorTimeoutBase<T> {
 
     public OperatorTimeoutWithSelector(
-            final Func0<? extends Flowable<U>> firstTimeoutSelector,
+            final Supplier<? extends Flowable<U>> firstTimeoutSelector,
             final Function<? super T, ? extends Flowable<V>> timeoutSelector,
             Flowable<? extends T> other) {
         super(new FirstTimeoutStub<T>() {

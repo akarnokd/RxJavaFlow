@@ -26,7 +26,7 @@ import org.junit.Test;
 
 import rx.Observer;
 import rx.Subscription;
-import rx.functions.Func0;
+import rx.functions.Supplier;
 import rx.observables.ConnectableFlowable;
 import rx.subjects.PublishSubject;
 import rx.subjects.Subject;
@@ -119,7 +119,7 @@ public class OperatorMulticastTest {
 
     }
     
-    private static final class PublishSubjectFactory implements Func0<Subject<String, String>> {
+    private static final class PublishSubjectFactory implements Supplier<Subject<String, String>> {
 
         @Override
         public Subject<String, String> call() {

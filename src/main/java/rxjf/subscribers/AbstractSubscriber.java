@@ -44,7 +44,7 @@ public abstract class AbstractSubscriber<T> implements Subscriber<T> {
         subscription.request(Long.MAX_VALUE);
     }
     public AbstractDisposableSubscriber<T> toDisposable() {
-        return DisposableSubscriber.wrap(this);
+        return DefaultDisposableSubscriber.wrap(this);
     }
     public SerializedSubscriber<T> toSerialized() {
         return SerializedSubscriber.wrap(this);

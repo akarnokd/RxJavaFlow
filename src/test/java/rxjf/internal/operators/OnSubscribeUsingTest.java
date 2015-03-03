@@ -38,7 +38,7 @@ import rx.Subscription;
 import rx.exceptions.TestException;
 import rx.functions.Action0;
 import rx.functions.Action1;
-import rx.functions.Func0;
+import rx.functions.Supplier;
 import rx.functions.Function;
 import rx.subscriptions.Subscriptions;
 
@@ -82,7 +82,7 @@ public class OnSubscribeUsingTest {
         final Resource resource = mock(Resource.class);
         when(resource.getTextFromWeb()).thenReturn("Hello world!");
 
-        Func0<Resource> resourceFactory = new Func0<Resource>() {
+        Supplier<Resource> resourceFactory = new Supplier<Resource>() {
             @Override
             public Resource call() {
                 return resource;
@@ -124,7 +124,7 @@ public class OnSubscribeUsingTest {
 
     private void performTestUsingWithSubscribingTwice(boolean disposeEagerly) {
         // When subscribe is called, a new resource should be created.
-        Func0<Resource> resourceFactory = new Func0<Resource>() {
+        Supplier<Resource> resourceFactory = new Supplier<Resource>() {
             @Override
             public Resource call() {
                 return new Resource() {
@@ -186,7 +186,7 @@ public class OnSubscribeUsingTest {
     }
 
     private void performTestUsingWithResourceFactoryError(boolean disposeEagerly) {
-        Func0<Subscription> resourceFactory = new Func0<Subscription>() {
+        Supplier<Subscription> resourceFactory = new Supplier<Subscription>() {
             @Override
             public Subscription call() {
                 throw new TestException();
@@ -216,7 +216,7 @@ public class OnSubscribeUsingTest {
 
     private void performTestUsingWithFlowableFactoryError(boolean disposeEagerly) {
         final Action0 unsubscribe = mock(Action0.class);
-        Func0<Subscription> resourceFactory = new Func0<Subscription>() {
+        Supplier<Subscription> resourceFactory = new Supplier<Subscription>() {
             @Override
             public Subscription call() {
                 return Subscriptions.create(unsubscribe);
@@ -253,7 +253,7 @@ public class OnSubscribeUsingTest {
 
     private void performTestUsingWithFlowableFactoryErrorInOnSubscribe(boolean disposeEagerly) {
         final Action0 unsubscribe = mock(Action0.class);
-        Func0<Subscription> resourceFactory = new Func0<Subscription>() {
+        Supplier<Subscription> resourceFactory = new Supplier<Subscription>() {
             @Override
             public Subscription call() {
                 return Subscriptions.create(unsubscribe);
@@ -287,7 +287,7 @@ public class OnSubscribeUsingTest {
     @Test
     public void testUsingDisposesEagerlyBeforeCompletion() {
         final List<String> events = new ArrayList<String>();
-        Func0<Resource> resourceFactory = createResourceFactory(events);
+        Supplier<Resource> resourceFactory = createResourceFactory(events);
         final Action0 completion = createonComplete()Action(events);
         final Action0 unsub =createUnsubAction(events);
 
@@ -312,7 +312,7 @@ public class OnSubscribeUsingTest {
     @Test
     public void testUsingDoesNotDisposesEagerlyBeforeCompletion() {
         final List<String> events = new ArrayList<String>();
-        Func0<Resource> resourceFactory = createResourceFactory(events);
+        Supplier<Resource> resourceFactory = createResourceFactory(events);
         final Action0 completion = createonComplete()Action(events);
         final Action0 unsub =createUnsubAction(events);
 
@@ -339,7 +339,7 @@ public class OnSubscribeUsingTest {
     @Test
     public void testUsingDisposesEagerlyBeforeError() {
         final List<String> events = new ArrayList<String>();
-        Func0<Resource> resourceFactory = createResourceFactory(events);
+        Supplier<Resource> resourceFactory = createResourceFactory(events);
         final Action1<Throwable> onError = createOnErrorAction(events);
         final Action0 unsub = createUnsubAction(events);
         
@@ -364,7 +364,7 @@ public class OnSubscribeUsingTest {
     @Test
     public void testUsingDoesNotDisposesEagerlyBeforeError() {
         final List<String> events = new ArrayList<String>();
-        Func0<Resource> resourceFactory = createResourceFactory(events);
+        Supplier<Resource> resourceFactory = createResourceFactory(events);
         final Action1<Throwable> onError = createOnErrorAction(events);
         final Action0 unsub = createUnsubAction(events);
         
@@ -403,8 +403,8 @@ public class OnSubscribeUsingTest {
         };
     }
 
-    private static Func0<Resource> createResourceFactory(final List<String> events) {
-        return new Func0<Resource>() {
+    private static Supplier<Resource> createResourceFactory(final List<String> events) {
+        return new Supplier<Resource>() {
             @Override
             public Resource call() {
                 return new Resource() {

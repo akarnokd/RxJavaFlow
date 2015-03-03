@@ -472,7 +472,7 @@ public class OperatorMergeTest {
 
     private Flowable<Long> createFlowableOf5IntervalsOf1SecondIncrementsWithSubscriptionHook(final Scheduler scheduler, final AtomicBoolean unsubscribed) {
         return Flowable.create(s -> {
-            AbstractDisposableSubscriber<? super Long> d = DisposableSubscriber.wrap(s);
+            AbstractDisposableSubscriber<? super Long> d = DefaultDisposableSubscriber.wrap(s);
             d.add(Disposable.from(() -> unsubscribed.set(true)));
             
             Flowable.interval(1, TimeUnit.SECONDS, scheduler).take(5).subscribe(s);

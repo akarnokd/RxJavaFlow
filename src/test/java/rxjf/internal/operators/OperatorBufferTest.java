@@ -45,7 +45,7 @@ import rx.Subscription;
 import rx.exceptions.TestException;
 import rx.functions.Action0;
 import rx.functions.Action1;
-import rx.functions.Func0;
+import rx.functions.Supplier;
 import rx.functions.Function;
 import rx.observers.TestSubscriber;
 import rx.schedulers.TestScheduler;
@@ -283,7 +283,7 @@ public class OperatorBufferTest {
             }
         });
 
-        Func0<Flowable<Object>> closer = new Func0<Flowable<Object>>() {
+        Supplier<Flowable<Object>> closer = new Supplier<Flowable<Object>>() {
             @Override
             public Flowable<Object> call() {
                 return Flowable.create(new Flowable.OnSubscribe<Object>() {

@@ -265,7 +265,7 @@ public abstract class AbstractSchedulerConcurrencyTests extends AbstractSchedule
             Flowable<Integer> obs = Flowable.create(new OnSubscribe<Integer>() {
                 @Override
                 public void accept(final Subscriber<? super Integer> child) {
-                    AbstractDisposableSubscriber<? super Integer> cs = DisposableSubscriber.wrap(child);
+                    AbstractDisposableSubscriber<? super Integer> cs = DefaultDisposableSubscriber.wrap(child);
                     inner.schedule(new Runnable() {
                         @Override
                         public void run() {

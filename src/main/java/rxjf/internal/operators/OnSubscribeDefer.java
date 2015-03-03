@@ -18,7 +18,7 @@ package rx.internal.operators;
 import rx.Flowable;
 import rx.Flowable.OnSubscribe;
 import rx.Subscriber;
-import rx.functions.Func0;
+import rx.functions.Supplier;
 
 /**
  * Do not create the Flowable until an Observer subscribes; create a fresh Flowable on each
@@ -31,9 +31,9 @@ import rx.functions.Func0;
  * each time a new Observer subscribes.
  */
 public final class OnSubscribeDefer<T> implements OnSubscribe<T> {
-    final Func0<? extends Flowable<? extends T>> observableFactory;
+    final Supplier<? extends Flowable<? extends T>> observableFactory;
 
-    public OnSubscribeDefer(Func0<? extends Flowable<? extends T>> observableFactory) {
+    public OnSubscribeDefer(Supplier<? extends Flowable<? extends T>> observableFactory) {
         this.observableFactory = observableFactory;
     }
 

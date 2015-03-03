@@ -199,7 +199,7 @@ public class AsyncProcessorTest {
 
         @SuppressWarnings("unchecked")
         Subscriber<String> observer = mock(Subscriber.class);
-        AbstractDisposableSubscriber<String> disposable = DisposableSubscriber.wrap(observer);
+        AbstractDisposableSubscriber<String> disposable = DefaultDisposableSubscriber.wrap(observer);
         subject.subscribe(disposable);
 
         subject.onNext("one");

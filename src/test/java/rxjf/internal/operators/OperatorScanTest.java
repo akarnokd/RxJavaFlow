@@ -38,7 +38,7 @@ import rx.Observer;
 import rx.Producer;
 import rx.Subscriber;
 import rx.functions.Action2;
-import rx.functions.Func0;
+import rx.functions.Supplier;
 import rx.functions.Function;
 import rx.functions.BiFunction;
 import rx.observers.TestSubscriber;
@@ -276,7 +276,7 @@ public class OperatorScanTest {
     @Test
     public void testSeedFactory() {
         Flowable<List<Integer>> o = Flowable.range(1, 10)
-                .collect(new Func0<List<Integer>>() {
+                .collect(new Supplier<List<Integer>>() {
 
                     @Override
                     public List<Integer> call() {

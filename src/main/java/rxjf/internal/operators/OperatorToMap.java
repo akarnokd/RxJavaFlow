@@ -21,7 +21,7 @@ import java.util.Map;
 
 import rx.Flowable.Operator;
 import rx.Subscriber;
-import rx.functions.Func0;
+import rx.functions.Supplier;
 import rx.functions.Function;
 
 /**
@@ -35,7 +35,7 @@ public final class OperatorToMap<T, K, V> implements Operator<Map<K, V>, T> {
     /**
      * The default map factory.
      */
-    public static final class DefaultToMapFactory<K, V> implements Func0<Map<K, V>> {
+    public static final class DefaultToMapFactory<K, V> implements Supplier<Map<K, V>> {
         @Override
         public Map<K, V> call() {
             return new HashMap<K, V>();
@@ -47,7 +47,7 @@ public final class OperatorToMap<T, K, V> implements Operator<Map<K, V>, T> {
 
     private final Function<? super T, ? extends V> valueSelector;
 
-    private final Func0<? extends Map<K, V>> mapFactory;
+    private final Supplier<? extends Map<K, V>> mapFactory;
 
 
     /**
@@ -66,7 +66,7 @@ public final class OperatorToMap<T, K, V> implements Operator<Map<K, V>, T> {
     public OperatorToMap(
             Function<? super T, ? extends K> keySelector,
             Function<? super T, ? extends V> valueSelector,
-            Func0<? extends Map<K, V>> mapFactory) {
+            Supplier<? extends Map<K, V>> mapFactory) {
         this.keySelector = keySelector;
         this.valueSelector = valueSelector;
         this.mapFactory = mapFactory;

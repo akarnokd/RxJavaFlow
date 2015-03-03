@@ -22,7 +22,7 @@ import rx.Flowable;
 import rx.Flowable.Operator;
 import rx.Observer;
 import rx.Subscriber;
-import rx.functions.Func0;
+import rx.functions.Supplier;
 import rx.observers.SerializedSubscriber;
 import rx.observers.Subscribers;
 
@@ -34,13 +34,13 @@ import rx.observers.Subscribers;
  * @param <U> the boundary value type
  */
 public final class OperatorWindowWithFlowable<T, U> implements Operator<Flowable<T>, T> {
-    final Func0<? extends Flowable<? extends U>> otherFactory;
+    final Supplier<? extends Flowable<? extends U>> otherFactory;
 
-    public OperatorWindowWithFlowable(Func0<? extends Flowable<? extends U>> otherFactory) {
+    public OperatorWindowWithFlowable(Supplier<? extends Flowable<? extends U>> otherFactory) {
         this.otherFactory = otherFactory;
     }
     public OperatorWindowWithFlowable(final Flowable<U> other) {
-        this.otherFactory = new Func0<Flowable<U>>() {
+        this.otherFactory = new Supplier<Flowable<U>>() {
 
             @Override
             public Flowable<U> call() {

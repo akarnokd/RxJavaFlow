@@ -77,7 +77,7 @@ public final class ScalarSynchronousFlow<T> extends Flowable<T> {
         }
         @Override
         public void accept(final Subscriber<? super T> child) {
-            AbstractDisposableSubscriber<? super T> cs = DisposableSubscriber.wrap(child);
+            AbstractDisposableSubscriber<? super T> cs = DefaultDisposableSubscriber.wrap(child);
             cs.add(es.scheduleDirect(new ScalarSynchronousAction<>(cs, value)));
         }
     }
@@ -93,7 +93,7 @@ public final class ScalarSynchronousFlow<T> extends Flowable<T> {
         
         @Override
         public void accept(final Subscriber<? super T> child) {
-            AbstractDisposableSubscriber<? super T> cs = DisposableSubscriber.wrap(child);
+            AbstractDisposableSubscriber<? super T> cs = DefaultDisposableSubscriber.wrap(child);
             Scheduler.Worker worker = scheduler.createWorker();
             cs.add(worker);
             worker.schedule(new ScalarSynchronousAction<>(cs, value));

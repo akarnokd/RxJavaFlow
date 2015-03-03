@@ -23,7 +23,7 @@ import java.util.Map;
 
 import rx.Flowable.Operator;
 import rx.Subscriber;
-import rx.functions.Func0;
+import rx.functions.Supplier;
 import rx.functions.Function;
 
 /**
@@ -37,7 +37,7 @@ public final class OperatorToMultimap<T, K, V> implements Operator<Map<K, Collec
     /**
      * The default multimap factory returning a HashMap.
      */
-    public static final class DefaultToMultimapFactory<K, V> implements Func0<Map<K, Collection<V>>> {
+    public static final class DefaultToMultimapFactory<K, V> implements Supplier<Map<K, Collection<V>>> {
         @Override
         public Map<K, Collection<V>> call() {
             return new HashMap<K, Collection<V>>();
@@ -58,7 +58,7 @@ public final class OperatorToMultimap<T, K, V> implements Operator<Map<K, Collec
 
     private final Function<? super T, ? extends K> keySelector;
     private final Function<? super T, ? extends V> valueSelector;
-    private final Func0<? extends Map<K, Collection<V>>> mapFactory;
+    private final Supplier<? extends Map<K, Collection<V>>> mapFactory;
     private final Function<? super K, ? extends Collection<V>> collectionFactory;
 
     /**
@@ -80,7 +80,7 @@ public final class OperatorToMultimap<T, K, V> implements Operator<Map<K, Collec
     public OperatorToMultimap(
             Function<? super T, ? extends K> keySelector,
             Function<? super T, ? extends V> valueSelector,
-            Func0<? extends Map<K, Collection<V>>> mapFactory) {
+            Supplier<? extends Map<K, Collection<V>>> mapFactory) {
         this(keySelector, valueSelector,
                 mapFactory,
                 new DefaultMultimapCollectionFactory<K, V>());
@@ -93,7 +93,7 @@ public final class OperatorToMultimap<T, K, V> implements Operator<Map<K, Collec
     public OperatorToMultimap(
             Function<? super T, ? extends K> keySelector,
             Function<? super T, ? extends V> valueSelector,
-            Func0<? extends Map<K, Collection<V>>> mapFactory,
+            Supplier<? extends Map<K, Collection<V>>> mapFactory,
             Function<? super K, ? extends Collection<V>> collectionFactory) {
         this.keySelector = keySelector;
         this.valueSelector = valueSelector;

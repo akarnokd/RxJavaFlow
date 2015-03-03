@@ -42,7 +42,7 @@ public final class OnSubscribeTimerPeriodically implements OnSubscribe<Long> {
     @Override
     public void accept(final Subscriber<? super Long> child) {
         final Scheduler.Worker worker = scheduler.createWorker();
-        AbstractDisposableSubscriber<? super Long> cs = DisposableSubscriber.wrap(child);
+        AbstractDisposableSubscriber<? super Long> cs = DefaultDisposableSubscriber.wrap(child);
         cs.add(worker);
         worker.schedule(new Runnable() {
             long counter;

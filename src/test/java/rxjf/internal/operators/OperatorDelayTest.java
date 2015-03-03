@@ -42,7 +42,7 @@ import rx.Observer;
 import rx.Subscription;
 import rx.exceptions.TestException;
 import rx.functions.Action1;
-import rx.functions.Func0;
+import rx.functions.Supplier;
 import rx.functions.Function;
 import rx.internal.util.RxRingBuffer;
 import rx.observers.TestObserver;
@@ -390,7 +390,7 @@ public class OperatorDelayTest {
     public void testDelayWithFlowableSubscriptionNormal() {
         PublishSubject<Integer> source = PublishSubject.create();
         final PublishSubject<Integer> delay = PublishSubject.create();
-        Func0<Flowable<Integer>> subFunc = new Func0<Flowable<Integer>>() {
+        Supplier<Flowable<Integer>> subFunc = new Supplier<Flowable<Integer>>() {
             @Override
             public Flowable<Integer> call() {
                 return delay;
@@ -426,7 +426,7 @@ public class OperatorDelayTest {
     public void testDelayWithFlowableSubscriptionFunctionThrows() {
         PublishSubject<Integer> source = PublishSubject.create();
         final PublishSubject<Integer> delay = PublishSubject.create();
-        Func0<Flowable<Integer>> subFunc = new Func0<Flowable<Integer>>() {
+        Supplier<Flowable<Integer>> subFunc = new Supplier<Flowable<Integer>>() {
             @Override
             public Flowable<Integer> call() {
                 throw new TestException();
@@ -461,7 +461,7 @@ public class OperatorDelayTest {
     public void testDelayWithFlowableSubscriptionThrows() {
         PublishSubject<Integer> source = PublishSubject.create();
         final PublishSubject<Integer> delay = PublishSubject.create();
-        Func0<Flowable<Integer>> subFunc = new Func0<Flowable<Integer>>() {
+        Supplier<Flowable<Integer>> subFunc = new Supplier<Flowable<Integer>>() {
             @Override
             public Flowable<Integer> call() {
                 return delay;
@@ -523,7 +523,7 @@ public class OperatorDelayTest {
         PublishSubject<Integer> source = PublishSubject.create();
         final PublishSubject<Integer> sdelay = PublishSubject.create();
         final PublishSubject<Integer> delay = PublishSubject.create();
-        Func0<Flowable<Integer>> subFunc = new Func0<Flowable<Integer>>() {
+        Supplier<Flowable<Integer>> subFunc = new Supplier<Flowable<Integer>>() {
             @Override
             public Flowable<Integer> call() {
                 return sdelay;
@@ -762,7 +762,7 @@ public class OperatorDelayTest {
     public void testBackpressureWithSelectorDelayAndSubscriptionDelay() {
         TestSubscriber<Integer> ts = new TestSubscriber<Integer>();
         Flowable.range(1, RxRingBuffer.SIZE * 2)
-                .delay(new Func0<Flowable<Long>>() {
+                .delay(new Supplier<Flowable<Long>>() {
 
                     @Override
                     public Flowable<Long> call() {

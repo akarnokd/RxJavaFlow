@@ -17,14 +17,13 @@
 package rxjf.subscribers;
 
 import static rxjf.internal.UnsafeAccess.*;
-import rxjf.Flow.Subscriber;
 import rxjf.Flow.Subscription;
 import rxjf.disposables.*;
 import rxjf.internal.Conformance;
 /**
  * 
  */
-public abstract class AbstractDisposableSubscriber<T> implements Subscriber<T>, Disposable {
+public abstract class AbstractDisposableSubscriber<T> implements DisposableSubscriber<T> {
     volatile Subscription subscription;
     static final long SUBSCRIPTION = addressOf(AbstractDisposableSubscriber.class, "subscription");
     static final Subscription TERMINATED = new Subscription() {
@@ -100,6 +99,8 @@ public abstract class AbstractDisposableSubscriber<T> implements Subscriber<T>, 
             }
         }
     }
+    
+    @Override
     public final void add(Disposable disposable) {
         composite.add(disposable);
     }

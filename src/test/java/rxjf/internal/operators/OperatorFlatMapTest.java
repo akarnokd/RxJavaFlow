@@ -140,8 +140,8 @@ public class OperatorFlatMapTest {
         };
     }
 
-    <R> Func0<R> just0(final R value) {
-        return new Func0<R>() {
+    <R> Supplier<R> just0(final R value) {
+        return new Supplier<R>() {
 
             @Override
             public R call() {
@@ -200,8 +200,8 @@ public class OperatorFlatMapTest {
         verify(o, never()).onError(any(Throwable.class));
     }
 
-    <R> Func0<R> funcThrow0(R r) {
-        return new Func0<R>() {
+    <R> Supplier<R> funcThrow0(R r) {
+        return new Supplier<R>() {
             @Override
             public R call() {
                 throw new TestException();

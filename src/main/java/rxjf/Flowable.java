@@ -387,7 +387,7 @@ public class Flowable<T> implements Publisher<T> {
     
     // TODO javadoc
     public final Disposable subscribeDisposable(Subscriber<? super T> subscriber) {
-        AbstractDisposableSubscriber<? super T> cs = DisposableSubscriber.wrap(subscriber);
+        AbstractDisposableSubscriber<? super T> cs = DefaultDisposableSubscriber.wrap(subscriber);
         subscribe(cs);
         return cs;
     }

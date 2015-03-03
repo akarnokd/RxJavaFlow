@@ -13,57 +13,34 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 package rxjf.subscribers;
 
 import rxjf.Flow.Subscriber;
-import rxjf.Flow.Subscription;
-import rxjf.internal.Conformance;
+import rxjf.disposables.Disposable;
+
 /**
- * 
+ * Interface that combines the Subscriber and the Disposable interfaces
+ * for subscribers that need to support external cancellations.
+ * @param <T> the observed value type of the Subscriber
  */
-public final class DisposableSubscriber<T> extends AbstractDisposableSubscriber<T> {
-    final Subscriber<? super T> actual;
-    
-    public DisposableSubscriber(Subscriber<? super T> actual) {
-        this.actual = actual;
-    }
+public interface DisposableSubscriber<T> extends Subscriber<T>, Disposable {
     /**
-     * Wraps a regual Subscriber to a DisposableSubscriber or returns it
-     * directly if already the right type.
-     * @param actual
-     * @return
+     * Add a disposable resource to this disposable subscriber which will
+     * be disposed when the subscriber cancels its subscription.
+     * @param disposable the disposable to add
      */
-    public static <T> AbstractDisposableSubscriber<T> wrap(Subscriber<T> actual) {
-        Conformance.subscriberNonNull(actual);
-        if (actual instanceof AbstractDisposableSubscriber) {
-            return (DisposableSubscriber<T>)actual;
+    void add(Disposable disposable);
+    /**
+     * Wraps a general subscriber into a disposable subscriber or
+     * returns it directly if already a disposable subscriber.
+     * @param subscriber the subscriber to wrap
+     * @return the disposable subscriber instance
+     */
+    @SuppressWarnings("unchecked")
+    static <T> DisposableSubscriber<T> from(Subscriber<? super T> subscriber) {
+        if (subscriber instanceof DisposableSubscriber) {
+            return (DisposableSubscriber<T>)subscriber;
         }
-        return new DisposableSubscriber<>(actual);
-    }
-    @Override
-    protected void internalOnSubscribe(Subscription subscription) {
-        actual.onSubscribe(new Subscription() {
-            @Override
-            public void request(long n) {
-                subscription.request(n);
-            }
-            @Override
-            public void cancel() {
-                DisposableSubscriber.this.dispose();
-            }
-        });
-    }
-    @Override
-    protected void internalOnNext(T item) {
-        actual.onNext(item);
-    }
-    @Override
-    protected void internalOnError(Throwable throwable) {
-        actual.onError(throwable);
-    }
-    @Override
-    protected void internalOnComplete() {
-        actual.onComplete();
+        return new DefaultDisposableSubscriber<>(subscriber);
     }
 }

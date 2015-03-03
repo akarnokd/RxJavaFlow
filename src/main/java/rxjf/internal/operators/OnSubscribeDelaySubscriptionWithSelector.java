@@ -18,7 +18,7 @@ package rx.internal.operators;
 import rx.Flowable;
 import rx.Flowable.OnSubscribe;
 import rx.Subscriber;
-import rx.functions.Func0;
+import rx.functions.Supplier;
 
 /**
  * Delays the subscription until the Flowable<U> emits an event.
@@ -28,9 +28,9 @@ import rx.functions.Func0;
  */
 public final class OnSubscribeDelaySubscriptionWithSelector<T, U> implements OnSubscribe<T> {
     final Flowable<? extends T> source;
-    final Func0<? extends Flowable<U>> subscriptionDelay;
+    final Supplier<? extends Flowable<U>> subscriptionDelay;
 
-    public OnSubscribeDelaySubscriptionWithSelector(Flowable<? extends T> source, Func0<? extends Flowable<U>> subscriptionDelay) {
+    public OnSubscribeDelaySubscriptionWithSelector(Flowable<? extends T> source, Supplier<? extends Flowable<U>> subscriptionDelay) {
         this.source = source;
         this.subscriptionDelay = subscriptionDelay;
     }

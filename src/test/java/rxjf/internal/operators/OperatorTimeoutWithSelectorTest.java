@@ -40,7 +40,7 @@ import rx.Flowable.OnSubscribe;
 import rx.Observer;
 import rx.Subscriber;
 import rx.exceptions.TestException;
-import rx.functions.Func0;
+import rx.functions.Supplier;
 import rx.functions.Function;
 import rx.observers.TestSubscriber;
 import rx.schedulers.Schedulers;
@@ -59,7 +59,7 @@ public class OperatorTimeoutWithSelectorTest {
             }
         };
 
-        Func0<Flowable<Integer>> firstTimeoutFunc = new Func0<Flowable<Integer>>() {
+        Supplier<Flowable<Integer>> firstTimeoutFunc = new Supplier<Flowable<Integer>>() {
             @Override
             public Flowable<Integer> call() {
                 return timeout;
@@ -100,7 +100,7 @@ public class OperatorTimeoutWithSelectorTest {
             }
         };
 
-        Func0<Flowable<Integer>> firstTimeoutFunc = new Func0<Flowable<Integer>>() {
+        Supplier<Flowable<Integer>> firstTimeoutFunc = new Supplier<Flowable<Integer>>() {
             @Override
             public Flowable<Integer> call() {
                 return timeout;
@@ -135,7 +135,7 @@ public class OperatorTimeoutWithSelectorTest {
             }
         };
 
-        Func0<Flowable<Integer>> firstTimeoutFunc = new Func0<Flowable<Integer>>() {
+        Supplier<Flowable<Integer>> firstTimeoutFunc = new Supplier<Flowable<Integer>>() {
             @Override
             public Flowable<Integer> call() {
                 throw new TestException();
@@ -167,7 +167,7 @@ public class OperatorTimeoutWithSelectorTest {
             }
         };
 
-        Func0<Flowable<Integer>> firstTimeoutFunc = new Func0<Flowable<Integer>>() {
+        Supplier<Flowable<Integer>> firstTimeoutFunc = new Supplier<Flowable<Integer>>() {
             @Override
             public Flowable<Integer> call() {
                 return timeout;
@@ -202,7 +202,7 @@ public class OperatorTimeoutWithSelectorTest {
             }
         };
 
-        Func0<Flowable<Integer>> firstTimeoutFunc = new Func0<Flowable<Integer>>() {
+        Supplier<Flowable<Integer>> firstTimeoutFunc = new Supplier<Flowable<Integer>>() {
             @Override
             public Flowable<Integer> call() {
                 return Flowable.<Integer> error(new TestException());
@@ -234,7 +234,7 @@ public class OperatorTimeoutWithSelectorTest {
             }
         };
 
-        Func0<Flowable<Integer>> firstTimeoutFunc = new Func0<Flowable<Integer>>() {
+        Supplier<Flowable<Integer>> firstTimeoutFunc = new Supplier<Flowable<Integer>>() {
             @Override
             public Flowable<Integer> call() {
                 return timeout;
@@ -262,7 +262,7 @@ public class OperatorTimeoutWithSelectorTest {
         PublishSubject<Integer> source = PublishSubject.create();
         final PublishSubject<Integer> timeout = PublishSubject.create();
 
-        Func0<Flowable<Integer>> firstTimeoutFunc = new Func0<Flowable<Integer>>() {
+        Supplier<Flowable<Integer>> firstTimeoutFunc = new Supplier<Flowable<Integer>>() {
             @Override
             public Flowable<Integer> call() {
                 return timeout;
@@ -292,7 +292,7 @@ public class OperatorTimeoutWithSelectorTest {
         PublishSubject<Integer> source = PublishSubject.create();
         final PublishSubject<Integer> timeout = PublishSubject.create();
 
-        Func0<Flowable<Integer>> firstTimeoutFunc = new Func0<Flowable<Integer>>() {
+        Supplier<Flowable<Integer>> firstTimeoutFunc = new Supplier<Flowable<Integer>>() {
             @Override
             public Flowable<Integer> call() {
                 return PublishSubject.create();
