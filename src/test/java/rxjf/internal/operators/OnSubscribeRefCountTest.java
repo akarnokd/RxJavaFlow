@@ -519,11 +519,11 @@ public class OnSubscribeRefCountTest {
 
         ts1.assertTerminalEvent();
         ts1.assertNoErrors();
-        ts1.assertReceivedOnNext(Arrays.asList(30));
+        ts1.assertValues((30));
 
         ts2.assertTerminalEvent();
         ts2.assertNoErrors();
-        ts2.assertReceivedOnNext(Arrays.asList(30));
+        ts2.assertValues((30));
     }
 
     @Test(timeout = 10000)

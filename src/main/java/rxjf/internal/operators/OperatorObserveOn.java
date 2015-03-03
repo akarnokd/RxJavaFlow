@@ -113,6 +113,7 @@ public final class OperatorObserveOn<T> implements Operator<T, T> {
             if (completed) {
                 return;
             }
+            System.out.println(t);
             if (!queue.offer(on.next(t))) {
                 onError(new MissingBackpressureException());
                 return;

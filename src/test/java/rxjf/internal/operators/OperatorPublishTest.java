@@ -13,94 +13,76 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package rx.internal.operators;
+package rxjf.internal.operators;
 
 import static org.junit.Assert.*;
 
-import java.util.Arrays;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.*;
+import java.util.function.Function;
 
 import org.junit.Test;
 
-import rx.*;
-import rx.Flowable.OnSubscribe;
-import rx.functions.*;
-import rx.internal.util.RxRingBuffer;
-import rx.observables.ConnectableFlowable;
-import rx.observers.TestSubscriber;
-import rx.schedulers.Schedulers;
+import rxjf.*;
+import rxjf.disposables.Disposable;
+import rxjf.internal.subscriptions.AbstractSubscription;
+import rxjf.schedulers.Schedulers;
+import rxjf.subscribers.TestSubscriber;
 
 public class OperatorPublishTest {
 
     @Test
     public void testPublish() throws InterruptedException {
         final AtomicInteger counter = new AtomicInteger();
-        ConnectableFlowable<String> o = Flowable.create(new OnSubscribe<String>() {
-
-            @Override
-            public void call(final Subscriber<? super String> observer) {
-                new Thread(new Runnable() {
-
-                    @Override
-                    public void run() {
-                        counter.incrementAndGet();
-                        observer.onNext("one");
-                        observer.onComplete();
-                    }
-                }).start();
-            }
-        }).publish();
+        Flowable<String> f = Flowable.create(observer ->
+                new Thread(() -> {
+                    counter.incrementAndGet();
+                    AbstractSubscription.setEmptyOn(observer);
+                    observer.onNext("one");
+                    observer.onComplete();
+                }).start()
+        );
+        ConnectableFlowable<String> o = f.publish();
 
         final CountDownLatch latch = new CountDownLatch(2);
 
         // subscribe once
-        o.subscribe(new Action1<String>() {
-
-            @Override
-            public void call(String v) {
-                assertEquals("one", v);
-                latch.countDown();
-            }
+        o.subscribe(v -> {
+            assertEquals("one", v);
+            latch.countDown();
         });
 
         // subscribe again
-        o.subscribe(new Action1<String>() {
-
-            @Override
-            public void call(String v) {
-                assertEquals("one", v);
-                latch.countDown();
-            }
+        o.subscribe(v -> {
+            assertEquals("one", v);
+            latch.countDown();
         });
 
-        Subscription s = o.connect();
+        Disposable s = o.connect();
         try {
             if (!latch.await(1000, TimeUnit.MILLISECONDS)) {
                 fail("subscriptions did not receive values");
             }
             assertEquals(1, counter.get());
         } finally {
-            s.unsubscribe();
+            s.dispose();
         }
     }
 
     @Test
     public void testBackpressureFastSlow() {
-        ConnectableFlowable<Integer> is = Flowable.range(1, RxRingBuffer.SIZE * 2).publish();
-        Flowable<Integer> fast = is.observeOn(Schedulers.computation()).doonComplete()(new Action0() {
-
-            @Override
-            public void call() {
-                System.out.println("^^^^^^^^^^^^^ completed FAST");
-            }
-
-        });
-        Flowable<Integer> slow = is.observeOn(Schedulers.computation()).map(new Function<Integer, Integer>() {
+        ConnectableFlowable<Integer> is = Flowable.range(1, Flow.defaultBufferSize() * 2).publish();
+        Flowable<Integer> fast = is.observeOn(Schedulers.computation())
+        .map(v -> v + 1000)
+        .doOnComplete(() -> System.out.println("^^^^^^^^^^^^^ completed FAST"));
+        
+        
+        Flowable<Integer> slow = is.observeOn(Schedulers.computation())
+        .map(new Function<Integer, Integer>() {
             int c = 0;
 
             @Override
-            public Integer call(Integer i) {
+            public Integer apply(Integer i) {
                 if (c == 0) {
                     try {
                         Thread.sleep(500);
@@ -111,74 +93,50 @@ public class OperatorPublishTest {
                 return i;
             }
 
-        }).doonComplete()(new Action0() {
+        }).doOnComplete(() ->
+                System.out.println("^^^^^^^^^^^^^ completed SLOW")
+        );
 
-            @Override
-            public void call() {
-                System.out.println("^^^^^^^^^^^^^ completed SLOW");
-            }
-
-        });
-
-        TestSubscriber<Integer> ts = new TestSubscriber<Integer>();
+        TestSubscriber<Integer> ts = new TestSubscriber<>();
         Flowable.merge(fast, slow).subscribe(ts);
         is.connect();
         ts.awaitTerminalEvent();
         ts.assertNoErrors();
-        assertEquals(RxRingBuffer.SIZE * 4, ts.getOnNextEvents().size());
+        ts.assertValueCount(Flow.defaultBufferSize() * 4);
     }
 
     // use case from https://github.com/ReactiveX/RxJava/issues/1732
-    @Test
+    @Test(timeout = 2000)
     public void testTakeUntilWithPublishedStreamUsingSelector() {
         final AtomicInteger emitted = new AtomicInteger();
-        Flowable<Integer> xs = Flowable.range(0, RxRingBuffer.SIZE * 2).doOnNext(new Action1<Integer>() {
-
-            @Override
-            public void call(Integer t1) {
-                emitted.incrementAndGet();
-            }
-
-        });
-        TestSubscriber<Integer> ts = new TestSubscriber<Integer>();
+        Flowable<Integer> xs = Flowable.range(0, Flow.defaultBufferSize() * 2)
+                .doOnNext(t1 -> emitted.incrementAndGet());
+        
+        TestSubscriber<Integer> ts = new TestSubscriber<>();
         xs.publish(new Function<Flowable<Integer>, Flowable<Integer>>() {
 
             @Override
-            public Flowable<Integer> call(Flowable<Integer> xs) {
-                return xs.takeUntil(xs.skipWhile(new Function<Integer, Boolean>() {
-
-                    @Override
-                    public Boolean call(Integer i) {
-                        return i <= 3;
-                    }
-
-                }));
+            public Flowable<Integer> apply(Flowable<Integer> xs) {
+                return xs.takeUntil(xs.skipWhile(i -> i <= 3));
             }
 
         }).subscribe(ts);
         ts.awaitTerminalEvent();
         ts.assertNoErrors();
-        ts.assertReceivedOnNext(Arrays.asList(0, 1, 2, 3));
+        ts.assertValues(0, 1, 2, 3);
         assertEquals(5, emitted.get());
-        System.out.println(ts.getOnNextEvents());
+        System.out.println(ts.getValues());
     }
 
     // use case from https://github.com/ReactiveX/RxJava/issues/1732
     @Test
     public void testTakeUntilWithPublishedStream() {
-        Flowable<Integer> xs = Flowable.range(0, RxRingBuffer.SIZE * 2);
-        TestSubscriber<Integer> ts = new TestSubscriber<Integer>();
+        Flowable<Integer> xs = Flowable.range(0, Flow.defaultBufferSize() * 2);
+        TestSubscriber<Integer> ts = new TestSubscriber<>();
         ConnectableFlowable<Integer> xsp = xs.publish();
-        xsp.takeUntil(xsp.skipWhile(new Function<Integer, Boolean>() {
-
-            @Override
-            public Boolean call(Integer i) {
-                return i <= 3;
-            }
-
-        })).subscribe(ts);
+        xsp.takeUntil(xsp.skipWhile(i -> i <= 3)).subscribe(ts);
         xsp.connect();
-        System.out.println(ts.getOnNextEvents());
+        System.out.println(ts.getValues());
     }
 
     @Test(timeout = 10000)
@@ -186,46 +144,28 @@ public class OperatorPublishTest {
         final AtomicInteger sourceEmission = new AtomicInteger();
         final AtomicBoolean sourceUnsubscribed = new AtomicBoolean();
         final Flowable<Integer> source = Flowable.range(1, 100)
-                .doOnNext(new Action1<Integer>() {
-                    @Override
-                    public void call(Integer t1) {
-                        sourceEmission.incrementAndGet();
-                    }
-                })
-                .doOnUnsubscribe(new Action0() {
-                    @Override
-                    public void call() {
-                        sourceUnsubscribed.set(true);
-                    }
-                }).share();
+                .doOnNext(t1 -> sourceEmission.incrementAndGet())
+                .doOnUnsubscribe(() -> sourceUnsubscribed.set(true)).share();
         ;
         
         final AtomicBoolean child1Unsubscribed = new AtomicBoolean();
         final AtomicBoolean child2Unsubscribed = new AtomicBoolean();
 
-        final TestSubscriber<Integer> ts2 = new TestSubscriber<Integer>();
+        final TestSubscriber<Integer> ts2 = new TestSubscriber<>();
 
         final TestSubscriber<Integer> ts1 = new TestSubscriber<Integer>() {
             @Override
             public void onNext(Integer t) {
-                if (getOnNextEvents().size() == 2) {
-                    source.doOnUnsubscribe(new Action0() {
-                        @Override
-                        public void call() {
-                            child2Unsubscribed.set(true);
-                        }
-                    }).take(5).subscribe(ts2);
+                if (getValues().size() == 2) {
+                    source.doOnUnsubscribe(() -> child2Unsubscribed.set(true))
+                    .take(5).subscribe(ts2);
                 }
                 super.onNext(t);
             }
         };
         
-        source.doOnUnsubscribe(new Action0() {
-            @Override
-            public void call() {
-                child1Unsubscribed.set(true);
-            }
-        }).take(5).subscribe(ts1);
+        source.doOnUnsubscribe(() -> child1Unsubscribed.set(true))
+        .take(5).subscribe(ts1);
         
         ts1.awaitTerminalEvent();
         ts2.awaitTerminalEvent();
@@ -237,8 +177,8 @@ public class OperatorPublishTest {
         assertTrue(child1Unsubscribed.get());
         assertTrue(child2Unsubscribed.get());
         
-        ts1.assertReceivedOnNext(Arrays.asList(1, 2, 3, 4, 5));
-        ts2.assertReceivedOnNext(Arrays.asList(4, 5, 6, 7, 8));
+        ts1.assertValues(1, 2, 3, 4, 5);
+        ts2.assertValues(4, 5, 6, 7, 8);
         
         assertEquals(8, sourceEmission.get());
     }

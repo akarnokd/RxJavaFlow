@@ -40,6 +40,7 @@ public final class PublishProcessor<T> extends Flowable<T> implements ProcessorE
         ProcessorSubscriberManager<T> psm = new ProcessorSubscriberManager<>();
         OnSubscribe<T> onSubscribe = subscriber -> {
             Subscription empty = AbstractSubscription.createEmpty(subscriber);
+            // FIXME only a single disposable is ever added, a composite is unnecessary
             DisposableSubscription ds = new DisposableSubscription(empty);
             
             subscriber.onSubscribe(ds);
@@ -87,7 +88,8 @@ public final class PublishProcessor<T> extends Flowable<T> implements ProcessorE
     @Override
     public void onNext(T item) {
         Conformance.itemNonNull(item);
-        for (Subscriber<T> bo : psm.subscribers()) {
+        for (Subscriber<? super T> bo : psm.subscribers()) {
+            // FIXME if onNext throws, the error should be bounced back and bo evicted
             bo.onNext(item);
         }
     }
@@ -97,9 +99,10 @@ public final class PublishProcessor<T> extends Flowable<T> implements ProcessorE
         if (psm.active) {
             Object n = nl.error(throwable);
             List<Throwable> errors = null;
-            for (Subscriber<T> bo : psm.terminate(n)) {
+            for (Subscriber<? super T> bo : psm.terminate(n)) {
                 try {
                     // bo.emitNext(n, nl);
+                    // FIXME if onNext throws, the error should be reported and bo evicted
                     bo.onError(throwable);
                 } catch (Throwable e2) {
                     if (errors == null) {
@@ -115,8 +118,9 @@ public final class PublishProcessor<T> extends Flowable<T> implements ProcessorE
     public void onComplete() {
         if (psm.active) {
             Object n = nl.complete();
-            for (Subscriber<T> bo : psm.terminate(n)) {
+            for (Subscriber<? super T> bo : psm.terminate(n)) {
                 // bo.emitNext(n, nl);
+                // FIXME if onNext throws, the error should be reported and bo evicted
                 bo.onComplete();
             }
         }

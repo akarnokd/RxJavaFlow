@@ -118,8 +118,8 @@ public final class OnSubscribeCombineLatest<T, R> implements OnSubscribe<R> {
                  * We would likely need to make an RxRingBuffer that can be sized to [numSources * n] instead
                  * of the current global default size it has.
                  */
-                int sizePerSubscriber = RxRingBuffer.SIZE / sources.size();
-                int leftOver = RxRingBuffer.SIZE % sources.size();
+                int sizePerSubscriber = Flow.defaultBufferSize() / sources.size();
+                int leftOver = Flow.defaultBufferSize() % sources.size();
                 for (int i = 0; i < sources.size(); i++) {
                     Flowable<? extends T> o = sources.get(i);
                     int toRequest = sizePerSubscriber;

@@ -105,12 +105,12 @@ public class OperatorSkipLastTest {
 
     @Test
     public void testSkipLastWithBackpressure() {
-        Flowable<Integer> o = Flowable.range(0, RxRingBuffer.SIZE * 2).skipLast(RxRingBuffer.SIZE + 10);
+        Flowable<Integer> o = Flowable.range(0, Flow.defaultBufferSize() * 2).skipLast(Flow.defaultBufferSize() + 10);
         TestSubscriber<Integer> ts = new TestSubscriber<Integer>();
         o.observeOn(Schedulers.computation()).subscribe(ts);
         ts.awaitTerminalEvent();
         ts.assertNoErrors();
-        assertEquals((RxRingBuffer.SIZE) - 10, ts.getOnNextEvents().size());
+        assertEquals((Flow.defaultBufferSize()) - 10, ts.getOnNextEvents().size());
 
     }
 

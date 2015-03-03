@@ -5986,7 +5986,7 @@ public class Flowable<T> implements Publisher<T> {
      */
     @Experimental
     public final Flowable<T> onBackpressureBlock() {
-        return onBackpressureBlock(rx.internal.util.RxRingBuffer.SIZE);
+        return onBackpressureBlock(rx.internal.util.Flow.defaultBufferSize());
     }
     
     /**

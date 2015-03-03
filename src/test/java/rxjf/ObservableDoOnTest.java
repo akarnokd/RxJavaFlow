@@ -69,7 +69,7 @@ public class FlowableDoOnTest {
     @Test
     public void testDoonComplete() {
         final AtomicBoolean r = new AtomicBoolean();
-        String output = Flowable.just("one").doonComplete()(new Action0() {
+        String output = Flowable.just("one").doOnComplete(new Action0() {
 
             @Override
             public void call() {

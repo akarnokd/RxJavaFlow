@@ -800,7 +800,7 @@ public class OnSubscribeCombineLatestTest {
     public void testBackpressure() {
         BiFunction<String, Integer, String> combineLatestFunction = getConcatStringIntegerCombineLatestFunction();
 
-        int NUM = RxRingBuffer.SIZE * 4;
+        int NUM = Flow.defaultBufferSize() * 4;
         TestSubscriber<String> ts = new TestSubscriber<String>();
         Flowable.combineLatest(Flowable.just("one", "two"),
                 Flowable.range(2, NUM), combineLatestFunction).

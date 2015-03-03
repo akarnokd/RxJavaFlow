@@ -18,13 +18,12 @@ package rxjf.processors;
 
 import static rxjf.internal.UnsafeAccess.*;
 import rxjf.Flow.Subscriber;
-import rxjf.Flow.Subscription;
 import rxjf.internal.*;
 
 /**
  * Manages the Subscribers and current/terminal value for the Processors.
  */
-final class ProcessorSubscriberManager<T> extends AbstractArrayManager<Subscriber<T>> {
+final class ProcessorSubscriberManager<T> extends AbstractArrayManager<Subscriber<? super T>> {
     volatile Object value;
     static final long VALUE = addressOf(ProcessorSubscriberManager.class, "value");
     
@@ -35,15 +34,15 @@ final class ProcessorSubscriberManager<T> extends AbstractArrayManager<Subscribe
         super(i -> new Subscriber[i]);
         active = true;
     }
-    public Subscriber<T>[] subscribers() {
+    public Subscriber<? super T>[] subscribers() {
         return array();
     }
-    public Subscriber<T>[] terminate() {
+    public Subscriber<? super T>[] terminate() {
         active = false;
         return getAndTerminate();
     }
-    public Subscriber<T>[] terminate(Object value) {
-        Subscriber<T>[] curr = array();
+    public Subscriber<? super T>[] terminate(Object value) {
+        Subscriber<? super T>[] curr = array();
         if (curr != terminated) {
             active = false;
             lazySet(value);
@@ -59,28 +58,5 @@ final class ProcessorSubscriberManager<T> extends AbstractArrayManager<Subscribe
     }
     public void lazySet(Object value) {
         UNSAFE.putOrderedObject(this, VALUE, value);
-    }
-    
-    public static final class ProcessorSubscriber<T> implements Subscriber<T> {
-        @Override
-        public void onSubscribe(Subscription subscription) {
-            // TODO Auto-generated method stub
-            
-        }
-        @Override
-        public void onNext(T item) {
-            // TODO Auto-generated method stub
-            
-        }
-        @Override
-        public void onError(Throwable throwable) {
-            // TODO Auto-generated method stub
-            
-        }
-        @Override
-        public void onComplete() {
-            // TODO Auto-generated method stub
-            
-        }
     }
 }

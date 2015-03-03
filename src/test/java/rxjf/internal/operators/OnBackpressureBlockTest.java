@@ -51,7 +51,7 @@ public class OnBackpressureBlockTest {
         TestObserver<Integer> o = new TestObserver<Integer>();
         source.subscribe(o);
         
-        o.assertReceivedOnNext(Arrays.asList(1));
+        o.assertValues((1));
         o.assertTerminalEvent();
         assertTrue(o.getOnErrorEvents().isEmpty());
     }
@@ -71,13 +71,13 @@ public class OnBackpressureBlockTest {
 
         Thread.sleep(WAIT);
         
-        o.assertReceivedOnNext(Arrays.asList(1, 2, 3, 4, 5, 6, 7, 8, 9, 10));
+        o.assertValues((1, 2, 3, 4, 5, 6, 7, 8, 9, 10));
         
         o.requestMore(10);
         
         Thread.sleep(WAIT);
 
-        o.assertReceivedOnNext(Arrays.asList(1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11));
+        o.assertValues((1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11));
 
         o.assertTerminalEvent();
         assertTrue(o.getOnErrorEvents().isEmpty());
@@ -85,7 +85,7 @@ public class OnBackpressureBlockTest {
     
     @Test(timeout = 3000)
     public void testNoMissingBackpressureException() {
-        final int NUM_VALUES = RxRingBuffer.SIZE * 3;
+        final int NUM_VALUES = Flow.defaultBufferSize() * 3;
         Flowable<Integer> source = Flowable.create(new OnSubscribe<Integer>() {
             @Override
             public void call(Subscriber<? super Integer> t1) {
@@ -101,7 +101,7 @@ public class OnBackpressureBlockTest {
 
         TestSubscriber<Integer> s = new TestSubscriber<Integer>(o);
         
-        source.onBackpressureBlock(RxRingBuffer.SIZE).observeOn(Schedulers.newThread()).subscribe(s);
+        source.onBackpressureBlock(Flow.defaultBufferSize()).observeOn(Schedulers.newThread()).subscribe(s);
         
         s.awaitTerminalEvent();
         
@@ -132,7 +132,7 @@ public class OnBackpressureBlockTest {
 
         Thread.sleep(WAIT);
 
-        o.assertReceivedOnNext(Arrays.asList(1, 2, 3, 4, 5));
+        o.assertValues((1, 2, 3, 4, 5));
         o.assertNoErrors();
         assertTrue(o.getonComplete()Events().isEmpty());
     }
@@ -155,7 +155,7 @@ public class OnBackpressureBlockTest {
 
         Thread.sleep(WAIT);
         
-        o.assertReceivedOnNext(Arrays.asList(1, 2, 3, 4, 5, 6, 7));
+        o.assertValues((1, 2, 3, 4, 5, 6, 7));
         o.assertNoErrors();
         assertTrue(o.getonComplete()Events().isEmpty());
 
@@ -163,7 +163,7 @@ public class OnBackpressureBlockTest {
         
         Thread.sleep(WAIT);
 
-        o.assertReceivedOnNext(Arrays.asList(1, 2, 3, 4, 5, 6, 7, 8, 9, 10));
+        o.assertValues((1, 2, 3, 4, 5, 6, 7, 8, 9, 10));
         o.assertTerminalEvent();
         assertEquals(1, o.getOnErrorEvents().size());
         assertTrue(o.getOnErrorEvents().get(0) instanceof TestException);
@@ -172,7 +172,7 @@ public class OnBackpressureBlockTest {
         
         Thread.sleep(WAIT);
         
-        o.assertReceivedOnNext(Arrays.asList(1, 2, 3, 4, 5, 6, 7, 8, 9, 10));
+        o.assertValues((1, 2, 3, 4, 5, 6, 7, 8, 9, 10));
         o.assertTerminalEvent();
         assertEquals(1, o.getOnErrorEvents().size());
         assertTrue(o.getOnErrorEvents().get(0) instanceof TestException);
@@ -196,7 +196,7 @@ public class OnBackpressureBlockTest {
 
         Thread.sleep(WAIT);
         
-        o.assertReceivedOnNext(Arrays.asList(1, 2, 3, 4, 5, 6, 7));
+        o.assertValues((1, 2, 3, 4, 5, 6, 7));
         o.assertNoErrors();
         assertTrue(o.getonComplete()Events().isEmpty());
 
@@ -204,7 +204,7 @@ public class OnBackpressureBlockTest {
         
         Thread.sleep(WAIT);
 
-        o.assertReceivedOnNext(Arrays.asList(1, 2, 3, 4, 5, 6, 7, 8, 9, 10));
+        o.assertValues((1, 2, 3, 4, 5, 6, 7, 8, 9, 10));
         assertEquals(1, o.getOnErrorEvents().size());
         assertTrue(o.getOnErrorEvents().get(0) instanceof TestException);
         assertTrue(o.getonComplete()Events().isEmpty());
@@ -228,7 +228,7 @@ public class OnBackpressureBlockTest {
 
         o.awaitTerminalEvent();
         
-        o.assertReceivedOnNext(Arrays.asList(1, 2, 3, 4, 5, 6, 7));
+        o.assertValues((1, 2, 3, 4, 5, 6, 7));
         o.assertNoErrors();
         o.assertTerminalEvent();
     }
@@ -244,7 +244,7 @@ public class OnBackpressureBlockTest {
 
         o.awaitTerminalEvent();
         
-        o.assertReceivedOnNext(Arrays.asList(1, 2, 3, 4, 5, 6, 7));
+        o.assertValues((1, 2, 3, 4, 5, 6, 7));
         o.assertNoErrors();
         o.assertTerminalEvent();
     }
@@ -260,7 +260,7 @@ public class OnBackpressureBlockTest {
 
         o.awaitTerminalEvent();
         
-        o.assertReceivedOnNext(Arrays.asList(1, 2, 3, 4, 5, 6, 7));
+        o.assertValues((1, 2, 3, 4, 5, 6, 7));
         o.assertNoErrors();
         o.assertTerminalEvent();
     }
@@ -314,7 +314,7 @@ public class OnBackpressureBlockTest {
         
         o.assertNoErrors();
         o.assertTerminalEvent();
-        o.assertReceivedOnNext(Arrays.asList(1));
+        o.assertValues((1));
     }
     @Test(timeout = 10000)
     public void testonComplete()DoesntWaitIfNoEvents3() {
@@ -342,6 +342,6 @@ public class OnBackpressureBlockTest {
         
         o.assertNoErrors();
         o.assertTerminalEvent();
-        o.assertReceivedOnNext(Arrays.asList(1, 2));
+        o.assertValues((1, 2));
     }
 }

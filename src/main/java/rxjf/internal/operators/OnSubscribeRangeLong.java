@@ -39,39 +39,42 @@ public final class OnSubscribeRangeLong implements OnSubscribe<Long> {
             long value = s;
             @Override
             protected void onRequested(long n) {
-                long v = value;
-                long r = remaining;
+                long val = value;
+                long rem = remaining;
                 if (n == Long.MAX_VALUE) {
-                    while (r > 0) {
+                    while (rem > 0) {
                         if (isDisposed()) {
                             return;
                         }
-                        child.onNext(v++);
-                        r--;
+                        child.onNext(val++);
+                        rem--;
                     }
+                    cancel();
                     child.onComplete();
                     return;
                 }
-                long r0 = n;
+                long req = n;
                 for (;;) {
-                    long c = r0;
-                    while (r0 > 0 && r > 0) {
+                    long c = 0;
+                    while (req > 0 && rem > 0) {
                         if (isDisposed()) {
                             return;
                         }
-                        child.onNext(v++);
-                        r0--;
-                        r--;
+                        child.onNext(val++);
+                        req--;
+                        rem--;
+                        c++;
                     }
-                    if (r == 0) {
+                    if (rem == 0) {
+                        cancel();
                         child.onComplete();
                         break;
                     } else {
-                        value = v;
-                        remaining = r;
-                        r0 = produced(c);
+                        value = val;
+                        remaining = rem;
+                        req = produced(c);
                     }
-                    if (r0 == 0) {
+                    if (req <= 0) {
                         break;
                     }
                 }

@@ -684,7 +684,7 @@ public class OperatorRetryTest {
     
     @Test(timeout = 15000)
     public void testRetryWithBackpressure() throws InterruptedException {
-        final int NUM_RETRIES = RxRingBuffer.SIZE * 2;
+        final int NUM_RETRIES = Flow.defaultBufferSize() * 2;
         for (int i = 0; i < 400; i++) {
             @SuppressWarnings("unchecked")
             Observer<String> observer = mock(Observer.class);
@@ -707,7 +707,7 @@ public class OperatorRetryTest {
     }
     @Test(timeout = 15000)
     public void testRetryWithBackpressureParallel() throws InterruptedException {
-        final int NUM_RETRIES = RxRingBuffer.SIZE * 2;
+        final int NUM_RETRIES = Flow.defaultBufferSize() * 2;
         int ncpu = Runtime.getRuntime().availableProcessors();
         ExecutorService exec = Executors.newFixedThreadPool(Math.max(ncpu / 2, 1));
         final AtomicInteger timeouts = new AtomicInteger();

@@ -657,7 +657,7 @@ public class OperatorGroupByTest {
 
                     })
                             // must take(2) so an onComplete() + unsubscribe happens on these first 2 groups
-                            .take(2).doonComplete()(new Action0() {
+                            .take(2).doOnComplete(new Action0() {
 
                                 @Override
                                 public void call() {
@@ -735,7 +735,7 @@ public class OperatorGroupByTest {
 
                     })
                             // must take(2) so an onComplete() + unsubscribe happens on these first 2 groups
-                            .take(2).doonComplete()(new Action0() {
+                            .take(2).doOnComplete(new Action0() {
 
                                 @Override
                                 public void call() {
@@ -826,7 +826,7 @@ public class OperatorGroupByTest {
 
                     })
                             // must take(2) so an onComplete() + unsubscribe happens on these first 2 groups
-                            .take(2).doonComplete()(new Action0() {
+                            .take(2).doOnComplete(new Action0() {
 
                                 @Override
                                 public void call() {
@@ -1270,7 +1270,7 @@ public class OperatorGroupByTest {
 
             @Override
             public Flowable<String> call(final GroupedFlowable<Boolean, Integer> g) {
-                return g.doonComplete()(new Action0() {
+                return g.doOnComplete(new Action0() {
 
                     @Override
                     public void call() {
@@ -1296,7 +1296,7 @@ public class OperatorGroupByTest {
                         }
                     }
 
-                }).doonComplete()(new Action0() {
+                }).doOnComplete(new Action0() {
 
                     @Override
                     public void call() {

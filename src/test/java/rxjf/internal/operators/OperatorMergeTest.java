@@ -1085,7 +1085,7 @@ public class OperatorMergeTest {
                     // log count
                     .doOnNext(printCount())
                     // release latch
-                    .doonComplete()(() -> latch.countDown()).subscribe();
+                    .doOnComplete(() -> latch.countDown()).subscribe();
             boolean a = latch.await(2, TimeUnit.SECONDS);
             if (!a) {
                 for (String s : messages) {

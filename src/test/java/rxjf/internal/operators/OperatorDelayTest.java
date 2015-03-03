@@ -663,13 +663,13 @@ public class OperatorDelayTest {
         delayed.subscribe(observer);
         // all will be delivered after 500ms since range does not delay between them
         scheduler.advanceTimeBy(500L, TimeUnit.MILLISECONDS);
-        observer.assertReceivedOnNext(Arrays.asList(1, 2, 3, 4, 5));
+        observer.assertValues((1, 2, 3, 4, 5));
     }
 
     @Test
     public void testBackpressureWithTimedDelay() {
         TestSubscriber<Integer> ts = new TestSubscriber<Integer>();
-        Flowable.range(1, RxRingBuffer.SIZE * 2)
+        Flowable.range(1, Flow.defaultBufferSize() * 2)
                 .delay(100, TimeUnit.MILLISECONDS)
                 .observeOn(Schedulers.computation())
                 .map(new Function<Integer, Integer>() {
@@ -691,13 +691,13 @@ public class OperatorDelayTest {
 
         ts.awaitTerminalEvent();
         ts.assertNoErrors();
-        assertEquals(RxRingBuffer.SIZE * 2, ts.getOnNextEvents().size());
+        assertEquals(Flow.defaultBufferSize() * 2, ts.getOnNextEvents().size());
     }
     
     @Test
     public void testBackpressureWithSubscriptionTimedDelay() {
         TestSubscriber<Integer> ts = new TestSubscriber<Integer>();
-        Flowable.range(1, RxRingBuffer.SIZE * 2)
+        Flowable.range(1, Flow.defaultBufferSize() * 2)
                 .delaySubscription(100, TimeUnit.MILLISECONDS)
                 .delay(100, TimeUnit.MILLISECONDS)
                 .observeOn(Schedulers.computation())
@@ -720,13 +720,13 @@ public class OperatorDelayTest {
 
         ts.awaitTerminalEvent();
         ts.assertNoErrors();
-        assertEquals(RxRingBuffer.SIZE * 2, ts.getOnNextEvents().size());
+        assertEquals(Flow.defaultBufferSize() * 2, ts.getOnNextEvents().size());
     }
 
     @Test
     public void testBackpressureWithSelectorDelay() {
         TestSubscriber<Integer> ts = new TestSubscriber<Integer>();
-        Flowable.range(1, RxRingBuffer.SIZE * 2)
+        Flowable.range(1, Flow.defaultBufferSize() * 2)
                 .delay(new Function<Integer, Flowable<Long>>() {
 
                     @Override
@@ -755,13 +755,13 @@ public class OperatorDelayTest {
 
         ts.awaitTerminalEvent();
         ts.assertNoErrors();
-        assertEquals(RxRingBuffer.SIZE * 2, ts.getOnNextEvents().size());
+        assertEquals(Flow.defaultBufferSize() * 2, ts.getOnNextEvents().size());
     }
 
     @Test
     public void testBackpressureWithSelectorDelayAndSubscriptionDelay() {
         TestSubscriber<Integer> ts = new TestSubscriber<Integer>();
-        Flowable.range(1, RxRingBuffer.SIZE * 2)
+        Flowable.range(1, Flow.defaultBufferSize() * 2)
                 .delay(new Supplier<Flowable<Long>>() {
 
                     @Override
@@ -796,6 +796,6 @@ public class OperatorDelayTest {
 
         ts.awaitTerminalEvent();
         ts.assertNoErrors();
-        assertEquals(RxRingBuffer.SIZE * 2, ts.getOnNextEvents().size());
+        assertEquals(Flow.defaultBufferSize() * 2, ts.getOnNextEvents().size());
     }
 }

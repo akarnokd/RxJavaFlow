@@ -33,8 +33,8 @@ public abstract class RxRingBufferBase {
     public void missingBackpressureException() throws MissingBackpressureException {
         RxRingBuffer b = createRingBuffer();
         TestSubscriber<Object> s = new TestSubscriber<Object>();
-        s.requestMore(RxRingBuffer.SIZE);
-        for (int i = 0; i < RxRingBuffer.SIZE; i++) {
+        s.requestMore(Flow.defaultBufferSize());
+        for (int i = 0; i < Flow.defaultBufferSize(); i++) {
             b.onNext("one");
         }
         try {
@@ -52,7 +52,7 @@ public abstract class RxRingBufferBase {
         RxRingBuffer b = createRingBuffer();
 
         try {
-            for (int i = 0; i < RxRingBuffer.SIZE; i++) {
+            for (int i = 0; i < Flow.defaultBufferSize(); i++) {
                 //                System.out.println("Add: " + i);
                 b.onNext("one");
             }
@@ -85,8 +85,8 @@ public abstract class RxRingBufferBase {
     public void roomForError() throws MissingBackpressureException {
         RxRingBuffer b = createRingBuffer();
         TestSubscriber<Object> s = new TestSubscriber<Object>();
-        s.requestMore(RxRingBuffer.SIZE);
-        for (int i = 0; i < RxRingBuffer.SIZE; i++) {
+        s.requestMore(Flow.defaultBufferSize());
+        for (int i = 0; i < Flow.defaultBufferSize(); i++) {
             b.onNext("one");
         }
         // should act full now
@@ -103,8 +103,8 @@ public abstract class RxRingBufferBase {
     public void multipleTerminalEventsOnComplete() throws MissingBackpressureException {
         RxRingBuffer b = createRingBuffer();
         TestSubscriber<Object> s = new TestSubscriber<Object>();
-        s.requestMore(RxRingBuffer.SIZE);
-        for (int i = 0; i < RxRingBuffer.SIZE; i++) {
+        s.requestMore(Flow.defaultBufferSize());
+        for (int i = 0; i < Flow.defaultBufferSize(); i++) {
             b.onNext("one");
         }
         // queue is now full
@@ -121,8 +121,8 @@ public abstract class RxRingBufferBase {
     public void multipleTerminalEventsOnError() throws MissingBackpressureException {
         RxRingBuffer b = createRingBuffer();
         TestSubscriber<Object> s = new TestSubscriber<Object>();
-        s.requestMore(RxRingBuffer.SIZE);
-        for (int i = 0; i < RxRingBuffer.SIZE; i++) {
+        s.requestMore(Flow.defaultBufferSize());
+        for (int i = 0; i < Flow.defaultBufferSize(); i++) {
             b.onNext("one");
         }
         // queue is now full

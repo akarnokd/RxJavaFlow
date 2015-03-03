@@ -538,7 +538,7 @@ public class OperatorReplayTest {
         ConnectableFlowable<Integer> replay = source
                 .doOnNext(sourceNext)
                 .doOnUnsubscribe(sourceUnsubscribed)
-                .doonComplete()(sourceCompleted)
+                .doOnComplete(sourceCompleted)
                 .replay();
 
         replay.subscribe(spiedSubscriberBeforeConnect);
@@ -588,7 +588,7 @@ public class OperatorReplayTest {
         ConnectableFlowable<Integer> replay = Flowable.just(1, 2, 3)
                 .doOnNext(sourceNext)
                 .doOnUnsubscribe(sourceUnsubscribed)
-                .doonComplete()(sourceCompleted)
+                .doOnComplete(sourceCompleted)
                 .subscribeOn(mockScheduler).replay();
 
         replay.subscribe(mockObserverBeforeConnect);
@@ -649,7 +649,7 @@ public class OperatorReplayTest {
         ConnectableFlowable<Integer> replay = Flowable.just(1, 2, 3).map(mockFunc)
                 .doOnNext(sourceNext)
                 .doOnUnsubscribe(sourceUnsubscribed)
-                .doonComplete()(sourceCompleted)
+                .doOnComplete(sourceCompleted)
                 .doOnError(sourceError)
                 .subscribeOn(mockScheduler).replay();
 

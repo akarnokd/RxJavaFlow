@@ -273,15 +273,17 @@ public final class TerminalAtomics {
             }
             long u;
             if (r == NO_REQUEST) {
-                u = n;
+                if (UNSAFE.compareAndSwapLong(target, address, r, n)) {
+                    return 0;
+                }
             } else {
                 u = r + n;
                 if (u < 0) {
                     u = Long.MAX_VALUE;
                 }
-            }
-            if (UNSAFE.compareAndSwapLong(target, address, r, u)) {
-                return r;
+                if (UNSAFE.compareAndSwapLong(target, address, r, u)) {
+                    return r;
+                }
             }
         }
     }

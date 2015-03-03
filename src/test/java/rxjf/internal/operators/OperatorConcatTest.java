@@ -667,14 +667,14 @@ public class OperatorConcatTest {
     @Test
     public void testInnerBackpressureWithAlignedBoundaries() {
         TestSubscriber<Integer> ts = new TestSubscriber<Integer>();
-        Flowable.range(0, RxRingBuffer.SIZE * 2)
-                .concatWith(Flowable.range(0, RxRingBuffer.SIZE * 2))
+        Flowable.range(0, Flow.defaultBufferSize() * 2)
+                .concatWith(Flowable.range(0, Flow.defaultBufferSize() * 2))
                 .observeOn(Schedulers.computation()) // observeOn has a backpressured RxRingBuffer
                 .subscribe(ts);
 
         ts.awaitTerminalEvent();
         ts.assertNoErrors();
-        assertEquals(RxRingBuffer.SIZE * 4, ts.getOnNextEvents().size());
+        assertEquals(Flow.defaultBufferSize() * 4, ts.getOnNextEvents().size());
     }
 
     /*
@@ -686,14 +686,14 @@ public class OperatorConcatTest {
     @Test
     public void testInnerBackpressureWithoutAlignedBoundaries() {
         TestSubscriber<Integer> ts = new TestSubscriber<Integer>();
-        Flowable.range(0, (RxRingBuffer.SIZE * 2) + 10)
-                .concatWith(Flowable.range(0, (RxRingBuffer.SIZE * 2) + 10))
+        Flowable.range(0, (Flow.defaultBufferSize() * 2) + 10)
+                .concatWith(Flowable.range(0, (Flow.defaultBufferSize() * 2) + 10))
                 .observeOn(Schedulers.computation()) // observeOn has a backpressured RxRingBuffer
                 .subscribe(ts);
 
         ts.awaitTerminalEvent();
         ts.assertNoErrors();
-        assertEquals((RxRingBuffer.SIZE * 4) + 20, ts.getOnNextEvents().size());
+        assertEquals((Flow.defaultBufferSize() * 4) + 20, ts.getOnNextEvents().size());
     }
     
     // https://github.com/ReactiveX/RxJava/issues/1818
@@ -715,7 +715,7 @@ public class OperatorConcatTest {
         ts.awaitTerminalEvent(500, TimeUnit.MILLISECONDS);
         ts.assertTerminalEvent();
         ts.assertNoErrors();
-        ts.assertReceivedOnNext(Arrays.asList("hello", "hello"));
+        ts.assertValues(("hello", "hello"));
     }
 
 }

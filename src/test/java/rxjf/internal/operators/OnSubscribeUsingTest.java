@@ -302,7 +302,7 @@ public class OnSubscribeUsingTest {
         Observer<String> observer = mock(Observer.class);
         Flowable<String> observable = Flowable.using(resourceFactory, observableFactory,
                 new DisposeAction(), true).doOnUnsubscribe(unsub)
-                .doonComplete()(completion);
+                .doOnComplete(completion);
         observable.subscribe(observer);
 
         assertEquals(Arrays.asList("disposed", "completed", "unsub"), events);
@@ -327,7 +327,7 @@ public class OnSubscribeUsingTest {
         Observer<String> observer = mock(Observer.class);
         Flowable<String> observable = Flowable.using(resourceFactory, observableFactory,
                 new DisposeAction(), false).doOnUnsubscribe(unsub)
-                .doonComplete()(completion);
+                .doOnComplete(completion);
         observable.subscribe(observer);
 
         assertEquals(Arrays.asList("completed", "unsub", "disposed"), events);

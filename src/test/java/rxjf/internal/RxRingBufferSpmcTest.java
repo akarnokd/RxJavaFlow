@@ -89,7 +89,7 @@ public class RxRingBufferSpmcTest extends RxRingBufferBase {
 
             @Override
             public void call() {
-                ts.requestMore(RxRingBuffer.SIZE);
+                ts.requestMore(Flow.defaultBufferSize());
                 ts.setProducer(p);
             }
 

@@ -23,6 +23,7 @@ import rxjf.*;
 import rxjf.Flow.Subscriber;
 import rxjf.Flow.Subscription;
 import rxjf.disposables.Disposable;
+import rxjf.exceptions.Exceptions;
 import rxjf.internal.*;
 import rxjf.internal.queues.SpscArrayQueue;
 import rxjf.subscribers.*;
@@ -33,17 +34,37 @@ import rxjf.subscribers.*;
  * @param <T>
  */
 public final class OperatorPublish<T> extends ConnectableFlowable<T> {
-    final Flowable<? extends T> source;
-
+    
+    /** The current connection. */
+    static final class PublishState<T> {
+        /** The current state, never null. */
+        PublishSubscriber<T> current = new PublishSubscriber<>();
+    }
+    
+    /**
+     * Creates a ConnectableFlowable that shares a single underlying connection
+     * to a source.
+     * @param source
+     * @return
+     */
     public static <T> ConnectableFlowable<T> create(Flowable<? extends T> source) {
-        return new OperatorPublish<>(source);
+        PublishState<T> ps = new PublishState<>();
+        return new OperatorPublish<>(source, ps);
     }
 
+    /**
+     * Creates a Flowable which shares a single underlying connection to
+     * the source through a Flowable transformation returned by the selector.
+     * @param source
+     * @param selector
+     * @return
+     */
     public static <T, R> Flowable<R> create(final Flowable<? extends T> source, 
             final Function<? super Flowable<T>, ? extends Flowable<R>> selector) {
         return Flowable.create(child -> {
             DisposableSubscriber<R> ds = new DefaultDisposableSubscriber<>(child);
-            OperatorPublish<T> op = new OperatorPublish<>(source);
+            PublishState<T> ps = new PublishState<>();
+            OperatorPublish<T> op = new OperatorPublish<>(source, ps);
             
             selector.apply(op).unsafeSubscribe(ds);
             
@@ -51,16 +72,86 @@ public final class OperatorPublish<T> extends ConnectableFlowable<T> {
         });
     }
 
-    private OperatorPublish(Flowable<? extends T> source) {
-        super(s -> {
-            // TODO
+    final Flowable<? extends T> source;
+
+    final PublishState<T> state;
+
+    private OperatorPublish(Flowable<? extends T> source, PublishState<T> state) {
+        super(s -> { 
+            PublishSubscriber<T> c = state.current;
+            InnerSubscription<T> inner = new InnerSubscription<>(s, c);
+            inner.setRemover();
+            if (!c.psm.add(inner)) {
+                Object term = c.psm.terminal;
+                NotificationLite<T> nl = NotificationLite.instance();
+                if (nl.isCompleted(term)) {
+                    inner.complete();
+                } else {
+                    inner.errorFinal(nl.getError(term));
+                }
+            } else {
+                s.onSubscribe(inner);
+                c.dispatch();
+            }
         });
         this.source = source;
+        this.state = state;
     }
 
     @Override
     public void connect(Consumer<? super Disposable> connection) {
-        // TODO
+        PublishSubscriber<T> c;
+        boolean connect = false;
+        synchronized (this) {
+            c = state.current;
+            if (c.isDisposed()) {
+                c = new PublishSubscriber<>();
+                state.current = c;
+            }
+            // only one should try to connect
+            if (!c.connecting) {
+                connect = true;
+                c.connecting = true;
+            }
+        }
+        connection.accept(c);
+        if (connect) {
+            source.unsafeSubscribe(c);
+        }
+    }
+    
+    /**
+     * Returns true if there are subscribers
+     * @return
+     */
+    public boolean hasSubscribers() {
+        return state.current.psm.array().length > 0;
+    }
+    
+    /**
+     * Returns true if there is a connection started but not yet connected.
+     * @return
+     */
+    public boolean isConnecting() {
+        PublishSubscriber<T> c = state.current;
+        return c.connecting && !c.connected && !c.done && !c.isDisposed();
+    }
+    /**
+     * Returns true if there is an active connection.
+     * @return
+     */
+    public boolean isConnected() {
+        PublishSubscriber<T> c = state.current;
+        return c.connected && !c.done && !c.isDisposed();
+    }
+    
+    /**
+     * Retunrs true if the source has completed and/or disconnected.
+     * @return
+     */
+    public boolean isDisposed() {
+        PublishSubscriber<T> c = state.current;
+        return c.isDisposed();
     }
     
     /**
@@ -73,14 +164,25 @@ public final class OperatorPublish<T> extends ConnectableFlowable<T> {
         public PublishSubscriptionManager() {
             super(i -> new InnerSubscription[i]);
         }
+        /** The terminal value if not null. */
+        volatile Object terminal;
+        static final long TERMINAL = addressOf(PublishSubscriptionManager.class, "terminal");
+        
+        void soTerminal(Object value) {
+            UNSAFE.putOrderedObject(this, TERMINAL, value);
+        }
     }
     
-    static final class PublishSubscriber<T> extends AbstractSubscriber<T> {
+    static final class PublishSubscriber<T> extends AbstractSubscriber<T> implements Disposable {
         final NotificationLite<T> nl;
         final SpscArrayQueue<T> queue;
         final PublishSubscriptionManager<T> psm;
-        
-        Object terminal;
+
+        /** Guarded by the parent OperatorPublish, set to true on the first attempt to connect an unconnected subscriber. */
+        volatile boolean connecting;
+        /** True if subscriber has been received. */
+        volatile boolean connected;
+        /** True if the source has terminated. */
         volatile boolean done;
         
         /** Guarded by this. */
@@ -88,14 +190,39 @@ public final class OperatorPublish<T> extends ConnectableFlowable<T> {
         /** Guarded by this. */
         boolean missed;
         
-        public PublishSubscriber(PublishSubscriptionManager<T> psm) {
+        /** Holds a disposable wrapper of the subscription. */
+        volatile Disposable disconnect;
+        static final long DISCONNECT = addressOf(PublishSubscriber.class, "disconnect");
+        
+        public PublishSubscriber() {
             this.nl = NotificationLite.instance();
             this.queue = new SpscArrayQueue<>(Flow.defaultBufferSize());
-            this.psm = psm;
+            this.psm = new PublishSubscriptionManager<>();
         }
+        
+        @Override
+        public void dispose() {
+            TerminalAtomics.dispose(this, DISCONNECT);
+        }
+        
+        @Override
+        public boolean isDisposed() {
+            return TerminalAtomics.isDisposed(this, DISCONNECT);
+        }
+        
         @Override
         protected void onSubscribe() {
-            subscription.request(Flow.defaultBufferSize());
+            // TODO our subscriptions are threadsafe by design
+            Subscription s = subscription;
+            Disposable d = Disposable.from(s);
+            
+            if (!TerminalAtomics.set(this, DISCONNECT, d)) {
+                done = true;
+                return;
+            }
+            
+            connected = true;
+            s.request(Flow.defaultBufferSize());
         }
         @Override
         public void onNext(T item) {
@@ -103,7 +230,7 @@ public final class OperatorPublish<T> extends ConnectableFlowable<T> {
             Conformance.subscriptionNonNull(subscription);
             
             if (!queue.offer(item)) {
-                terminal = nl.error(Conformance.mustRequestFirst());
+                psm.soTerminal(nl.error(Conformance.mustRequestFirst()));
                 done = true;
             }
             dispatch();
@@ -116,8 +243,9 @@ public final class OperatorPublish<T> extends ConnectableFlowable<T> {
             if (done) {
                 return;
             }
-            terminal = nl.error(throwable);
+            psm.soTerminal(nl.error(throwable));
             done = true;
+            dispose();
             dispatch();
         }
         @Override
@@ -127,8 +255,9 @@ public final class OperatorPublish<T> extends ConnectableFlowable<T> {
             if (done) {
                 return;
             }
-            terminal = nl.complete();
+            psm.soTerminal(nl.complete());
             done = true;
+            dispose();
             dispatch();
         }
         
@@ -144,9 +273,85 @@ public final class OperatorPublish<T> extends ConnectableFlowable<T> {
             boolean skipFinal = false;
             try {
                 for (;;) {
-                    // TODO
-                    
-                    
+
+                    for (;;) {
+                        
+                        boolean empty = queue.isEmpty();
+                        if (canTerminate(psm.terminal, empty)) {
+                            skipFinal = true;
+                            return;
+                        }
+                        if (!empty) {
+                            InnerSubscription<T>[] array = psm.array();
+                            int len = array.length;
+                            
+                            long maxRequested = Long.MAX_VALUE;
+                            int ignore = 0;
+                            for (InnerSubscription<T> is : array) {
+                                long ir = is.requested;
+                                // ignore NO_REQUEST and CANCEL
+                                if (ir == 0) {
+                                    // found somebody not ready
+                                    maxRequested = 0;
+                                    break;
+                                } else
+                                if (ir > 0) {
+                                    maxRequested = Math.min(maxRequested, ir);
+                                } else {
+                                    // either cancelled or not yet requested
+                                    ignore++;
+                                }
+                            }
+                            
+                            if (ignore == len) {
+                                // no one is interested yet/anymore, drop the value
+                                queue.poll();
+                                // eagerly check terminal state
+                                if (canTerminate(psm.terminal, empty)) {
+                                    skipFinal = true;
+                                    return;
+                                }
+                                // request a replacement
+                                subscription.request(1);
+                            } else {
+                                // there are interested parties,
+                                long d = 0;
+                                while (d < maxRequested) {
+                                    T v = queue.poll();
+                                    empty = v == null;
+                                    if (canTerminate(psm.terminal, empty)) {
+                                        skipFinal = true;
+                                        return;
+                                    }
+                                    if (empty) {
+                                        break;
+                                    }
+                                    for (InnerSubscription<T> is : array) {
+                                        long ir = is.requested;
+                                        if (ir > 0) {
+                                            try {
+                                                is.subscriber.onNext(v);
+                                            } catch (Throwable t) {
+                                                is.error(t);
+                                                continue;
+                                            }
+                                            is.produced(1); // might be quite inefficient, but required by eager
+                                        }
+                                    }
+                                    d++;
+                                }
+                                // replenish from the source
+                                if (d > 0) {
+                                    subscription.request(d);
+                                }
+                                if (maxRequested == 0 || empty) {
+                                    break;
+                                }
+                           }
+                        } else {
+                            break;
+                        }
+                    }
                     
                     synchronized (this) {
                         if (!missed) {
@@ -165,8 +370,39 @@ public final class OperatorPublish<T> extends ConnectableFlowable<T> {
                 }
             }
         }
+        
+        /**
+         * Check the terminal state and emptyness, terminate
+         * the psm if necessary and deliver the terminal even
+         * @param term
+         * @param empty
+         * @return
+         */
+        boolean canTerminate(Object term, boolean empty) {
+            if (empty && term != null && nl.isCompleted(term)) {
+                for (InnerSubscription<T> s : psm.getAndTerminate()) {
+                    s.complete();
+                }
+                return true;
+            } else 
+            if (term != null && nl.isError(term)){
+                queue.clear();
+                Throwable t = nl.getError(term);
+                for (InnerSubscription<T> s : psm.getAndTerminate()) {
+                    s.errorFinal(t);
+                }
+                return true;
+            }
+            return false;
+        }
     }
     
+    /**
+     * Manages the requests from the downstream subscriber and
+     * helps dispatching errors and completion.
+     * 
+     * @param <T> the value type emitted
+     */
     static final class InnerSubscription<T> implements Subscription {
         /** The current requested count, negative value indicates cancelled subscription. */
         volatile long requested;
@@ -199,14 +435,79 @@ public final class OperatorPublish<T> extends ConnectableFlowable<T> {
                 cancel();
                 return;
             }
-            TerminalAtomics.request(this, REQUESTED, n);
+            TerminalAtomics.requestUnrequested(this, REQUESTED, n);
             parent.dispatch();
+        }
+        
+        public void produced(long n) {
+            TerminalAtomics.producedChecked(this, REQUESTED, n, subscriber, this);
         }
         
         @Override
         public void cancel() {
             if (TerminalAtomics.cancel(this, REQUESTED)) {
                 TerminalAtomics.dispose(this, REMOVE);
+            }
+        }
+        
+        /** 
+         * Called from the dispatcher loop when it encounters a terminal state
+         * where there is no need to remove the Disposable from the psm.
+         */
+        public void terminate() {
+            TerminalAtomics.cancel(this, REQUESTED);
+            UNSAFE.putOrderedObject(this, REMOVE, null);
+        }
+        
+        /**
+         * Called if the onNext threw.
+         */
+        void error(Throwable t) {
+            t = Conformance.onNextThrew(t);
+            try {
+                try {
+                    subscriber.onError(t);
+                } catch (Throwable e) {
+                    Exceptions.handleUncaught(t);
+                    Exceptions.handleUncaught(Conformance.onErrorThrew(e));
+                }
+            } finally {
+                try {
+                    cancel();
+                } catch (Throwable t3) {
+                    Exceptions.handleUncaught(Conformance.cancelThrew(t3));
+                }
+            }
+        }
+        /**
+         * Called if the source has error'd.
+         */
+        void errorFinal(Throwable t) {
+            try {
+                try {
+                    subscriber.onError(t);
+                } catch (Throwable e) {
+                    Exceptions.handleUncaught(t);
+                    Exceptions.handleUncaught(Conformance.onErrorThrew(e));
+                }
+            } finally {
+                // no need to remove ourselves from psm.
+                terminate();
+            }
+        }
+        /**
+         * Called if the source has completed.
+         */
+        void complete() {
+            try {
+                try {
+                    subscriber.onComplete();
+                } catch (Throwable e) {
+                    Exceptions.handleUncaught(Conformance.onCompleteThrew(e));
+                }
+            } finally {
+                // no need to remove ourselves from psm.
+                terminate();
             }
         }
     }

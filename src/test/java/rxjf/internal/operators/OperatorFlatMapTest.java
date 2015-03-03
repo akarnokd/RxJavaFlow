@@ -297,7 +297,7 @@ public class OperatorFlatMapTest {
                     Assert.fail("Too many subscriptions! " + subscriptionCount.get());
                 }
             }
-        }).doonComplete()(new Action0() {
+        }).doOnComplete(new Action0() {
             @Override
             public void call() {
                 if (subscriptionCount.decrementAndGet() < 0) {

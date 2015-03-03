@@ -209,14 +209,14 @@ public class OnSubscribeAmbTest {
     @Test
     public void testBackpressure() {
         TestSubscriber<Integer> ts = new TestSubscriber<Integer>();
-        Flowable.range(0, RxRingBuffer.SIZE * 2)
-                .ambWith(Flowable.range(0, RxRingBuffer.SIZE * 2))
+        Flowable.range(0, Flow.defaultBufferSize() * 2)
+                .ambWith(Flowable.range(0, Flow.defaultBufferSize() * 2))
                 .observeOn(Schedulers.computation()) // observeOn has a backpressured RxRingBuffer
                 .delay(1, TimeUnit.MICROSECONDS) // make it a slightly slow consumer
                 .subscribe(ts);
 
         ts.awaitTerminalEvent();
         ts.assertNoErrors();
-        assertEquals(RxRingBuffer.SIZE * 2, ts.getOnNextEvents().size());
+        assertEquals(Flow.defaultBufferSize() * 2, ts.getOnNextEvents().size());
     }
 }

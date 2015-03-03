@@ -153,7 +153,7 @@ public class OperatorWithLatestFromTest {
         
         ts.unsubscribe();
         
-        ts.assertReceivedOnNext(Arrays.asList((1 << 8) + 1));
+        ts.assertValues(((1 << 8) + 1));
         ts.assertNoErrors();
         assertEquals(0, ts.getonComplete()Events().size());
         
@@ -181,7 +181,7 @@ public class OperatorWithLatestFromTest {
         source.onError(new TestException());
         
         ts.assertTerminalEvent();
-        ts.assertReceivedOnNext(Arrays.asList((1 << 8) + 1));
+        ts.assertValues(((1 << 8) + 1));
         assertEquals(1, ts.getOnErrorEvents().size());
         assertTrue(ts.getOnErrorEvents().get(0) instanceof TestException);
         
@@ -208,7 +208,7 @@ public class OperatorWithLatestFromTest {
         other.onError(new TestException());
         
         ts.assertTerminalEvent();
-        ts.assertReceivedOnNext(Arrays.asList((1 << 8) + 1));
+        ts.assertValues(((1 << 8) + 1));
         assertEquals(1, ts.getOnErrorEvents().size());
         assertTrue(ts.getOnErrorEvents().get(0) instanceof TestException);
         
@@ -281,10 +281,10 @@ public class OperatorWithLatestFromTest {
         
         ts.requestMore(1);
         
-        ts.assertReceivedOnNext(Arrays.asList((2 << 8) + 1));
+        ts.assertValues(((2 << 8) + 1));
         
         ts.requestMore(5);
-        ts.assertReceivedOnNext(Arrays.asList(
+        ts.assertValues((
                 (2 << 8) + 1, (3 << 8) + 1, (4 << 8) + 1, (5 << 8) + 1, 
                 (6 << 8) + 1, (7 << 8) + 1 
         ));

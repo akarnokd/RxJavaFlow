@@ -1024,21 +1024,21 @@ public class FlowableTests {
     public void testMergeWith() {
         TestSubscriber<Integer> ts = new TestSubscriber<Integer>();
         Flowable.just(1).mergeWith(Flowable.just(2)).subscribe(ts);
-        ts.assertReceivedOnNext(Arrays.asList(1, 2));
+        ts.assertValues((1, 2));
     }
     
     @Test
     public void testConcatWith() {
         TestSubscriber<Integer> ts = new TestSubscriber<Integer>();
         Flowable.just(1).concatWith(Flowable.just(2)).subscribe(ts);
-        ts.assertReceivedOnNext(Arrays.asList(1, 2));
+        ts.assertValues((1, 2));
     }
     
     @Test
     public void testAmbWith() {
         TestSubscriber<Integer> ts = new TestSubscriber<Integer>();
         Flowable.just(1).ambWith(Flowable.just(2)).subscribe(ts);
-        ts.assertReceivedOnNext(Arrays.asList(1));
+        ts.assertValues((1));
     }
 
     @Test(expected = OnErrorNotImplementedException.class)
@@ -1097,7 +1097,7 @@ public class FlowableTests {
         }).subscribe(ts);
         ts.assertTerminalEvent();
         ts.assertNoErrors();
-        ts.assertReceivedOnNext(Arrays.asList("1", "2", "3"));
+        ts.assertValues(("1", "2", "3"));
     }
     
     @Test

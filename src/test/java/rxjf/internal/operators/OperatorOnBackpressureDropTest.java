@@ -47,7 +47,7 @@ public class OperatorOnBackpressureDropTest {
     @Test(timeout = 500)
     public void testWithObserveOn() throws InterruptedException {
         TestSubscriber<Integer> ts = new TestSubscriber<Integer>();
-        Flowable.range(0, RxRingBuffer.SIZE * 10).onBackpressureDrop().onBackpressureDrop().observeOn(Schedulers.io()).subscribe(ts);
+        Flowable.range(0, Flow.defaultBufferSize() * 10).onBackpressureDrop().onBackpressureDrop().observeOn(Schedulers.io()).subscribe(ts);
         ts.awaitTerminalEvent();
     }
 

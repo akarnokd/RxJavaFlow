@@ -1038,13 +1038,13 @@ public class OperatorZipTest {
                 return t1 + "-" + t2;
             }
 
-        }).take(RxRingBuffer.SIZE * 2).subscribe(ts);
+        }).take(Flow.defaultBufferSize() * 2).subscribe(ts);
 
         ts.awaitTerminalEvent();
         ts.assertNoErrors();
-        assertEquals(RxRingBuffer.SIZE * 2, ts.getOnNextEvents().size());
-        assertTrue(generatedA.get() < (RxRingBuffer.SIZE * 3));
-        assertTrue(generatedB.get() < (RxRingBuffer.SIZE * 3));
+        assertEquals(Flow.defaultBufferSize() * 2, ts.getOnNextEvents().size());
+        assertTrue(generatedA.get() < (Flow.defaultBufferSize() * 3));
+        assertTrue(generatedB.get() < (Flow.defaultBufferSize() * 3));
     }
 
     @Test
@@ -1062,21 +1062,21 @@ public class OperatorZipTest {
                 return t1 + "-" + t2;
             }
 
-        }).take(RxRingBuffer.SIZE * 2).subscribe(ts);
+        }).take(Flow.defaultBufferSize() * 2).subscribe(ts);
 
         ts.awaitTerminalEvent();
         ts.assertNoErrors();
-        assertEquals(RxRingBuffer.SIZE * 2, ts.getOnNextEvents().size());
-        assertTrue(generatedA.get() < (RxRingBuffer.SIZE * 3));
-        assertTrue(generatedB.get() < (RxRingBuffer.SIZE * 3));
+        assertEquals(Flow.defaultBufferSize() * 2, ts.getOnNextEvents().size());
+        assertTrue(generatedA.get() < (Flow.defaultBufferSize() * 3));
+        assertTrue(generatedB.get() < (Flow.defaultBufferSize() * 3));
     }
 
     @Test
     public void testDownstreamBackpressureRequestsWithFiniteSyncFlowables() {
         AtomicInteger generatedA = new AtomicInteger();
         AtomicInteger generatedB = new AtomicInteger();
-        Flowable<Integer> o1 = createInfiniteFlowable(generatedA).take(RxRingBuffer.SIZE * 2);
-        Flowable<Integer> o2 = createInfiniteFlowable(generatedB).take(RxRingBuffer.SIZE * 2);
+        Flowable<Integer> o1 = createInfiniteFlowable(generatedA).take(Flow.defaultBufferSize() * 2);
+        Flowable<Integer> o2 = createInfiniteFlowable(generatedB).take(Flow.defaultBufferSize() * 2);
 
         TestSubscriber<String> ts = new TestSubscriber<String>();
         Flowable.zip(o1, o2, new BiFunction<Integer, Integer, String>() {
@@ -1086,14 +1086,14 @@ public class OperatorZipTest {
                 return t1 + "-" + t2;
             }
 
-        }).observeOn(Schedulers.computation()).take(RxRingBuffer.SIZE * 2).subscribe(ts);
+        }).observeOn(Schedulers.computation()).take(Flow.defaultBufferSize() * 2).subscribe(ts);
 
         ts.awaitTerminalEvent();
         ts.assertNoErrors();
-        assertEquals(RxRingBuffer.SIZE * 2, ts.getOnNextEvents().size());
+        assertEquals(Flow.defaultBufferSize() * 2, ts.getOnNextEvents().size());
         System.out.println("Generated => A: " + generatedA.get() + " B: " + generatedB.get());
-        assertTrue(generatedA.get() < (RxRingBuffer.SIZE * 3));
-        assertTrue(generatedB.get() < (RxRingBuffer.SIZE * 3));
+        assertTrue(generatedA.get() < (Flow.defaultBufferSize() * 3));
+        assertTrue(generatedB.get() < (Flow.defaultBufferSize() * 3));
     }
 
     @Test
@@ -1111,14 +1111,14 @@ public class OperatorZipTest {
                 return t1 + "-" + t2;
             }
 
-        }).observeOn(Schedulers.computation()).take(RxRingBuffer.SIZE * 2).subscribe(ts);
+        }).observeOn(Schedulers.computation()).take(Flow.defaultBufferSize() * 2).subscribe(ts);
 
         ts.awaitTerminalEvent();
         ts.assertNoErrors();
-        assertEquals(RxRingBuffer.SIZE * 2, ts.getOnNextEvents().size());
+        assertEquals(Flow.defaultBufferSize() * 2, ts.getOnNextEvents().size());
         System.out.println("Generated => A: " + generatedA.get() + " B: " + generatedB.get());
-        assertTrue(generatedA.get() < (RxRingBuffer.SIZE * 4));
-        assertTrue(generatedB.get() < (RxRingBuffer.SIZE * 4));
+        assertTrue(generatedA.get() < (Flow.defaultBufferSize() * 4));
+        assertTrue(generatedB.get() < (Flow.defaultBufferSize() * 4));
     }
 
     @Test
@@ -1136,14 +1136,14 @@ public class OperatorZipTest {
                 return t1 + "-" + t2;
             }
 
-        }).observeOn(Schedulers.computation()).take(RxRingBuffer.SIZE * 2).subscribe(ts);
+        }).observeOn(Schedulers.computation()).take(Flow.defaultBufferSize() * 2).subscribe(ts);
 
         ts.awaitTerminalEvent();
         ts.assertNoErrors();
-        assertEquals(RxRingBuffer.SIZE * 2, ts.getOnNextEvents().size());
+        assertEquals(Flow.defaultBufferSize() * 2, ts.getOnNextEvents().size());
         System.out.println("Generated => A: " + generatedA.get() + " B: " + generatedB.get());
-        assertTrue(generatedA.get() < (RxRingBuffer.SIZE * 4));
-        assertTrue(generatedB.get() < (RxRingBuffer.SIZE * 4));
+        assertTrue(generatedA.get() < (Flow.defaultBufferSize() * 4));
+        assertTrue(generatedB.get() < (Flow.defaultBufferSize() * 4));
     }
 
     private Flowable<Integer> createInfiniteFlowable(final AtomicInteger generated) {
@@ -1266,7 +1266,7 @@ public class OperatorZipTest {
         
         ts.assertNoErrors();
         ts.assertTerminalEvent();
-        ts.assertReceivedOnNext(Arrays.asList(11, 22));
+        ts.assertValues((11, 22));
     }
     @Test(timeout = 10000)
     public void testZipRace() {
@@ -1305,6 +1305,6 @@ public class OperatorZipTest {
         
         ts.awaitTerminalEvent(1, TimeUnit.SECONDS);
         ts.assertNoErrors();
-        ts.assertReceivedOnNext(Arrays.asList(11));
+        ts.assertValues((11));
     }
 }

@@ -172,6 +172,6 @@ public class OperatorRepeatTest {
         
         ts.assertNoErrors();
         ts.assertTerminalEvent();
-        ts.assertReceivedOnNext(Arrays.asList(1, 2, 3));
+        ts.assertValues((1, 2, 3));
     }
 }

@@ -455,15 +455,15 @@ public class OperatorObserveOnTest {
                 .subscribe(testSubscriber);
         testSubscriber.awaitTerminalEvent();
         System.err.println(testSubscriber.getOnNextEvents());
-        testSubscriber.assertReceivedOnNext(Arrays.asList(0, 1, 2));
+        testSubscriber.assertValues((0, 1, 2));
         // it should be between the take num and requested batch size across the async boundary
         System.out.println("Generated: " + generated.get());
-        assertTrue(generated.get() >= 3 && generated.get() <= RxRingBuffer.SIZE);
+        assertTrue(generated.get() >= 3 && generated.get() <= Flow.defaultBufferSize());
     }
 
     @Test
     public void testBackpressureWithTakeAfterAndMultipleBatches() {
-        int numForBatches = RxRingBuffer.SIZE * 3 + 1; // should be 4 batches == ((3*n)+1) items
+        int numForBatches = Flow.defaultBufferSize() * 3 + 1; // should be 4 batches == ((3*n)+1) items
         final AtomicInteger generated = new AtomicInteger();
         Flowable<Integer> observable = Flowable.from(new Iterable<Integer>() {
             @Override
@@ -503,7 +503,7 @@ public class OperatorObserveOnTest {
         System.err.println(testSubscriber.getOnNextEvents());
         // it should be between the take num and requested batch size across the async boundary
         System.out.println("Generated: " + generated.get());
-        assertTrue(generated.get() >= numForBatches && generated.get() <= numForBatches + RxRingBuffer.SIZE);
+        assertTrue(generated.get() >= numForBatches && generated.get() <= numForBatches + Flow.defaultBufferSize());
     }
 
     @Test
@@ -538,7 +538,7 @@ public class OperatorObserveOnTest {
                 .subscribe(testSubscriber);
 
         testSubscriber.awaitTerminalEvent();
-        testSubscriber.assertReceivedOnNext(Arrays.asList(0, 1, 2, 3, 4, 5, 6));
+        testSubscriber.assertValues((0, 1, 2, 3, 4, 5, 6));
         assertEquals(7, generated.get());
     }
 
@@ -549,7 +549,7 @@ public class OperatorObserveOnTest {
 
             @Override
             public void call(Subscriber<? super Integer> o) {
-                for (int i = 0; i < RxRingBuffer.SIZE + 10; i++) {
+                for (int i = 0; i < Flow.defaultBufferSize() + 10; i++) {
                     o.onNext(i);
                 }
                 latch.countDown();
@@ -651,7 +651,7 @@ public class OperatorObserveOnTest {
             List<Long> onNextEvents = ts.getOnNextEvents();
             assertTrue(onNextEvents.isEmpty() || onNextEvents.size() == onNextEvents.get(onNextEvents.size() - 1) + 1);
             // we should emit the error without emitting the full buffer size
-            assertTrue(onNextEvents.size() < RxRingBuffer.SIZE);
+            assertTrue(onNextEvents.size() < Flow.defaultBufferSize());
         }
     }
 
@@ -717,7 +717,7 @@ public class OperatorObserveOnTest {
                 return t1;
             }
 
-        }).take(RxRingBuffer.SIZE * 2).subscribe(ts);
+        }).take(Flow.defaultBufferSize() * 2).subscribe(ts);
 
         ts.awaitTerminalEvent();
         assertEquals(1, ts.getOnErrorEvents().size());

@@ -186,7 +186,7 @@ public final class OperatorZip<R> implements Operator<R, Flowable<?>[]> {
         @SuppressWarnings("rawtypes")
         static final AtomicLongFieldUpdater<Zip> COUNTER_UPDATER = AtomicLongFieldUpdater.newUpdater(Zip.class, "counter");
 
-        static final int THRESHOLD = (int) (RxRingBuffer.SIZE * 0.7);
+        static final int THRESHOLD = (int) (Flow.defaultBufferSize() * 0.7);
         int emitted = 0; // not volatile/synchronized as accessed inside COUNTER_UPDATER block
 
         /* initialized when started in `start` */
@@ -305,7 +305,7 @@ public final class OperatorZip<R> implements Operator<R, Flowable<?>[]> {
 
             @Override
             public void onStart() {
-                request(RxRingBuffer.SIZE);
+                request(Flow.defaultBufferSize());
             }
             
             public void requestMore(long n) {
