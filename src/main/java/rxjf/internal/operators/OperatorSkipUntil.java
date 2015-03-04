@@ -55,11 +55,18 @@ public final class OperatorSkipUntil<T, U> implements Operator<T, T> {
         final Flowable<?> other;
         SingleDisposableSubscription subscription;
         
+        /** The gate state: -1: not yet open, 0: open, 1: closed. */
         volatile int gate;
         static final long GATE = addressOf(TakeUntilSubscriber.class, "gate");
+        
+        static final int STATE_SKIPPING = -1;
+        static final int STATE_OPEN = 0;
+        static final int STATE_CLOSED = 1;
+        
         public SkipUntilSubscriber(Subscriber<? super T> actual, Flowable<?> other) {
             this.actual = actual;
             this.other = other;
+            UNSAFE.putOrderedInt(this, GATE, STATE_SKIPPING);
         }
         @Override
         public void onSubscribe(Subscription subscription) {
@@ -78,25 +85,25 @@ public final class OperatorSkipUntil<T, U> implements Operator<T, T> {
             actual.onSubscribe(s);
         }
         void open() {
-            if (gate == 0) {
-                UNSAFE.compareAndSwapInt(this, GATE, 0, 1); 
+            if (gate == STATE_SKIPPING) {
+                UNSAFE.compareAndSwapInt(this, GATE, STATE_SKIPPING, STATE_OPEN); 
             }
         }
         @Override
         public void onNext(T item) {
-            if (gate == 1) {
+            if (gate == STATE_OPEN) {
                 actual.onNext(item);
             }
         }
         @Override
         public void onError(Throwable throwable) {
-            if (UNSAFE.getAndSetInt(this, GATE, 2) != 2) {
+            if (UNSAFE.getAndSetInt(this, GATE, STATE_CLOSED) != STATE_CLOSED) {
                 actual.onError(throwable);
             }
         }
         @Override
         public void onComplete() {
-            if (UNSAFE.getAndSetInt(this, GATE, 2) != 2) {
+            if (UNSAFE.getAndSetInt(this, GATE, STATE_CLOSED) != STATE_CLOSED) {
                 actual.onComplete();
             }
         }

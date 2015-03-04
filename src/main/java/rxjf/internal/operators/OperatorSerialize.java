@@ -15,15 +15,15 @@
  */
 package rxjf.internal.operators;
 
-import rx.Flowable.Operator;
-import rx.Subscriber;
-import rx.observers.SerializedSubscriber;
+import rxjf.Flow.Subscriber;
+import rxjf.Flowable.Operator;
+import rxjf.subscribers.SerializedSubscriber;
 
 public final class OperatorSerialize<T> implements Operator<T, T> {
     /** Lazy initialization via inner-class holder. */
     private static final class Holder {
         /** A singleton instance. */
-        static final OperatorSerialize<Object> INSTANCE = new OperatorSerialize<Object>();
+        static final OperatorSerialize<Object> INSTANCE = new OperatorSerialize<>();
     }
     /**
      * @return a singleton instance of this stateless operator.
@@ -34,25 +34,8 @@ public final class OperatorSerialize<T> implements Operator<T, T> {
     }
     private OperatorSerialize() { }
     @Override
-    public Subscriber<? super T> call(final Subscriber<? super T> s) {
-        return new SerializedSubscriber<T>(new Subscriber<T>(s) {
-
-            @Override
-            public void onComplete() {
-                s.onComplete();
-            }
-
-            @Override
-            public void onError(Throwable e) {
-                s.onError(e);
-            }
-
-            @Override
-            public void onNext(T t) {
-                s.onNext(t);
-            }
-
-        });
+    public Subscriber<? super T> apply(final Subscriber<? super T> s) {
+        return SerializedSubscriber.wrap(s);
     }
 
 }
