@@ -16,12 +16,16 @@
 
 package rxjf.internal.operators;
 
+import static rxjf.internal.UnsafeAccess.*;
 import rxjf.Flow.Subscriber;
+import rxjf.Flow.Subscription;
 import rxjf.*;
+import rxjf.disposables.Disposable;
+import rxjf.exceptions.Exceptions;
+import rxjf.internal.*;
 import rxjf.internal.schedulers.EventLoopsScheduler;
-import rxjf.internal.subscriptions.*;
+import rxjf.internal.subscriptions.ScalarSubscription;
 import rxjf.schedulers.Scheduler;
-import rxjf.subscribers.DisposableSubscriber;
 
 /**
  * 
@@ -58,16 +62,22 @@ public final class ScalarSynchronousFlowable<T> extends Flowable<T> {
     static final class DirectScheduledEmission<T> implements OnSubscribe<T> {
         private final EventLoopsScheduler es;
         private final T value;
+        
         DirectScheduledEmission(EventLoopsScheduler es, T value) {
             this.es = es;
             this.value = value;
         }
         @Override
         public void accept(final Subscriber<? super T> child) {
-            DisposableSubscriber<? super T> cs = DisposableSubscriber.from(child);
-            cs.add(es.scheduleDirect(new ScalarSubscription<>(cs, value)));
+            DirectScheduledRequest<T> sr = new DirectScheduledRequest<>(child, value, es);
+            try {
+                child.onSubscribe(sr);
+            } catch (Throwable t) {
+                throw Conformance.onSubscribeThrew(t);
+            }
         }
     }
+    
     /** Emits a scalar value on a general scheduler. */
     static final class NormalScheduledEmission<T> implements OnSubscribe<T> {
         private final Scheduler scheduler;
@@ -80,10 +90,107 @@ public final class ScalarSynchronousFlowable<T> extends Flowable<T> {
         
         @Override
         public void accept(final Subscriber<? super T> child) {
-            DisposableSubscriber<? super T> cs = DisposableSubscriber.from(child);
-            Scheduler.Worker worker = scheduler.createWorker();
-            cs.add(worker);
-            worker.schedule(new ScalarSubscription<>(cs, value));
+            NormalScheduledRequest<T> sr = new NormalScheduledRequest<>(child, value, scheduler);
+            try {
+                child.onSubscribe(sr);
+            } catch (Throwable t) {
+                throw Conformance.onSubscribeThrew(t);
+            }
+        }
+    }
+    
+    /**
+     * Base class for scheduling an scalar emission in a cancellable way.
+     *
+     * @param <T> the emitted value type
+     */
+    static abstract class AbstractScheduledRequest<T> implements Subscription, Runnable {
+        final Subscriber<? super T> child;
+        final T value;
+        
+        volatile int once;
+        static final long ONCE = addressOf(DirectScheduledRequest.class, "once");
+        
+        volatile Disposable task;
+        static final long TASK = addressOf(DirectScheduledRequest.class, "task");
+
+        public AbstractScheduledRequest(Subscriber<? super T> child, T value) {
+            this.child = child;
+            this.value = value;
+        }
+        
+        protected abstract Disposable schedule();
+        @Override
+        public void request(long n) {
+            if (UNSAFE.getAndSetInt(this, ONCE, 1) == 0) {
+                Disposable t = schedule();
+                TerminalAtomics.set(this, TASK, t);
+            }
+        }
+        @Override
+        public void run() {
+            try {
+                try {
+                    child.onNext(value);
+                } catch (Throwable t) {
+                    Throwable t1 = Conformance.onNextThrew(t);
+                    try {
+                        child.onError(t1);
+                    } catch (Throwable t2) {
+                        Exceptions.handleUncaught(t1);
+                        Exceptions.handleUncaught(Conformance.onErrorThrew(t2));
+                    }
+                    return;
+                }
+                try {
+                    child.onComplete();
+                } catch (Throwable t3) {
+                    Exceptions.handleUncaught(Conformance.onCompleteThrew(t3));
+                }
+            } finally {
+                TerminalAtomics.disposeSilently(this, TASK);
+            }
+        }
+        @Override
+        public void cancel() {
+            UNSAFE.getAndSetInt(this, ONCE, 1);
+            TerminalAtomics.dispose(this, TASK);
+        }
+    }
+    /**
+     * Schedules itself on the EventLoopsScheduler once the child requests any value.
+     *
+     * @param <T> the emitted value type
+     */
+    static final class DirectScheduledRequest<T> extends AbstractScheduledRequest<T> {
+        final EventLoopsScheduler scheduler;
+        
+        public DirectScheduledRequest(Subscriber<? super T> child, T value, EventLoopsScheduler scheduler) {
+            super(child, value);
+            this.scheduler = scheduler;
+        }
+        @Override
+        protected Disposable schedule() {
+            return scheduler.scheduleDirect(this);
+        }
+    }
+    /**
+     * Schedules itself on a general scheduler once the child requests any value.
+     *
+     * @param <T>
+     */
+    static final class NormalScheduledRequest<T> extends AbstractScheduledRequest<T> {
+        final Scheduler scheduler;
+        
+        public NormalScheduledRequest(Subscriber<? super T> child, T value, Scheduler scheduler) {
+            super(child, value);
+            this.scheduler = scheduler;
+        }
+        @Override
+        protected Disposable schedule() {
+            Scheduler.Worker w = scheduler.createWorker();
+            w.schedule(this);
+            return w;
         }
     }
 }

@@ -379,19 +379,22 @@ public final class OperatorPublish<T> extends ConnectableFlowable<T> {
          * @return
          */
         boolean canTerminate(Object term, boolean empty) {
-            if (empty && term != null && nl.isCompleted(term)) {
-                for (InnerSubscription<T> s : psm.getAndTerminate()) {
-                    s.complete();
+            if (term != null) {
+                if (nl.isCompleted(term)) {
+                    if (empty) {
+                        for (InnerSubscription<T> s : psm.getAndTerminate()) {
+                            s.complete();
+                        }
+                        return true;
+                    }
+                } else {
+                    queue.clear();
+                    Throwable t = nl.getError(term);
+                    for (InnerSubscription<T> s : psm.getAndTerminate()) {
+                        s.errorFinal(t);
+                    }
+                    return true;
                 }
-                return true;
-            } else 
-            if (term != null && nl.isError(term)){
-                queue.clear();
-                Throwable t = nl.getError(term);
-                for (InnerSubscription<T> s : psm.getAndTerminate()) {
-                    s.errorFinal(t);
-                }
-                return true;
             }
             return false;
         }

@@ -131,6 +131,15 @@ public final class TerminalAtomics {
         return false;
     }
     /**
+     * Replaces the Disposable at the target address with the common 
+     * TERMINATED instance and does not dispose its previous value.
+     * @param target
+     * @param address
+     */
+    public static void disposeSilently(Object target, long address) {
+        UNSAFE.putOrderedObject(target, address, TERMINATED);
+    }
+    /**
      * Checks if the target location contains the common TERMINATED disposable
      * instance.
      * @param target
