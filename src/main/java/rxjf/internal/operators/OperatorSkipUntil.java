@@ -15,11 +15,15 @@
  */
 package rxjf.internal.operators;
 
-import java.util.concurrent.atomic.AtomicBoolean;
-import rx.Flowable;
-import rx.Flowable.Operator;
-import rx.Subscriber;
-import rx.observers.SerializedSubscriber;
+import static rxjf.internal.UnsafeAccess.*;
+import rxjf.Flow.*;
+import rxjf.*;
+import rxjf.Flowable.Operator;
+import rxjf.disposables.Disposable;
+import rxjf.internal.Conformance;
+import rxjf.internal.operators.OperatorTakeUntil.*;
+import rxjf.internal.subscriptions.SingleDisposableSubscription;
+import rxjf.subscribers.*;
 
 /**
  * Skip elements from the source Flowable until the secondary
@@ -40,53 +44,95 @@ public final class OperatorSkipUntil<T, U> implements Operator<T, T> {
     }
 
     @Override
-    public Subscriber<? super T> call(Subscriber<? super T> child) {
-        final SerializedSubscriber<T> s = new SerializedSubscriber<T>(child);
-        final AtomicBoolean gate = new AtomicBoolean();
-        // u needs to unsubscribe from other independently of child
-        Subscriber<U> u = new Subscriber<U>() {
-
-            @Override
-            public void onNext(U t) {
-                gate.set(true);
-                unsubscribe();
-            }
-
-            @Override
-            public void onError(Throwable e) {
-                s.onError(e);
-                s.unsubscribe();
-            }
-
-            @Override
-            public void onComplete() {
-                unsubscribe();
-            }
-        };
-        child.add(u);
-        other.unsafeSubscribe(u);
+    public Subscriber<? super T> apply(Subscriber<? super T> child) {
+        final SerializedSubscriber<? super T> s = SerializedSubscriber.wrap(child);
         
-        return new Subscriber<T>(child) {
-            @Override
-            public void onNext(T t) {
-                if (gate.get()) {
-                    s.onNext(t);
-                } else {
-                    request(1);
-                }
-            }
-
-            @Override
-            public void onError(Throwable e) {
-                s.onError(e);
-                unsubscribe();
-            }
-
-            @Override
-            public void onComplete() {
-                s.onComplete();
-                unsubscribe();
-            }
-        };
+        return new SkipUntilSubscriber<>(s, other);
     }
+    
+    static final class SkipUntilSubscriber<T> implements Subscriber<T> {
+        final Subscriber<? super T> actual;
+        final Flowable<?> other;
+        SingleDisposableSubscription subscription;
+        
+        volatile int gate;
+        static final long GATE = addressOf(TakeUntilSubscriber.class, "gate");
+        public SkipUntilSubscriber(Subscriber<? super T> actual, Flowable<?> other) {
+            this.actual = actual;
+            this.other = other;
+        }
+        @Override
+        public void onSubscribe(Subscription subscription) {
+            Conformance.subscriptionNonNull(subscription);
+            if (!Conformance.onSubscribeOnce(this.subscription, this)) {
+                subscription.cancel();
+                return;
+            }
+            SingleDisposableSubscription s = new SingleDisposableSubscription(subscription);
+            this.subscription = s;
+            
+            Disposable d = other.unsafeSubscribeDisposable(new OtherSubscriber(this));
+            
+            s.set(d);
+            
+            actual.onSubscribe(s);
+        }
+        void open() {
+            if (gate == 0) {
+                UNSAFE.compareAndSwapInt(this, GATE, 0, 1); 
+            }
+        }
+        @Override
+        public void onNext(T item) {
+            if (gate == 1) {
+                actual.onNext(item);
+            }
+        }
+        @Override
+        public void onError(Throwable throwable) {
+            if (UNSAFE.getAndSetInt(this, GATE, 2) != 2) {
+                actual.onError(throwable);
+            }
+        }
+        @Override
+        public void onComplete() {
+            if (UNSAFE.getAndSetInt(this, GATE, 2) != 2) {
+                actual.onComplete();
+            }
+        }
+    }
+    /**
+     * Subscribed to the other observable.
+     */
+    static final class OtherSubscriber extends AbstractSubscriber<Object> {
+        final SkipUntilSubscriber<?> parent;
+        public OtherSubscriber(SkipUntilSubscriber<?> parent) {
+            this.parent = parent;
+        }
+        @Override
+        public void onNext(Object item) {
+            try {
+                parent.open();
+            } finally {
+                subscription.cancel();
+            }
+        }
+        @Override
+        public void onError(Throwable throwable) {
+            try {
+                parent.onError(throwable);
+            } finally {
+                subscription.cancel();
+            }
+        }
+        @Override
+        public void onComplete() {
+            try {
+                parent.open();
+            } finally {
+                subscription.cancel();
+            }
+        }
+    }
+
 }

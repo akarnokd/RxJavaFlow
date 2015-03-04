@@ -15,23 +15,18 @@
  */
 package rxjf.internal.operators;
 
-import static org.mockito.Matchers.any;
-import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
+import static org.mockito.Matchers.*;
+import static org.mockito.Mockito.*;
 
-import org.junit.Before;
-import org.junit.Test;
-import org.mockito.Mock;
+import org.junit.*;
 import org.mockito.MockitoAnnotations;
 
-import rx.Flowable;
-import rx.Observer;
-import rx.subjects.PublishSubject;
+import rxjf.Flow.Subscriber;
+import rxjf.*;
+import rxjf.processors.PublishProcessor;
+import rxjf.subscribers.TestSubscriber;
 
 public class OperatorSkipUntilTest {
-    @Mock
-    Observer<Object> observer;
 
     @Before
     public void before() {
@@ -40,11 +35,16 @@ public class OperatorSkipUntilTest {
 
     @Test
     public void normal1() {
-        PublishSubject<Integer> source = PublishSubject.create();
-        PublishSubject<Integer> other = PublishSubject.create();
+        PublishProcessor<Integer> source = PublishProcessor.create();
+        PublishProcessor<Integer> other = PublishProcessor.create();
 
         Flowable<Integer> m = source.skipUntil(other);
-        m.subscribe(observer);
+        
+        @SuppressWarnings("unchecked")
+        Subscriber<Integer> observer = mock(Subscriber.class);
+        TestSubscriber<Integer> ts = new TestSubscriber<>(observer);
+        
+        m.subscribe(ts);
 
         source.onNext(0);
         source.onNext(1);
@@ -65,11 +65,15 @@ public class OperatorSkipUntilTest {
 
     @Test
     public void otherNeverFires() {
-        PublishSubject<Integer> source = PublishSubject.create();
+        PublishProcessor<Integer> source = PublishProcessor.create();
 
         Flowable<Integer> m = source.skipUntil(Flowable.never());
 
-        m.subscribe(observer);
+        @SuppressWarnings("unchecked")
+        Subscriber<Integer> observer = mock(Subscriber.class);
+        TestSubscriber<Integer> ts = new TestSubscriber<>(observer);
+
+        m.subscribe(ts);
 
         source.onNext(0);
         source.onNext(1);
@@ -85,11 +89,15 @@ public class OperatorSkipUntilTest {
 
     @Test
     public void otherEmpty() {
-        PublishSubject<Integer> source = PublishSubject.create();
+        PublishProcessor<Integer> source = PublishProcessor.create();
 
         Flowable<Integer> m = source.skipUntil(Flowable.empty());
 
-        m.subscribe(observer);
+        @SuppressWarnings("unchecked")
+        Subscriber<Integer> observer = mock(Subscriber.class);
+        TestSubscriber<Integer> ts = new TestSubscriber<>(observer);
+
+        m.subscribe(ts);
 
         verify(observer, never()).onError(any(Throwable.class));
         verify(observer, never()).onNext(any());
@@ -98,11 +106,15 @@ public class OperatorSkipUntilTest {
 
     @Test
     public void otherFiresAndCompletes() {
-        PublishSubject<Integer> source = PublishSubject.create();
-        PublishSubject<Integer> other = PublishSubject.create();
+        PublishProcessor<Integer> source = PublishProcessor.create();
+        PublishProcessor<Integer> other = PublishProcessor.create();
 
         Flowable<Integer> m = source.skipUntil(other);
-        m.subscribe(observer);
+        @SuppressWarnings("unchecked")
+        Subscriber<Integer> observer = mock(Subscriber.class);
+        TestSubscriber<Integer> ts = new TestSubscriber<>(observer);
+
+        m.subscribe(ts);
 
         source.onNext(0);
         source.onNext(1);
@@ -124,11 +136,15 @@ public class OperatorSkipUntilTest {
 
     @Test
     public void sourceThrows() {
-        PublishSubject<Integer> source = PublishSubject.create();
-        PublishSubject<Integer> other = PublishSubject.create();
+        PublishProcessor<Integer> source = PublishProcessor.create();
+        PublishProcessor<Integer> other = PublishProcessor.create();
 
         Flowable<Integer> m = source.skipUntil(other);
-        m.subscribe(observer);
+        @SuppressWarnings("unchecked")
+        Subscriber<Integer> observer = mock(Subscriber.class);
+        TestSubscriber<Integer> ts = new TestSubscriber<>(observer);
+
+        m.subscribe(ts);
 
         source.onNext(0);
         source.onNext(1);
@@ -146,11 +162,15 @@ public class OperatorSkipUntilTest {
 
     @Test
     public void otherThrowsImmediately() {
-        PublishSubject<Integer> source = PublishSubject.create();
-        PublishSubject<Integer> other = PublishSubject.create();
+        PublishProcessor<Integer> source = PublishProcessor.create();
+        PublishProcessor<Integer> other = PublishProcessor.create();
 
         Flowable<Integer> m = source.skipUntil(other);
-        m.subscribe(observer);
+        @SuppressWarnings("unchecked")
+        Subscriber<Integer> observer = mock(Subscriber.class);
+        TestSubscriber<Integer> ts = new TestSubscriber<>(observer);
+
+        m.subscribe(ts);
 
         source.onNext(0);
         source.onNext(1);
