@@ -15,28 +15,28 @@
  */
 package rxjf.internal.operators;
 
-import static org.mockito.Matchers.any;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
+import static org.mockito.Matchers.*;
+import static org.mockito.Mockito.*;
 
 import org.junit.Test;
 
-import rx.Flowable;
-import rx.Observer;
-import rx.internal.operators.OperatorSkip;
+import rxjf.Flow.Subscriber;
+import rxjf.subscribers.TestSubscriber;
+import rxjf.*;
 
 public class OperatorSkipTest {
 
     @Test
     public void testSkipNegativeElements() {
 
-        Flowable<String> skip = Flowable.just("one", "two", "three").lift(new OperatorSkip<String>(-99));
+        Flowable<String> skip = Flowable.just("one", "two", "three").skip(-99);
 
         @SuppressWarnings("unchecked")
-        Observer<String> observer = mock(Observer.class);
-        skip.subscribe(observer);
+        Subscriber<String> observer = mock(Subscriber.class);
+        TestSubscriber<String> ts = new TestSubscriber<>(observer);
+        
+        skip.subscribe(ts);
+        
         verify(observer, times(1)).onNext("one");
         verify(observer, times(1)).onNext("two");
         verify(observer, times(1)).onNext("three");
@@ -47,11 +47,14 @@ public class OperatorSkipTest {
     @Test
     public void testSkipZeroElements() {
 
-        Flowable<String> skip = Flowable.just("one", "two", "three").lift(new OperatorSkip<String>(0));
+        Flowable<String> skip = Flowable.just("one", "two", "three").skip(0);
 
         @SuppressWarnings("unchecked")
-        Observer<String> observer = mock(Observer.class);
-        skip.subscribe(observer);
+        Subscriber<String> observer = mock(Subscriber.class);
+        TestSubscriber<String> ts = new TestSubscriber<>(observer);
+        
+        skip.subscribe(ts);
+        
         verify(observer, times(1)).onNext("one");
         verify(observer, times(1)).onNext("two");
         verify(observer, times(1)).onNext("three");
@@ -62,11 +65,14 @@ public class OperatorSkipTest {
     @Test
     public void testSkipOneElement() {
 
-        Flowable<String> skip = Flowable.just("one", "two", "three").lift(new OperatorSkip<String>(1));
+        Flowable<String> skip = Flowable.just("one", "two", "three").skip(1);
 
         @SuppressWarnings("unchecked")
-        Observer<String> observer = mock(Observer.class);
-        skip.subscribe(observer);
+        Subscriber<String> observer = mock(Subscriber.class);
+        TestSubscriber<String> ts = new TestSubscriber<>(observer);
+        
+        skip.subscribe(ts);
+        
         verify(observer, never()).onNext("one");
         verify(observer, times(1)).onNext("two");
         verify(observer, times(1)).onNext("three");
@@ -77,11 +83,14 @@ public class OperatorSkipTest {
     @Test
     public void testSkipTwoElements() {
 
-        Flowable<String> skip = Flowable.just("one", "two", "three").lift(new OperatorSkip<String>(2));
+        Flowable<String> skip = Flowable.just("one", "two", "three").skip(2);
 
         @SuppressWarnings("unchecked")
-        Observer<String> observer = mock(Observer.class);
-        skip.subscribe(observer);
+        Subscriber<String> observer = mock(Subscriber.class);
+        TestSubscriber<String> ts = new TestSubscriber<>(observer);
+        
+        skip.subscribe(ts);
+        
         verify(observer, never()).onNext("one");
         verify(observer, never()).onNext("two");
         verify(observer, times(1)).onNext("three");
@@ -93,28 +102,37 @@ public class OperatorSkipTest {
     public void testSkipEmptyStream() {
 
         Flowable<String> w = Flowable.empty();
-        Flowable<String> skip = w.lift(new OperatorSkip<String>(1));
+        Flowable<String> skip = w.skip(1);
 
         @SuppressWarnings("unchecked")
-        Observer<String> observer = mock(Observer.class);
-        skip.subscribe(observer);
+        Subscriber<String> observer = mock(Subscriber.class);
+        TestSubscriber<String> ts = new TestSubscriber<>(observer);
+        
+        skip.subscribe(ts);
+        
         verify(observer, never()).onNext(any(String.class));
         verify(observer, never()).onError(any(Throwable.class));
         verify(observer, times(1)).onComplete();
     }
 
     @Test
-    public void testSkipMultipleObservers() {
+    public void testSkipMultipleSubscribers() {
 
-        Flowable<String> skip = Flowable.just("one", "two", "three").lift(new OperatorSkip<String>(2));
-
-        @SuppressWarnings("unchecked")
-        Observer<String> observer1 = mock(Observer.class);
-        skip.subscribe(observer1);
+        Flowable<String> skip = Flowable.just("one", "two", "three").skip(2);
 
         @SuppressWarnings("unchecked")
-        Observer<String> observer2 = mock(Observer.class);
-        skip.subscribe(observer2);
+        Subscriber<String> observer1 = mock(Subscriber.class);
+        TestSubscriber<String> ts1 = new TestSubscriber<>(observer1);
+        
+        skip.subscribe(ts1);
+        
+
+        @SuppressWarnings("unchecked")
+        Subscriber<String> observer2 = mock(Subscriber.class);
+        TestSubscriber<String> ts2 = new TestSubscriber<>(observer2);
+        
+        skip.subscribe(ts2);
+        
 
         verify(observer1, times(1)).onNext(any(String.class));
         verify(observer1, never()).onError(any(Throwable.class));
@@ -133,15 +151,62 @@ public class OperatorSkipTest {
         Flowable<String> ok = Flowable.just("one");
         Flowable<String> error = Flowable.error(e);
 
-        Flowable<String> skip = Flowable.concat(ok, error).lift(new OperatorSkip<String>(100));
+        Flowable<String> skip = Flowable.concat(ok, error).skip(100);
 
         @SuppressWarnings("unchecked")
-        Observer<String> observer = mock(Observer.class);
+        Subscriber<String> observer = mock(Subscriber.class);
         skip.subscribe(observer);
 
         verify(observer, never()).onNext(any(String.class));
         verify(observer, times(1)).onError(e);
         verify(observer, never()).onComplete();
 
+    }
+    
+    @Test
+    public void backpressureNoRequest() {
+        TestSubscriber<Integer> ts = new TestSubscriber<>(0);
+        
+        Flowable<Integer> source = Flowable.range(0, 1000).skip(5);
+        
+        source.subscribe(ts);
+        
+        ts.assertSubscription();
+        ts.assertNoValues();
+        ts.assertNoErrors();
+        ts.assertNoComplete();
+    }
+    @Test
+    public void skipAll() {
+        TestSubscriber<Integer> ts = new TestSubscriber<>();
+        
+        Flowable<Integer> source = Flowable.range(0, 1000).skip(1000);
+        
+        source.subscribe(ts);
+        
+        ts.assertSubscription();
+        ts.assertNoValues();
+        ts.assertNoErrors();
+        ts.assertComplete();
+    }
+    @Test
+    public void backpressure() {
+        TestSubscriber<Integer> ts = new TestSubscriber<>(0);
+        
+        Flowable<Integer> source = Flowable.range(0, 1000).skip(5);
+        
+        source.subscribe(ts);
+        
+        ts.assertSubscription();
+        
+        ts.assertNoValues();
+        ts.assertNoErrors();
+        ts.assertNoComplete();
+        
+        ts.requestMore(5);
+        
+        ts.assertValues(5, 6, 7, 8, 9);
+        ts.assertNoErrors();
+        ts.assertNoComplete();
     }
 }

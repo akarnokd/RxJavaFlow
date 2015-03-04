@@ -15,9 +15,9 @@
  */
 package rxjf.internal.operators;
 
-import rx.Flowable;
-import rx.Producer;
-import rx.Subscriber;
+import rxjf.Flow.Subscriber;
+import rxjf.*;
+import rxjf.subscribers.AbstractSubscriber;
 
 /**
  * Returns an Flowable that skips the first <code>num</code> items emitted by the source
@@ -29,7 +29,6 @@ import rx.Subscriber;
  * those items that come after, by modifying the Flowable with the {@code skip} operator.
  */
 public final class OperatorSkip<T> implements Flowable.Operator<T, T> {
-
     final int toSkip;
 
     public OperatorSkip(int n) {
@@ -37,47 +36,50 @@ public final class OperatorSkip<T> implements Flowable.Operator<T, T> {
     }
 
     @Override
-    public Subscriber<? super T> call(final Subscriber<? super T> child) {
-        return new Subscriber<T>(child) {
-
-            int skipped = 0;
-
-            @Override
-            public void onComplete() {
-                child.onComplete();
-            }
-
-            @Override
-            public void onError(Throwable e) {
-                child.onError(e);
-            }
-
-            @Override
-            public void onNext(T t) {
-                if (skipped >= toSkip) {
-                    child.onNext(t);
-                } else {
-                    skipped += 1;
-                }
-            }
-
-            @Override
-            public void setProducer(final Producer producer) {
-                child.setProducer(new Producer() {
-
-                    @Override
-                    public void request(long n) {
-                        if (n == Long.MAX_VALUE) {
-                            // infinite so leave it alone
-                            producer.request(n);
-                        } else if (n > 0) {
-                            // add the skip num to the requested amount, since we'll skip everything and then emit to the buffer downstream
-                            producer.request(n + (toSkip - skipped));
-                        }
-                    }
-                });
-            }
-
-        };
+    public Subscriber<? super T> apply(Subscriber<? super T> child) {
+        return new SkipSubscriber<>(child, toSkip);
     }
+    
+    /**
+     * Subscriber for the upstream.
+     *
+     * @param <T> the value type
+     */
+    static final class SkipSubscriber<T> extends AbstractSubscriber<T> {
+        /** The actual subscriber. */
+        final Subscriber<? super T> actual;
+        /** Counts the remaining items to be skipped. */
+        int remaining;
+        
+        public SkipSubscriber(Subscriber<? super T> actual, int skip) {
+            this.actual = actual;
+            this.remaining = skip;
+        }
+        
+        @Override
+        protected void onSubscribe() {
+            actual.onSubscribe(subscription);
+        }
+        
+        @Override
+        public void onNext(T item) {
+            if (remaining <= 0) {
+                actual.onNext(item);
+            } else {
+                remaining--;
+                subscription.request(1);
+            }
+        }
+        
+        @Override
+        public void onError(Throwable throwable) {
+            actual.onError(throwable);
+        }
+        
+        @Override
+        public void onComplete() {
+            actual.onComplete();
+        }
+    }
+
 }
