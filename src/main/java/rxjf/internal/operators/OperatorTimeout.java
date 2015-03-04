@@ -51,7 +51,7 @@ public final class OperatorTimeout<T> implements Operator<T, T> {
     public Subscriber<? super T> apply(Subscriber<? super T> child) {
 
         SubscriptionArbiter<T> arbiter = new SubscriptionArbiter<>(child);
-        DisposableSubscription disposable = new DisposableSubscription(arbiter);
+        CompositeDisposableSubscription disposable = new CompositeDisposableSubscription(arbiter);
 
         Scheduler.Worker worker = scheduler.createWorker();
         SerialDisposable timeouts = new SerialDisposable();

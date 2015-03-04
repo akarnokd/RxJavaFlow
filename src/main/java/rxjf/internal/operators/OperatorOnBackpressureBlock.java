@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package rx.internal.operators;
+package rxjf.internal.operators;
 
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;

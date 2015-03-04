@@ -45,7 +45,7 @@ final class ProcessorSubscriberManager<T> extends AbstractArrayManager<Subscribe
         Subscriber<? super T>[] curr = array();
         if (curr != terminated) {
             active = false;
-            lazySet(value);
+            set(value);
             curr = terminate();
         }
         return curr;

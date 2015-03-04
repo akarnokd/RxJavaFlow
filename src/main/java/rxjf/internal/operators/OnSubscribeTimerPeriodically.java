@@ -19,7 +19,9 @@ import java.util.concurrent.TimeUnit;
 
 import rxjf.Flow.Subscriber;
 import rxjf.Flowable.OnSubscribe;
-import rxjf.internal.subscriptions.DisposableSubscription;
+import rxjf.exceptions.Exceptions;
+import rxjf.internal.Conformance;
+import rxjf.internal.subscriptions.SingleDisposableSubscription;
 import rxjf.schedulers.Scheduler;
 
 /**
@@ -42,8 +44,8 @@ public final class OnSubscribeTimerPeriodically implements OnSubscribe<Long> {
     @Override
     public void accept(final Subscriber<? super Long> child) {
         final Scheduler.Worker worker = scheduler.createWorker();
-        DisposableSubscription ds = DisposableSubscription.createEmpty(child);
-        ds.add(worker);
+        SingleDisposableSubscription ds = SingleDisposableSubscription.createEmpty(child);
+        ds.set(worker);
         
         child.onSubscribe(ds);
         
@@ -54,8 +56,14 @@ public final class OnSubscribeTimerPeriodically implements OnSubscribe<Long> {
                 try {
                     child.onNext(counter++);
                 } catch (Throwable e) {
+                    Throwable e1 = Conformance.onNextThrew(e);
                     try {
-                        child.onError(e);
+                        try {
+                            child.onError(e1);
+                        } catch (Throwable e2) {
+                            Exceptions.handleUncaught(e1);
+                            Exceptions.handleUncaught(Conformance.onErrorThrew(e2));
+                        }
                     } finally {
                         ds.dispose();
                     }

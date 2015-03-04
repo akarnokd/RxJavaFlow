@@ -41,7 +41,7 @@ public final class AsyncProcessor<T> extends Flowable<T> implements ProcessorEx<
         ProcessorSubscriberManager<T> psm = new ProcessorSubscriberManager<>();
         OnSubscribe<T> onSubscribe = subscriber -> {
             ScalarBackpressureSubscription<T> sbs = new ScalarBackpressureSubscription<>(subscriber);
-            DisposableSubscription ds = new DisposableSubscription(sbs);
+            CompositeDisposableSubscription ds = new CompositeDisposableSubscription(sbs);
             subscriber.onSubscribe(ds);
             
             if (!psm.add(subscriber)) {
@@ -97,7 +97,7 @@ public final class AsyncProcessor<T> extends Flowable<T> implements ProcessorEx<
         if (psm.active) {
             Object n = nl.error(throwable);
             List<Throwable> errors = null;
-            for (Subscriber<T> bo : psm.terminate(n)) {
+            for (Subscriber<? super T> bo : psm.terminate(n)) {
                 try {
                     bo.onError(throwable);
                 } catch (Throwable e2) {
@@ -118,7 +118,7 @@ public final class AsyncProcessor<T> extends Flowable<T> implements ProcessorEx<
             if (last == null) {
                 last = nl.complete();
             }
-            for (Subscriber<T> bo : psm.terminate(last)) {
+            for (Subscriber<? super T> bo : psm.terminate(last)) {
                 if (last == nl.complete()) {
                     bo.onComplete();
                 } else {

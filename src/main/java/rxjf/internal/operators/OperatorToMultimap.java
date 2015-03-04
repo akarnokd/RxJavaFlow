@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package rx.internal.operators;
+package rxjf.internal.operators;
 
 import java.util.ArrayList;
 import java.util.Collection;

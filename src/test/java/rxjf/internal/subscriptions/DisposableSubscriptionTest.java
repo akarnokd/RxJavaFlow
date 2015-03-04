@@ -33,7 +33,7 @@ public class DisposableSubscriptionTest {
         
         Subscription s = AbstractSubscription.createEmpty(ts);
         
-        DisposableSubscription ds = new DisposableSubscription(s);
+        CompositeDisposableSubscription ds = new CompositeDisposableSubscription(s);
         
         ts.onSubscribe(ds);
         
@@ -52,7 +52,7 @@ public class DisposableSubscriptionTest {
         
         Subscription s = AbstractSubscription.createEmpty(ts);
         
-        DisposableSubscription ds = new DisposableSubscription(s);
+        CompositeDisposableSubscription ds = new CompositeDisposableSubscription(s);
         
         ts.onSubscribe(ds);
         ts.cancel();
@@ -68,7 +68,7 @@ public class DisposableSubscriptionTest {
     
     @Test(expected = NullPointerException.class)
     public void conformanceSubscriberNonNull() {
-        new DisposableSubscription(null);
+        new CompositeDisposableSubscription(null);
     }
 
 }

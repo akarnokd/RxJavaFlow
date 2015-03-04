@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package rx.internal.operators;
+package rxjf.internal.operators;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;

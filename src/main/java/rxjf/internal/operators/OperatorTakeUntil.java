@@ -13,12 +13,17 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package rx.internal.operators;
+package rxjf.internal.operators;
 
-import rx.Flowable;
-import rx.Flowable.Operator;
-import rx.Subscriber;
-import rx.observers.SerializedSubscriber;
+import static rxjf.internal.UnsafeAccess.*;
+import rxjf.Flow.Subscriber;
+import rxjf.Flow.Subscription;
+import rxjf.*;
+import rxjf.Flowable.Operator;
+import rxjf.disposables.Disposable;
+import rxjf.internal.Conformance;
+import rxjf.internal.subscriptions.SingleDisposableSubscription;
+import rxjf.subscribers.*;
 
 /**
  * Returns an Flowable that emits the items from the source Flowable until another Flowable
@@ -28,36 +33,103 @@ import rx.observers.SerializedSubscriber;
  */
 public final class OperatorTakeUntil<T, E> implements Operator<T, T> {
 
-    private final Flowable<? extends E> other;
+    final Flowable<? extends E> other;
 
     public OperatorTakeUntil(final Flowable<? extends E> other) {
         this.other = other;
     }
 
     @Override
-    public Subscriber<? super T> call(final Subscriber<? super T> child) {
-        final Subscriber<T> parent = new SerializedSubscriber<T>(child);
-
-        other.unsafeSubscribe(new Subscriber<E>(child) {
-
-            @Override
-            public void onComplete() {
-                parent.onComplete();
-            }
-
-            @Override
-            public void onError(Throwable e) {
-                parent.onError(e);
-            }
-
-            @Override
-            public void onNext(E t) {
-                parent.onComplete();
-            }
-
-        });
-
-        return parent;
+    public Subscriber<? super T> apply(final Subscriber<? super T> child) {
+        final SerializedSubscriber<? super T> s = SerializedSubscriber.wrap(child);
+        
+        return new TakeUntilSubscriber<>(s, other);
     }
-
+    
+    /**
+     * Subscribed to the main source.
+     * @param <T> the element type
+     */
+    static final class TakeUntilSubscriber<T> implements Subscriber<T> {
+        final Flowable<?> other;
+        final Subscriber<? super T> child;
+        SingleDisposableSubscription subscription;
+        
+        volatile int gate;
+        static final long GATE = addressOf(TakeUntilSubscriber.class, "gate");
+        
+        public TakeUntilSubscriber(Subscriber<? super T> child, Flowable<?> other) {
+            this.child = child;
+            this.other = other;
+        }
+        @Override
+        public void onSubscribe(Subscription subscription) {
+            Conformance.subscriptionNonNull(subscription);
+            if (!Conformance.onSubscribeOnce(this.subscription, this)) {
+                subscription.cancel();
+                return;
+            }
+            SingleDisposableSubscription s = new SingleDisposableSubscription(subscription);
+            this.subscription = s;
+            
+            Disposable d = other.unsafeSubscribeDisposable(new OtherSubscriber(this));
+            
+            s.set(d);
+            
+            child.onSubscribe(s);
+        }
+        @Override
+        public void onNext(T item) {
+            if (gate == 0) {
+                child.onNext(item);
+            }
+        }
+        @Override
+        public void onError(Throwable throwable) {
+            if (UNSAFE.getAndSetInt(this, GATE, 1) == 0) {
+                child.onError(throwable);
+            }
+        }
+        @Override
+        public void onComplete() {
+            if (UNSAFE.getAndSetInt(this, GATE, 1) == 0) {
+                child.onComplete();
+            }
+        }
+    }
+    
+    /**
+     * Subscribed to the other observable and signals onComplete to the parent
+     * when onComplete is called.
+     */
+    static final class OtherSubscriber extends AbstractSubscriber<Object> {
+        final Subscriber<?> parent;
+        public OtherSubscriber(Subscriber<?> parent) {
+            this.parent = parent;
+        }
+        @Override
+        public void onNext(Object item) {
+            try {
+                parent.onComplete();
+            } finally {
+                subscription.cancel();
+            }
+        }
+        @Override
+        public void onError(Throwable throwable) {
+            try {
+                parent.onError(throwable);
+            } finally {
+                subscription.cancel();
+            }
+        }
+        @Override
+        public void onComplete() {
+            try {
+                parent.onComplete();
+            } finally {
+                subscription.cancel();
+            }
+        }
+    }
 }

@@ -41,7 +41,7 @@ public final class PublishProcessor<T> extends Flowable<T> implements ProcessorE
         OnSubscribe<T> onSubscribe = subscriber -> {
             Subscription empty = AbstractSubscription.createEmpty(subscriber);
             // FIXME only a single disposable is ever added, a composite is unnecessary
-            DisposableSubscription ds = new DisposableSubscription(empty);
+            CompositeDisposableSubscription ds = new CompositeDisposableSubscription(empty);
             
             subscriber.onSubscribe(ds);
             

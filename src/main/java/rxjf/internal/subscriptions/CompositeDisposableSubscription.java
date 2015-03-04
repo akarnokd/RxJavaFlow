@@ -27,7 +27,7 @@ import rxjf.internal.Conformance;
  * Note: this Subscription doesn't do conformance checks in its request() method and doesn't
  * alter the concurrency properties of the underlying actual subscription.
  */
-public final class DisposableSubscription implements Subscription, Disposable {
+public final class CompositeDisposableSubscription implements Subscription, Disposable {
     /** The composite tracking Disposable resources. */
     final CompositeDisposable composite;
     /**
@@ -38,7 +38,7 @@ public final class DisposableSubscription implements Subscription, Disposable {
      * Constructs a DisposableSubscription by wrapping the given non-null Subscription.
      * @param actual the actual subscription to wrap
      */
-    public DisposableSubscription(Subscription actual) {
+    public CompositeDisposableSubscription(Subscription actual) {
         this.actual = Conformance.subscriptionNonNull(actual);
         this.composite = new CompositeDisposable();
     }
@@ -78,7 +78,7 @@ public final class DisposableSubscription implements Subscription, Disposable {
      * @param subscriber the subscriber to report conformance errors to
      * @return the created DisposableSubscription
      */
-    public static DisposableSubscription createEmpty(Subscriber<?> subscriber) {
-        return new DisposableSubscription(AbstractSubscription.createEmpty(subscriber));
+    public static CompositeDisposableSubscription createEmpty(Subscriber<?> subscriber) {
+        return new CompositeDisposableSubscription(AbstractSubscription.createEmpty(subscriber));
     }
 }

@@ -13,82 +13,93 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package rx.internal.operators;
+package rxjf.internal.operators;
 
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.*;
 
 import org.junit.Test;
 
-import rx.Flowable;
-import rx.Observer;
-import rx.Subscriber;
-import rx.Subscription;
+import rxjf.Flow.Subscriber;
+import rxjf.*;
+import rxjf.disposables.Disposable;
+import rxjf.internal.subscriptions.SingleDisposableSubscription;
+import rxjf.subscribers.TestSubscriber;
 
 public class OperatorTakeUntilTest {
 
     @Test
     @SuppressWarnings("unchecked")
     public void testTakeUntil() {
-        Subscription sSource = mock(Subscription.class);
-        Subscription sOther = mock(Subscription.class);
+        Disposable sSource = mock(Disposable.class);
+        Disposable sOther = mock(Disposable.class);
         TestFlowable source = new TestFlowable(sSource);
         TestFlowable other = new TestFlowable(sOther);
 
-        Observer<String> result = mock(Observer.class);
+        Subscriber<String> result = mock(Subscriber.class);
+        TestSubscriber<String> ts = new TestSubscriber<>(result);
+        
         Flowable<String> stringFlowable = Flowable.create(source).takeUntil(Flowable.create(other));
-        stringFlowable.subscribe(result);
+        
+        stringFlowable.subscribe(ts);
+        
         source.sendOnNext("one");
         source.sendOnNext("two");
         other.sendOnNext("three");
         source.sendOnNext("four");
-        source.sendonComplete();
-        other.sendonComplete();
+        source.sendOnComplete();
+        other.sendOnComplete();
 
         verify(result, times(1)).onNext("one");
         verify(result, times(1)).onNext("two");
         verify(result, times(0)).onNext("three");
         verify(result, times(0)).onNext("four");
-        verify(sSource, times(1)).unsubscribe();
-        verify(sOther, times(1)).unsubscribe();
+        verify(sSource, times(1)).dispose();
+        verify(sOther, times(1)).dispose();
 
     }
 
     @Test
     @SuppressWarnings("unchecked")
     public void testTakeUntilSourceCompleted() {
-        Subscription sSource = mock(Subscription.class);
-        Subscription sOther = mock(Subscription.class);
+        Disposable sSource = mock(Disposable.class);
+        Disposable sOther = mock(Disposable.class);
         TestFlowable source = new TestFlowable(sSource);
         TestFlowable other = new TestFlowable(sOther);
 
-        Observer<String> result = mock(Observer.class);
+        Subscriber<String> result = mock(Subscriber.class);
+        TestSubscriber<String> ts = new TestSubscriber<>(result);
+        
         Flowable<String> stringFlowable = Flowable.create(source).takeUntil(Flowable.create(other));
-        stringFlowable.subscribe(result);
+        
+        stringFlowable.subscribe(ts);
+        
         source.sendOnNext("one");
         source.sendOnNext("two");
-        source.sendonComplete();
+        source.sendOnComplete();
 
         verify(result, times(1)).onNext("one");
         verify(result, times(1)).onNext("two");
-        verify(sSource, times(1)).unsubscribe();
-        verify(sOther, times(1)).unsubscribe();
+        verify(sSource, times(1)).dispose();
+        verify(sOther, times(1)).dispose();
 
     }
 
     @Test
     @SuppressWarnings("unchecked")
     public void testTakeUntilSourceError() {
-        Subscription sSource = mock(Subscription.class);
-        Subscription sOther = mock(Subscription.class);
+        Disposable sSource = mock(Disposable.class);
+        Disposable sOther = mock(Disposable.class);
         TestFlowable source = new TestFlowable(sSource);
         TestFlowable other = new TestFlowable(sOther);
         Throwable error = new Throwable();
 
-        Observer<String> result = mock(Observer.class);
+        Subscriber<String> result = mock(Subscriber.class);
+        TestSubscriber<String> ts = new TestSubscriber<>(result);
+        
         Flowable<String> stringFlowable = Flowable.create(source).takeUntil(Flowable.create(other));
-        stringFlowable.subscribe(result);
+        
+        stringFlowable.subscribe(ts);
+        
         source.sendOnNext("one");
         source.sendOnNext("two");
         source.sendOnError(error);
@@ -98,23 +109,27 @@ public class OperatorTakeUntilTest {
         verify(result, times(1)).onNext("two");
         verify(result, times(0)).onNext("three");
         verify(result, times(1)).onError(error);
-        verify(sSource, times(1)).unsubscribe();
-        verify(sOther, times(1)).unsubscribe();
+        verify(sSource, times(1)).dispose();
+        verify(sOther, times(1)).dispose();
 
     }
 
     @Test
     @SuppressWarnings("unchecked")
     public void testTakeUntilOtherError() {
-        Subscription sSource = mock(Subscription.class);
-        Subscription sOther = mock(Subscription.class);
+        Disposable sSource = mock(Disposable.class);
+        Disposable sOther = mock(Disposable.class);
         TestFlowable source = new TestFlowable(sSource);
         TestFlowable other = new TestFlowable(sOther);
         Throwable error = new Throwable();
 
-        Observer<String> result = mock(Observer.class);
+        Subscriber<String> result = mock(Subscriber.class);
+        TestSubscriber<String> ts = new TestSubscriber<>(result);
+        
         Flowable<String> stringFlowable = Flowable.create(source).takeUntil(Flowable.create(other));
-        stringFlowable.subscribe(result);
+        
+        stringFlowable.subscribe(ts);
+        
         source.sendOnNext("one");
         source.sendOnNext("two");
         other.sendOnError(error);
@@ -125,8 +140,8 @@ public class OperatorTakeUntilTest {
         verify(result, times(0)).onNext("three");
         verify(result, times(1)).onError(error);
         verify(result, times(0)).onComplete();
-        verify(sSource, times(1)).unsubscribe();
-        verify(sOther, times(1)).unsubscribe();
+        verify(sSource, times(1)).dispose();
+        verify(sOther, times(1)).dispose();
 
     }
 
@@ -136,39 +151,39 @@ public class OperatorTakeUntilTest {
     @Test
     @SuppressWarnings("unchecked")
     public void testTakeUntilOtherCompleted() {
-        Subscription sSource = mock(Subscription.class);
-        Subscription sOther = mock(Subscription.class);
+        Disposable sSource = mock(Disposable.class);
+        Disposable sOther = mock(Disposable.class);
         TestFlowable source = new TestFlowable(sSource);
         TestFlowable other = new TestFlowable(sOther);
 
-        Observer<String> result = mock(Observer.class);
+        Subscriber<String> result = mock(Subscriber.class);
         Flowable<String> stringFlowable = Flowable.create(source).takeUntil(Flowable.create(other));
         stringFlowable.subscribe(result);
         source.sendOnNext("one");
         source.sendOnNext("two");
-        other.sendonComplete();
+        other.sendOnComplete();
         source.sendOnNext("three");
 
         verify(result, times(1)).onNext("one");
         verify(result, times(1)).onNext("two");
         verify(result, times(0)).onNext("three");
         verify(result, times(1)).onComplete();
-        verify(sSource, times(1)).unsubscribe();
-        verify(sOther, times(1)).unsubscribe(); // unsubscribed since SafeSubscriber unsubscribes after onComplete
+        verify(sSource, times(1)).dispose();
+        verify(sOther, times(1)).dispose(); // unsubscribed since SafeSubscriber unsubscribes after onComplete
 
     }
 
-    private static class TestFlowable implements Flowable.OnSubscribe<String> {
+    static final class TestFlowable implements Flowable.OnSubscribe<String> {
 
-        Observer<? super String> observer = null;
-        Subscription s;
+        Subscriber<? super String> observer;
+        final Disposable s;
 
-        public TestFlowable(Subscription s) {
+        public TestFlowable(Disposable s) {
             this.s = s;
         }
 
         /* used to simulate subscription */
-        public void sendonComplete() {
+        public void sendOnComplete() {
             observer.onComplete();
         }
 
@@ -183,9 +198,11 @@ public class OperatorTakeUntilTest {
         }
 
         @Override
-        public void call(Subscriber<? super String> observer) {
+        public void accept(Subscriber<? super String> observer) {
             this.observer = observer;
-            observer.add(s);
+            SingleDisposableSubscription sds = SingleDisposableSubscription.createEmpty(observer);
+            sds.set(s);
+            observer.onSubscribe(sds);
         }
     }
 }

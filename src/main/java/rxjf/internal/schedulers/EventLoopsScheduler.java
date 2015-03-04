@@ -89,8 +89,18 @@ public class EventLoopsScheduler implements Scheduler {
      * @return the subscription
      */
     public Disposable scheduleDirect(Runnable action) {
+        return scheduleDirect(action, -1, null);
+    }
+
+    /**
+     * Schedules the action with the given delay directly on one of the event loop workers
+     * without the additional infrastructure and checking.
+     * @param action the action to schedule
+     * @return the subscription
+     */
+    public Disposable scheduleDirect(Runnable action, long delay, TimeUnit unit) {
        PoolWorker pw = pool.getEventLoop();
-       return pw.scheduleActual(action, -1, TimeUnit.NANOSECONDS);
+       return pw.scheduleActual(action, delay, unit);
     }
 
     private static class EventLoopWorker implements Scheduler.Worker {

@@ -14,29 +14,27 @@
  * limitations under the License.
  */
 
-package rx.internal.operators;
+package rxjf.internal.operators;
 
-import static org.mockito.Matchers.any;
+import static org.mockito.Matchers.*;
 import static org.mockito.Mockito.*;
 
-import java.util.Arrays;
+import org.junit.Test;
 
-import org.junit.*;
-
-import rx.*;
-import rx.exceptions.TestException;
-import rx.functions.Function;
-import rx.internal.util.UtilityFunctions;
-import rx.observers.TestSubscriber;
+import rxjf.Flow.Subscriber;
+import rxjf.*;
+import rxjf.exceptions.TestException;
+import rxjf.subscribers.TestSubscriber;
 ;
 
 public class OperatorTakeUntilPredicateTest {
     @Test
     public void takeEmpty() {
         @SuppressWarnings("unchecked")
-        Observer<Object> o = mock(Observer.class);
+        Subscriber<Object> o = mock(Subscriber.class);
+        TestSubscriber<Object> ts = new TestSubscriber<>(o);
         
-        Flowable.empty().takeUntil(UtilityFunctions.alwaysTrue()).subscribe(o);
+        Flowable.empty().takeUntil(e -> false).subscribe(ts);
         
         verify(o, never()).onNext(any());
         verify(o, never()).onError(any(Throwable.class));
@@ -45,9 +43,10 @@ public class OperatorTakeUntilPredicateTest {
     @Test
     public void takeAll() {
         @SuppressWarnings("unchecked")
-        Observer<Object> o = mock(Observer.class);
+        Subscriber<Object> o = mock(Subscriber.class);
+        TestSubscriber<Object> ts = new TestSubscriber<>(o);
         
-        Flowable.just(1, 2).takeUntil(UtilityFunctions.alwaysFalse()).subscribe(o);
+        Flowable.just(1, 2).takeUntil(e -> false).subscribe(ts);
         
         verify(o).onNext(1);
         verify(o).onNext(2);
@@ -57,9 +56,10 @@ public class OperatorTakeUntilPredicateTest {
     @Test
     public void takeFirst() {
         @SuppressWarnings("unchecked")
-        Observer<Object> o = mock(Observer.class);
+        Subscriber<Object> o = mock(Subscriber.class);
+        TestSubscriber<Object> ts = new TestSubscriber<>(o);
         
-        Flowable.just(1, 2).takeUntil(UtilityFunctions.alwaysTrue()).subscribe(o);
+        Flowable.just(1, 2).takeUntil(e -> true).subscribe(ts);
         
         verify(o).onNext(1);
         verify(o, never()).onNext(2);
@@ -69,14 +69,10 @@ public class OperatorTakeUntilPredicateTest {
     @Test
     public void takeSome() {
         @SuppressWarnings("unchecked")
-        Observer<Object> o = mock(Observer.class);
+        Subscriber<Object> o = mock(Subscriber.class);
+        TestSubscriber<Object> ts = new TestSubscriber<>(o);
         
-        Flowable.just(1, 2, 3).takeUntil(new Function<Integer, Boolean>() {
-            @Override
-            public Boolean call(Integer t1) {
-                return t1 == 2;
-            }
-        }).subscribe(o);
+        Flowable.just(1, 2, 3).takeUntil(t1 -> t1 == 2).subscribe(ts);
         
         verify(o).onNext(1);
         verify(o).onNext(2);
@@ -87,14 +83,12 @@ public class OperatorTakeUntilPredicateTest {
     @Test
     public void functionThrows() {
         @SuppressWarnings("unchecked")
-        Observer<Object> o = mock(Observer.class);
+        Subscriber<Object> o = mock(Subscriber.class);
+        TestSubscriber<Object> ts = new TestSubscriber<>(o);
         
-        Flowable.just(1, 2, 3).takeUntil(new Function<Integer, Boolean>() {
-            @Override
-            public Boolean call(Integer t1) {
-                throw new TestException("Forced failure");
-            }
-        }).subscribe(o);
+        Flowable.just(1, 2, 3).takeUntil(v -> {
+            throw new TestException("Forced failure");
+        }).subscribe(ts);
         
         verify(o).onNext(1);
         verify(o, never()).onNext(2);
@@ -105,12 +99,13 @@ public class OperatorTakeUntilPredicateTest {
     @Test
     public void sourceThrows() {
         @SuppressWarnings("unchecked")
-        Observer<Object> o = mock(Observer.class);
+        Subscriber<Object> o = mock(Subscriber.class);
+        TestSubscriber<Object> ts = new TestSubscriber<>(o);
         
         Flowable.just(1)
         .concatWith(Flowable.<Integer>error(new TestException()))
         .concatWith(Flowable.just(2))
-        .takeUntil(UtilityFunctions.alwaysFalse()).subscribe(o);
+        .takeUntil(e -> false).subscribe(ts);
         
         verify(o).onNext(1);
         verify(o, never()).onNext(2);
@@ -119,17 +114,12 @@ public class OperatorTakeUntilPredicateTest {
     }
     @Test
     public void backpressure() {
-        TestSubscriber<Integer> ts = new TestSubscriber<Integer>() {
-            @Override
-            public void onStart() {
-                request(5);
-            }
-        };
+        TestSubscriber<Integer> ts = new TestSubscriber<>(5);
         
-        Flowable.range(1, 1000).takeUntil(UtilityFunctions.alwaysFalse()).subscribe(ts);
+        Flowable.range(1, 1000).takeUntil(e -> false).subscribe(ts);
         
         ts.assertNoErrors();
-        ts.assertValues((1, 2, 3, 4, 5));
-        Assert.assertEquals(0, ts.getonComplete()Events().size());
+        ts.assertValues(1, 2, 3, 4, 5);
+        ts.assertNoComplete();
     }
 }

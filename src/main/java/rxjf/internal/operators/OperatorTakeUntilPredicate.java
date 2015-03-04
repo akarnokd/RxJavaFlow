@@ -13,85 +13,82 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package rx.internal.operators;
+package rxjf.internal.operators;
 
-import rx.Flowable.Operator;
-import rx.*;
-import rx.annotations.Experimental;
-import rx.functions.Function;
+import java.util.function.Predicate;
+
+import rxjf.Flow.Subscriber;
+import rxjf.Flowable.Operator;
+import rxjf.exceptions.Exceptions;
+import rxjf.internal.Conformance;
+import rxjf.subscribers.AbstractSubscriber;
 
 /**
  * Returns an Flowable that emits items emitted by the source Flowable until
- * the provided predicate returns false
+ * the provided predicate returns true.
  * <p>
  */
-@Experimental
 public final class OperatorTakeUntilPredicate<T> implements Operator<T, T> {
-    /** Subscriber returned to the upstream. */
-    private final class ParentSubscriber extends Subscriber<T> {
-        private final Subscriber<? super T> child;
-        private boolean done = false;
-
-        private ParentSubscriber(Subscriber<? super T> child) {
-            this.child = child;
-        }
-
-        @Override
-        public void onNext(T args) {
-            child.onNext(args);
-            
-            boolean stop = false;
-            try {
-                stop = stopPredicate.call(args);
-            } catch (Throwable e) {
-                done = true;
-                child.onError(e);
-                unsubscribe();
-                return;
-            }
-            if (stop) {
-                done = true;
-                child.onComplete();
-                unsubscribe();
-            }
-        }
-
-        @Override
-        public void onComplete() {
-            if (!done) {
-                child.onComplete();
-            }
-        }
-
-        @Override
-        public void onError(Throwable e) {
-            if (!done) {
-                child.onError(e);
-            }
-        }
-        void downstreamRequest(long n) {
-            request(n);
-        }
-    }
-
-    private final Function<? super T, Boolean> stopPredicate;
-
-    public OperatorTakeUntilPredicate(final Function<? super T, Boolean> stopPredicate) {
+    final Predicate<? super T> stopPredicate;
+    public OperatorTakeUntilPredicate(Predicate<? super T> stopPredicate) {
         this.stopPredicate = stopPredicate;
     }
-
     @Override
-    public Subscriber<? super T> call(final Subscriber<? super T> child) {
-        final ParentSubscriber parent = new ParentSubscriber(child);
-        child.add(parent); // don't unsubscribe downstream
-        child.setProducer(new Producer() {
+    public Subscriber<? super T> apply(Subscriber<? super T> child) {
+        return new AbstractSubscriber<T>() {
+            boolean done;
             @Override
-            public void request(long n) {
-                parent.downstreamRequest(n);
+            protected void onSubscribe() {
+                child.onSubscribe(subscription);
             }
-        });
-        
-        return parent;
+            @Override
+            public void onNext(T item) {
+                Conformance.itemNonNull(item);
+                Conformance.subscriptionNonNull(subscription);
+                if (done) {
+                    return;
+                }
+                
+                child.onNext(item);
+                
+                boolean stop;
+                try {
+                    stop = stopPredicate.test(item);
+                } catch (Throwable t) {
+                    onError(t);
+                    return;
+                }
+                if (stop) {
+                    if (done) {
+                        return;
+                    }
+                    done = true;
+                    try {
+                        child.onComplete();
+                    } catch (Throwable e) {
+                        Exceptions.handleUncaught(Conformance.onCompleteThrew(e));
+                    }
+                }
+            }
+            @Override
+            public void onError(Throwable throwable) {
+                Conformance.throwableNonNull(throwable);
+                Conformance.subscriptionNonNull(subscription);
+                if (done) {
+                    return;
+                }
+                done = true;
+                child.onError(throwable);
+            }
+            @Override
+            public void onComplete() {
+                Conformance.subscriptionNonNull(subscription);
+                if (done) {
+                    return;
+                }
+                done = true;
+                child.onComplete();
+            }
+        };
     }
-
 }

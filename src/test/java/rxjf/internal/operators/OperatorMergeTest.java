@@ -121,7 +121,7 @@ public class OperatorMergeTest {
                     unsubscribed.set(true);
                 });
                 
-                DisposableSubscription ds = DisposableSubscription.createEmpty(observer);
+                CompositeDisposableSubscription ds = CompositeDisposableSubscription.createEmpty(observer);
                 ds.add(s);
                 
                 observer.onSubscribe(ds);
@@ -503,7 +503,7 @@ public class OperatorMergeTest {
             @Override
             public void accept(final Subscriber<? super Integer> s) {
                 Scheduler.Worker inner = Schedulers.newThread().createWorker();
-                DisposableSubscription ds = DisposableSubscription.createEmpty(s);
+                CompositeDisposableSubscription ds = CompositeDisposableSubscription.createEmpty(s);
                 ds.add(inner);
                 s.onSubscribe(ds);
                 inner.schedule(() -> {
@@ -544,7 +544,7 @@ public class OperatorMergeTest {
             @Override
             public void accept(final Subscriber<? super Integer> s) {
                 Scheduler.Worker inner = Schedulers.newThread().createWorker();
-                DisposableSubscription ds = DisposableSubscription.createEmpty(s);
+                CompositeDisposableSubscription ds = CompositeDisposableSubscription.createEmpty(s);
                 ds.add(inner);
                 s.onSubscribe(ds);
                 inner.schedule(() -> {
