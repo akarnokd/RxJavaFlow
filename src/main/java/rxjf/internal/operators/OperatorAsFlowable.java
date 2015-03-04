@@ -15,8 +15,8 @@
  */
 package rxjf.internal.operators;
 
-import rx.Flowable.Operator;
-import rx.Subscriber;
+import rxjf.Flow.Subscriber;
+import rxjf.Flowable.Operator;
 
 /**
  * Hides the identity of another observable.
@@ -28,7 +28,7 @@ public final class OperatorAsFlowable<T> implements Operator<T, T> {
     /** Lazy initialization via inner-class holder. */
     private static final class Holder {
         /** A singleton instance. */
-        static final OperatorAsFlowable<Object> INSTANCE = new OperatorAsFlowable<Object>();
+        static final OperatorAsFlowable<Object> INSTANCE = new OperatorAsFlowable<>();
     }
     /**
      * @return a singleton instance of this stateless operator.
@@ -39,7 +39,7 @@ public final class OperatorAsFlowable<T> implements Operator<T, T> {
     }
     private OperatorAsFlowable() { }
     @Override
-    public Subscriber<? super T> call(Subscriber<? super T> s) {
+    public Subscriber<? super T> apply(Subscriber<? super T> s) {
         return s;
     }
     
