@@ -15,40 +15,31 @@
  */
 package rxjf.internal.operators;
 
-import static org.mockito.Matchers.any;
-import static org.mockito.Matchers.anyInt;
-import static org.mockito.Mockito.inOrder;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
+import static org.mockito.Matchers.*;
+import static org.mockito.Mockito.*;
+
+import java.util.function.Predicate;
 
 import org.junit.Test;
 import org.mockito.InOrder;
 
-import rx.Flowable;
-import rx.Observer;
-import rx.functions.Function;
-import rx.functions.BiFunction;
+import rxjf.Flow.Subscriber;
+import rxjf.*;
+import rxjf.subscribers.TestSubscriber;
 
 public class OperatorSkipWhileTest {
 
-    @SuppressWarnings("unchecked")
-    Observer<Integer> w = mock(Observer.class);
-
-    private static final Function<Integer, Boolean> LESS_THAN_FIVE = new Function<Integer, Boolean>() {
-        @Override
-        public Boolean call(Integer v) {
-            if (v == 42)
-                throw new RuntimeException("that's not the answer to everything!");
-            return v < 5;
+    private static final Predicate<Integer> LESS_THAN_FIVE = v -> {
+        if (v == 42) {
+            throw new RuntimeException("that's not the answer to everything!");
         }
+        return v < 5;
     };
 
-    private static final Function<Integer, Boolean> INDEX_LESS_THAN_THREE = new Function<Integer, Boolean>() {
+    final Predicate<Integer> INDEX_LESS_THAN_THREE = new Predicate<Integer>() {
         int index = 0;
         @Override
-        public Boolean call(Integer value) {
+        public boolean test(Integer value) {
             return index++ < 3;
         }
     };
@@ -56,7 +47,12 @@ public class OperatorSkipWhileTest {
     @Test
     public void testSkipWithIndex() {
         Flowable<Integer> src = Flowable.just(1, 2, 3, 4, 5);
-        src.skipWhile(INDEX_LESS_THAN_THREE).subscribe(w);
+
+        @SuppressWarnings("unchecked")
+        Subscriber<Integer> w = mock(Subscriber.class);
+        TestSubscriber<Integer> ts = new TestSubscriber<>(w);
+        
+        src.skipWhile(INDEX_LESS_THAN_THREE).subscribe(ts);
 
         InOrder inOrder = inOrder(w);
         inOrder.verify(w, times(1)).onNext(4);
@@ -67,8 +63,14 @@ public class OperatorSkipWhileTest {
 
     @Test
     public void testSkipEmpty() {
+        @SuppressWarnings("unchecked")
+        Subscriber<Integer> w = mock(Subscriber.class);
+        TestSubscriber<Integer> ts = new TestSubscriber<>(w);
+        
         Flowable<Integer> src = Flowable.empty();
-        src.skipWhile(LESS_THAN_FIVE).subscribe(w);
+        
+        src.skipWhile(LESS_THAN_FIVE).subscribe(ts);
+        
         verify(w, never()).onNext(anyInt());
         verify(w, never()).onError(any(Throwable.class));
         verify(w, times(1)).onComplete();
@@ -76,8 +78,14 @@ public class OperatorSkipWhileTest {
 
     @Test
     public void testSkipEverything() {
+        @SuppressWarnings("unchecked")
+        Subscriber<Integer> w = mock(Subscriber.class);
+        TestSubscriber<Integer> ts = new TestSubscriber<>(w);
+
         Flowable<Integer> src = Flowable.just(1, 2, 3, 4, 3, 2, 1);
-        src.skipWhile(LESS_THAN_FIVE).subscribe(w);
+        
+        src.skipWhile(LESS_THAN_FIVE).subscribe(ts);
+        
         verify(w, never()).onNext(anyInt());
         verify(w, never()).onError(any(Throwable.class));
         verify(w, times(1)).onComplete();
@@ -85,8 +93,13 @@ public class OperatorSkipWhileTest {
 
     @Test
     public void testSkipNothing() {
+        @SuppressWarnings("unchecked")
+        Subscriber<Integer> w = mock(Subscriber.class);
+        TestSubscriber<Integer> ts = new TestSubscriber<>(w);
+
         Flowable<Integer> src = Flowable.just(5, 3, 1);
-        src.skipWhile(LESS_THAN_FIVE).subscribe(w);
+        
+        src.skipWhile(LESS_THAN_FIVE).subscribe(ts);
 
         InOrder inOrder = inOrder(w);
         inOrder.verify(w, times(1)).onNext(5);
@@ -98,8 +111,13 @@ public class OperatorSkipWhileTest {
 
     @Test
     public void testSkipSome() {
+        @SuppressWarnings("unchecked")
+        Subscriber<Integer> w = mock(Subscriber.class);
+        TestSubscriber<Integer> ts = new TestSubscriber<>(w);
+
         Flowable<Integer> src = Flowable.just(1, 2, 3, 4, 5, 3, 1, 5);
-        src.skipWhile(LESS_THAN_FIVE).subscribe(w);
+        
+        src.skipWhile(LESS_THAN_FIVE).subscribe(ts);
 
         InOrder inOrder = inOrder(w);
         inOrder.verify(w, times(1)).onNext(5);
@@ -112,8 +130,13 @@ public class OperatorSkipWhileTest {
 
     @Test
     public void testSkipError() {
+        @SuppressWarnings("unchecked")
+        Subscriber<Integer> w = mock(Subscriber.class);
+        TestSubscriber<Integer> ts = new TestSubscriber<>(w);
+
         Flowable<Integer> src = Flowable.just(1, 2, 42, 5, 3, 1);
-        src.skipWhile(LESS_THAN_FIVE).subscribe(w);
+        
+        src.skipWhile(LESS_THAN_FIVE).subscribe(ts);
 
         InOrder inOrder = inOrder(w);
         inOrder.verify(w, never()).onNext(anyInt());
@@ -127,10 +150,12 @@ public class OperatorSkipWhileTest {
         int n = 5;
         for (int i = 0; i < n; i++) {
             @SuppressWarnings("unchecked")
-            Observer<Object> o = mock(Observer.class);
+            Subscriber<Integer> o = mock(Subscriber.class);
+            TestSubscriber<Integer> ts = new TestSubscriber<>(o);
+
             InOrder inOrder = inOrder(o);
             
-            src.subscribe(o);
+            src.subscribe(ts);
             
             for (int j = 5; j < 10; j++) {
                 inOrder.verify(o).onNext(j);
@@ -138,5 +163,109 @@ public class OperatorSkipWhileTest {
             inOrder.verify(o).onComplete();
             verify(o, never()).onError(any(Throwable.class));
         }
+    }
+    
+    @Test
+    public void backpressureSkipSome() {
+        Flowable<Integer> source = Flowable.range(1, 10).skipWhile(n -> n < 5);
+        
+        TestSubscriber<Integer> ts = new TestSubscriber<>(0);
+        
+        source.subscribe(ts);
+        
+        ts.assertSubscription();
+        ts.assertNoValues();
+        ts.assertNoTerminalEvent();
+        
+        ts.requestMore(2);
+        
+        ts.assertValues(5, 6);
+        ts.assertNoTerminalEvent();
+        
+        ts.requestMore(10);
+        ts.assertValues(5, 6, 7, 8, 9, 10);
+        ts.assertNoErrors();
+        ts.assertComplete();
+    }
+    @Test
+    public void backpressureSkipAll() {
+        Flowable<Integer> source = Flowable.range(1, 10).skipWhile(n -> true);
+        
+        TestSubscriber<Integer> ts = new TestSubscriber<>(0);
+        
+        source.subscribe(ts);
+        
+        ts.assertSubscription();
+        ts.assertNoValues();
+        ts.assertNoTerminalEvent();
+        
+        ts.requestMore(2);
+        
+        ts.assertNoValues();
+        ts.assertNoErrors();
+        ts.assertComplete();
+    }
+    @Test
+    public void backpressureSkipNone() {
+        Flowable<Integer> source = Flowable.range(1, 10).skipWhile(n -> false);
+        
+        TestSubscriber<Integer> ts = new TestSubscriber<>(0);
+        
+        source.subscribe(ts);
+        
+        ts.assertSubscription();
+        ts.assertNoValues();
+        ts.assertNoTerminalEvent();
+        
+        ts.requestMore(2);
+
+        ts.assertValues(1, 2);
+        ts.assertNoTerminalEvent();
+        
+        ts.requestMore(10);
+        
+        ts.assertValues(1, 2, 3, 4, 5, 6, 7, 8, 9, 10);
+        ts.assertNoErrors();
+        ts.assertComplete();
+    }
+    
+    public void cancelBeforeSkip() {
+        Flowable<Integer> source = Flowable.range(1, 10).skipWhile(n -> false);
+        
+        TestSubscriber<Integer> ts = new TestSubscriber<>(0);
+        
+        source.subscribe(ts);
+        
+        ts.cancel();
+        
+        ts.assertSubscription();
+        ts.assertNoValues();
+        ts.assertNoTerminalEvent();
+
+    }
+    public void cancelAfterSkip() {
+        Flowable<Integer> source = Flowable.range(1, 10).skipWhile(n -> n < 5);
+        
+        TestSubscriber<Integer> ts = new TestSubscriber<Integer>(0) {
+            @Override
+            public void onNext(Integer item) {
+                super.onNext(item);
+                if (item == 6) {
+                    subscription().cancel();
+                }
+            }
+        };
+        
+        source.subscribe(ts);
+        
+        ts.assertSubscription();
+        ts.assertNoValues();
+        ts.assertNoTerminalEvent();
+
+        ts.requestMore(10);
+        
+        ts.assertValues(5, 6);
+        ts.assertNoErrors();
+        ts.assertNoComplete();
     }
 }

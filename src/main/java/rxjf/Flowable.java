@@ -7433,7 +7433,7 @@ public class Flowable<T> implements Publisher<T> {
      * @see <a href="http://reactivex.io/documentation/operators/skipwhile.html">ReactiveX operators documentation: SkipWhile</a>
      */
     public final Flowable<T> skipWhile(Predicate<? super T> predicate) {
-        return lift(new OperatorSkipWhile<T>(OperatorSkipWhile.toPredicate2(predicate)));
+        return lift(new OperatorSkipWhile<T>(predicate));
     }
 
     /**
