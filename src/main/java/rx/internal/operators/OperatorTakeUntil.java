@@ -87,13 +87,21 @@ public final class OperatorTakeUntil<T, E> implements Operator<T, T> {
         @Override
         public void onError(Throwable throwable) {
             if (UNSAFE.getAndSetInt(this, GATE, 1) == 0) {
-                child.onError(throwable);
+                try {
+                    child.onError(throwable);
+                } finally {
+                    subscription.cancel();
+                }
             }
         }
         @Override
         public void onComplete() {
             if (UNSAFE.getAndSetInt(this, GATE, 1) == 0) {
-                child.onComplete();
+                try {
+                    child.onComplete();
+                } finally {
+                    subscription.cancel();
+                }
             }
         }
     }
@@ -109,27 +117,15 @@ public final class OperatorTakeUntil<T, E> implements Operator<T, T> {
         }
         @Override
         public void onNext(Object item) {
-            try {
-                parent.onComplete();
-            } finally {
-                subscription.cancel();
-            }
+            parent.onComplete();
         }
         @Override
         public void onError(Throwable throwable) {
-            try {
-                parent.onError(throwable);
-            } finally {
-                subscription.cancel();
-            }
+            parent.onError(throwable);
         }
         @Override
         public void onComplete() {
-            try {
-                parent.onComplete();
-            } finally {
-                subscription.cancel();
-            }
+            parent.onComplete();
         }
     }
 }
