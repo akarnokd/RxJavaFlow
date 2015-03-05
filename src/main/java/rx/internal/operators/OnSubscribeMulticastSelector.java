@@ -17,11 +17,11 @@ package rx.internal.operators;
 
 import java.util.function.*;
 
-import rx.*;
-import rx.Flow.Processor;
 import rx.Flow.Subscriber;
+import rx.*;
 import rx.Observable.OnSubscribe;
 import rx.observables.ConnectableObservable;
+import rx.subjects.Subject;
 import rx.subscribers.*;
 
 /**
@@ -36,11 +36,11 @@ import rx.subscribers.*;
  */
 public final class OnSubscribeMulticastSelector<TInput, TIntermediate, TResult> implements OnSubscribe<TResult> {
     final Observable<? extends TInput> source;
-    final Supplier<? extends Processor<? super TInput, ? extends TIntermediate>> subjectFactory;
+    final Supplier<? extends Subject<? super TInput, ? extends TIntermediate>> subjectFactory;
     final Function<? super Observable<TIntermediate>, ? extends Observable<TResult>> resultSelector;
     
     public OnSubscribeMulticastSelector(Observable<? extends TInput> source,
-            Supplier<? extends Processor<? super TInput, ? extends TIntermediate>> subjectFactory,
+            Supplier<? extends Subject<? super TInput, ? extends TIntermediate>> subjectFactory,
             Function<? super Observable<TIntermediate>, ? extends Observable<TResult>> resultSelector) {
         this.source = source;
         this.subjectFactory = subjectFactory;
@@ -60,7 +60,7 @@ public final class OnSubscribeMulticastSelector<TInput, TIntermediate, TResult> 
             return;
         }
         
-        AbstractDisposableSubscriber<? super TResult> ds = DefaultDisposableSubscriber.wrap(child);
+        DisposableSubscriber<? super TResult> ds = DisposableSubscriber.from(child);
         
         observable.subscribe(ds);
         

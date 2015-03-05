@@ -19,16 +19,16 @@ import java.util.*;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.*;
 
-import rx.*;
-import rx.Flow.Processor;
 import rx.Flow.Subscriber;
 import rx.Flow.Subscription;
+import rx.Observable;
 import rx.disposables.Disposable;
 import rx.observables.ConnectableObservable;
+import rx.subjects.Subject;
 import rx.subscribers.AbstractDisposableSubscriber;
 
 /**
- * Shares a single subscription to a source through a Processor.
+ * Shares a single subscription to a source through a Subject.
  * 
  * @param <T>
  *            the source value type
@@ -38,8 +38,8 @@ import rx.subscribers.AbstractDisposableSubscriber;
 public final class OperatorMulticast<T, R> extends ConnectableObservable<R> {
     final Observable<? extends T> source;
     final Object guard;
-    final Supplier<? extends Processor<? super T, ? extends R>> processorFactory;
-    final AtomicReference<Processor<? super T, ? extends R>> connectedProcessor;
+    final Supplier<? extends Subject<? super T, ? extends R>> subjectFactory;
+    final AtomicReference<Subject<? super T, ? extends R>> connectedSubject;
     final List<Subscriber<? super R>> waitingForConnect;
 
     /** Guarded by guard. */
@@ -47,43 +47,36 @@ public final class OperatorMulticast<T, R> extends ConnectableObservable<R> {
     // wraps subscription above for unsubscription using guard
     private Disposable guardedSubscription;
 
-    public OperatorMulticast(Observable<? extends T> source, final Supplier<? extends Processor<? super T, ? extends R>> processorFactory) {
-        this(new Object(), new AtomicReference<Processor<? super T, ? extends R>>(), new ArrayList<Subscriber<? super R>>(), source, processorFactory);
+    public OperatorMulticast(Observable<? extends T> source, final Supplier<? extends Subject<? super T, ? extends R>> subjectFactory) {
+        this(new Object(), new AtomicReference<Subject<? super T, ? extends R>>(), new ArrayList<Subscriber<? super R>>(), source, subjectFactory);
     }
 
     private OperatorMulticast(final Object guard, 
-            final AtomicReference<Processor<? super T, ? extends R>> connectedProcessor, 
+            final AtomicReference<Subject<? super T, ? extends R>> connectedSubject, 
             final List<Subscriber<? super R>> waitingForConnect, 
             Observable<? extends T> source, 
-            final Supplier<? extends Processor<? super T, ? extends R>> processorFactory) {
+            final Supplier<? extends Subject<? super T, ? extends R>> subjectFactory) {
         super(s -> {
             synchronized (guard) {
-                Processor<? super T, ? extends R> processor = connectedProcessor.get();
-                if (processor == null) {
+                Subject<? super T, ? extends R> subject = connectedSubject.get();
+                if (subject == null) {
                     // not connected yet, so register
                     waitingForConnect.add(s);
                 } else {
-                    if (processor instanceof Observable) {
-                        // we are already connected so subscribe directly
-                        @SuppressWarnings("unchecked")
-                        Observable<R> p = (Observable<R>)processor;
-                        p.unsafeSubscribe(s);
-                    } else {
-                        processor.subscribe(s);
-                    }
+                    subject.unsafeSubscribe(s);
                 }
             }
         });
         this.guard = guard;
-        this.connectedProcessor = connectedProcessor;
+        this.connectedSubject = connectedSubject;
         this.waitingForConnect = waitingForConnect;
         this.source = source;
-        this.processorFactory = processorFactory;
+        this.subjectFactory = subjectFactory;
     }
 
     @Override
     public void connect(Consumer<? super Disposable> connection) {
-        // each time we connect we create a new Processor and Subscription
+        // each time we connect we create a new Subject and Subscription
 
         // subscription is the state of whether we are connected or not
         synchronized (guard) {
@@ -92,29 +85,29 @@ public final class OperatorMulticast<T, R> extends ConnectableObservable<R> {
                 connection.accept(guardedSubscription);
                 return;
             } else {
-                // we aren't connected, so let's create a new Processor and connect
-                final Processor<? super T, ? extends R> processor = processorFactory.get();
+                // we aren't connected, so let's create a new Subject and connect
+                final Subject<? super T, ? extends R> subject = subjectFactory.get();
                 
-                // create new Subscriber that will pass-thru to the processor we just created
-                // we do this since it is also a Subscription whereas the Processor is not
+                // create new Subscriber that will pass-thru to the subject we just created
+                // we do this since it is also a Subscription whereas the Subject is not
                 subscriber = new AbstractDisposableSubscriber<T>() {
                     @Override
                     protected void internalOnSubscribe(Subscription subscription) {
-                        processor.onSubscribe(subscription);
+                        subject.onSubscribe(subscription);
                     }
                     @Override
                     public void internalOnComplete() {
-                        processor.onComplete();
+                        subject.onComplete();
                     }
 
                     @Override
                     public void internalOnError(Throwable e) {
-                        processor.onError(e);
+                        subject.onError(e);
                     }
 
                     @Override
                     public void internalOnNext(T args) {
-                        processor.onNext(args);
+                        subject.onNext(args);
                     }
                 };
                 final AtomicReference<Disposable> gs = new AtomicReference<>();
@@ -127,7 +120,7 @@ public final class OperatorMulticast<T, R> extends ConnectableObservable<R> {
                         s = subscriber;
                         subscriber = null;
                         guardedSubscription = null;
-                        connectedProcessor.set(null);
+                        connectedSubject.set(null);
                     }
                     if (s != null) {
                         s.dispose();
@@ -135,22 +128,17 @@ public final class OperatorMulticast<T, R> extends ConnectableObservable<R> {
                 }));
                 guardedSubscription = gs.get();
                 
-                // register any subscribers that are waiting with this new processor
-                if (processor instanceof Observable) {
-                    @SuppressWarnings("unchecked")
-                    Observable<R> p = (Observable<R>)processor;
-                    for(Subscriber<? super R> s : waitingForConnect) {
-                        p.unsafeSubscribe(s);
-                    }
-                } else {
-                    for(Subscriber<? super R> s : waitingForConnect) {
-                        processor.subscribe(s);
-                    }
+                // register any subscribers that are waiting with this new subject
+                @SuppressWarnings("unchecked")
+                Observable<R> p = (Observable<R>)subject;
+                for(Subscriber<? super R> s : waitingForConnect) {
+                    p.unsafeSubscribe(s);
                 }
-                // clear the waiting list as any new ones that come in after leaving this synchronized block will go direct to the Processor
+                
+                // clear the waiting list as any new ones that come in after leaving this synchronized block will go direct to the Subject
                 waitingForConnect.clear();
-                // record the Processor so OnSubscribe can see it
-                connectedProcessor.set(processor);
+                // record the Subject so OnSubscribe can see it
+                connectedSubject.set(subject);
             }
             
         }

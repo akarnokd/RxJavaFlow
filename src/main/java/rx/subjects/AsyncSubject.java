@@ -32,9 +32,9 @@ import rx.internal.subscriptions.*;
  */
 public final class AsyncSubject<T> extends Subject<T, T> {
     /**
-     * Creates and returns a new {@code AsyncProcessor}.
+     * Creates and returns a new {@code AsyncSubject}.
      * @param <T> the result value type
-     * @return the new {@code AsyncProcessor}
+     * @return the new {@code AsyncSubject}
      */
     public static <T> AsyncSubject<T> create() {
         SubjectSubscriberManager<T> psm = new SubjectSubscriberManager<>();

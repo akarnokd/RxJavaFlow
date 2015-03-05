@@ -25,7 +25,7 @@ import rx.internal.Conformance;
  * is set via setActual.
  * <p>
  * This subscription can be used in places where the actual subscription value is delayed
- * or may never appear (such as with {@link rxjf.processors.Processor}s} and
+ * or may never appear (such as with {@link rx.subjects.Subject}s} and
  * operating a Subscription may be required in the meantime.
  */
 public final class DelayedSubscription implements Subscription {

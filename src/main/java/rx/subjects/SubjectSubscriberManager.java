@@ -21,7 +21,7 @@ import rx.Flow.Subscriber;
 import rx.internal.*;
 
 /**
- * Manages the Subscribers and current/terminal value for the Processors.
+ * Manages the Subscribers and current/terminal value for the Subjects.
  */
 final class SubjectSubscriberManager<T> extends AbstractArrayManager<Subscriber<? super T>> {
     volatile Object value;
