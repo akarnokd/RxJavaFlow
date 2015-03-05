@@ -82,6 +82,9 @@ public final class OperatorPublish<T> extends ConnectableObservable<T> {
             PublishSubscriber<T> c = state.current;
             InnerSubscription<T> inner = new InnerSubscription<>(s, c);
             inner.setRemover();
+            
+            s.onSubscribe(inner);
+            
             if (!c.psm.add(inner)) {
                 Object term = c.psm.terminal;
                 NotificationLite<T> nl = NotificationLite.instance();
@@ -91,7 +94,6 @@ public final class OperatorPublish<T> extends ConnectableObservable<T> {
                     inner.errorFinal(nl.getError(term));
                 }
             } else {
-                s.onSubscribe(inner);
                 c.dispatch();
             }
         });
