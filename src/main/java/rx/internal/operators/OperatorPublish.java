@@ -26,6 +26,7 @@ import rx.disposables.Disposable;
 import rx.exceptions.Exceptions;
 import rx.internal.*;
 import rx.internal.queues.SpscArrayQueue;
+import rx.internal.subscriptions.DelayedSubscription;
 import rx.observables.ConnectableObservable;
 import rx.subscribers.*;
 
@@ -78,23 +79,28 @@ public final class OperatorPublish<T> extends ConnectableObservable<T> {
     final PublishState<T> state;
 
     private OperatorPublish(Observable<? extends T> source, PublishState<T> state) {
-        super(s -> { 
-            PublishSubscriber<T> c = state.current;
-            InnerSubscription<T> inner = new InnerSubscription<>(s, c);
-            inner.setRemover();
-            
-            s.onSubscribe(inner);
-            
-            if (!c.psm.add(inner)) {
-                Object term = c.psm.terminal;
-                NotificationLite<T> nl = NotificationLite.instance();
-                if (nl.isCompleted(term)) {
-                    inner.complete();
-                } else {
-                    inner.errorFinal(nl.getError(term));
+        super(s -> {
+            DelayedSubscription ds = new DelayedSubscription(s);
+            s.onSubscribe(ds);
+            for (;;) {
+                PublishSubscriber<T> c;
+                synchronized (state) {
+                    c = state.current;
+                    if (c.isDisposed()) {
+                        c = new PublishSubscriber<>();
+                        state.current = c;
+                    }
                 }
-            } else {
-                c.dispatch();
+
+                InnerSubscription<T> inner = new InnerSubscription<>(s, c);
+                inner.setRemover();
+                
+                if (c.psm.add(inner)) {
+                    ds.setActual(inner);
+                    c.dispatch();
+                    return;
+                }
+                // disconnected, retry with a new connection
             }
         });
         this.source = source;
@@ -105,7 +111,7 @@ public final class OperatorPublish<T> extends ConnectableObservable<T> {
     public void connect(Consumer<? super Disposable> connection) {
         PublishSubscriber<T> c;
         boolean connect = false;
-        synchronized (this) {
+        synchronized (state) {
             c = state.current;
             if (c.isDisposed()) {
                 c = new PublishSubscriber<>();

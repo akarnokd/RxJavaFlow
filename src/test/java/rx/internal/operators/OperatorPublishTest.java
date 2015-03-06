@@ -183,4 +183,32 @@ public class OperatorPublishTest {
         
         assertEquals(8, sourceEmission.get());
     }
+    
+    @Test
+    public void testSubscribeAfterDisconnectThenConnect() {
+        ConnectableObservable<Integer> source = Observable.just(1).publish();
+
+        TestSubscriber<Integer> ts1 = new TestSubscriber<>();
+
+        source.subscribe(ts1);
+
+        Disposable s = source.connect();
+
+        ts1.assertValues(1);
+        ts1.assertNoErrors();
+        ts1.assertTerminalEvent();
+
+        TestSubscriber<Integer> ts2 = new TestSubscriber<>();
+
+        source.subscribe(ts2);
+
+        Disposable s2 = source.connect();
+
+        ts2.assertValues(1);
+        ts2.assertNoErrors();
+        ts2.assertTerminalEvent();
+
+        System.out.println(s);
+        System.out.println(s2);
+    }
 }
